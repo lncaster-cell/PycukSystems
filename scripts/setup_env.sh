@@ -1,36 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "[ERROR] python3 не найден. Установите Python 3.10+ и повторите." >&2
-  exit 1
-fi
+# Подготовка workspace для модульной системы NWN2
+mkdir -p \
+  docs \
+  scripts \
+  src/core \
+  src/controllers \
+  src/modules/npc_behavior \
+  src/integrations/nwnx_sqlite \
+  benchmarks
 
-PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+touch src/core/.gitkeep \
+      src/controllers/.gitkeep \
+      src/modules/npc_behavior/.gitkeep \
+      src/integrations/nwnx_sqlite/.gitkeep \
+      benchmarks/.gitkeep
 
-if ! python3 - <<'PY'
-import sys
-sys.exit(0 if sys.version_info >= (3, 10) else 1)
-PY
-then
-  echo "[ERROR] Требуется Python >= 3.10. Найден: ${PYTHON_VERSION}" >&2
-  exit 1
-fi
-
-if [ ! -d .venv ]; then
-  python3 -m venv .venv
-  echo "[OK] Создано виртуальное окружение .venv"
-else
-  echo "[OK] .venv уже существует"
-fi
-
-# shellcheck disable=SC1091
-source .venv/bin/activate
-
-if python -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1; then
-  echo "[OK] Базовые пакеты pip/setuptools/wheel обновлены"
-else
-  echo "[WARN] Не удалось обновить pip/setuptools/wheel (возможны сетевые ограничения). Продолжаем."
-fi
-
-echo "[OK] Окружение готово. Активируйте его командой: source .venv/bin/activate"
+echo "[OK] Workspace подготовлен: создана базовая структура для NWN2 модульной системы"
