@@ -73,6 +73,52 @@
 - Отсутствие периодических latency-spike при пиковых событиях.
 - Воспроизводимость поведения NPC при reload модуля.
 
+### 7.4 SLO, perf-gate и rollback для первой фазы NPC
+
+#### SLO (Phase 1)
+- **p95 area-tick latency:** не более **12 ms** на area при штатной целевой нагрузке.
+- **Queue depth (event/tick queue):** p95 не более **200**, p99 не более **300** элементов.
+- **Dropped/Deferred events:** суммарно не более **0.5%** от всех входящих событий за 10-минутное окно.
+- **Tick budget overruns:** не более **1%** тиков с превышением budget cap.
+
+#### Perf-gate для merge
+- Любое изменение блокируется к merge, если в benchmark-сценарии первой фазы фиксируется деградация любой ключевой метрики выше порога:
+  - p95 area-tick latency: ухудшение более **+5%**;
+  - p99 queue depth: ухудшение более **+10%**;
+  - dropped/deferred events: рост более **+0.2 п.п.**;
+  - DB flush duration p95: ухудшение более **+10%**.
+- Сравнение выполняется относительно актуального baseline (не старше 14 дней) по минимум 3 прогонам.
+
+#### Rollback-процедура
+1. **Сразу снизить нагрузку на runtime-фичи NPC**:
+   - отключить/ослабить тяжёлые AI-step ветки;
+   - уменьшить лимит задач на тик;
+   - увеличить интервал обработки «холодных» состояний.
+2. **Откатить tuning-константы контроллера** к последним стабильным значениям:
+   - bucket count;
+   - jitter window;
+   - tick budget cap;
+   - queue soft/hard limit.
+3. **Отключить новые event-hooks**, добавленные в релизе, если после п.1–2 деградация сохраняется.
+4. **Диагностика в фиксированном порядке**:
+   - проверить tick orchestration latency по area;
+   - проверить queue growth / deferred-rate;
+   - проверить DB flush p95/p99 и размер batch;
+   - проверить AI step cost (hot path) по типам NPC.
+5. **Если SLO не восстановлены** — выполнить частичный rollback модуля NPC до предыдущей стабильной версии и повторить валидацию baseline.
+
+#### Минимальный runtime-набор метрик
+- **Tick orchestration:** p50/p95/p99 area-tick time, budget overrun rate, queue depth.
+- **DB flush:** batch size, flush duration p50/p95/p99, flush error rate.
+- **AI step cost:** средняя и p95 длительность шага, top-N самых дорогих handlers, deferred-rate по шагам.
+
+#### Checklist: Перед merge
+- [ ] Бенчмарк первой фазы пройден (≥ 3 прогона), отчёт приложен.
+- [ ] Perf-gate пороги не нарушены относительно baseline.
+- [ ] Проверены SLO по p95 area-tick, queue depth и dropped/deferred events.
+- [ ] Зафиксирован rollback-план для изменённых флагов/констант.
+- [ ] Обновлены runtime-дашборды для tick orchestration, DB flush и AI step cost.
+
 ## 8. План этапов
 1. Каркас ядра событий и контракт модулей.
 2. Реализация area-tick контроллера с бакетами/jitter.
