@@ -1,8 +1,8 @@
-// NPC behavior module: combat synchronizer entrypoint (OnEndCombatRound / OnAttacked helpers).
+// NPC behavior module: OnEndCombatRound entrypoint.
 
 #include "npc_behavior_core"
 
 void main()
 {
-    NpcBehaviorOnHeartbeat(OBJECT_SELF);
+    NpcBehaviorOnEndCombatRound(OBJECT_SELF);
 }
