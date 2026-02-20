@@ -4,6 +4,13 @@
 
 ---
 
+## Текущий статус (обновление)
+
+- **Task 3.2 (частично):** в `src/modules/npc_behavior/npc_behavior_core.nss` внедрены базовые runtime guardrails (bounded queue, coalesce, degraded mode, overflow handling c CRITICAL reserve).
+- **Следующий шаг по Task 3.2:** вынести area lifecycle (`RUNNING/PAUSED/STOPPED`) в отдельный area-controller script и добавить сценарные perf-проверки под queue fairness.
+
+---
+
 ## Epic 1. NWNX/SQLite foundation
 
 ### Task 1.1 — Подключение NWNX-плагинов и базового SQLite-конфига

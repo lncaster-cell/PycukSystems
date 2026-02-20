@@ -17,6 +17,7 @@ const int NPC_AREA_QUEUE_CAPACITY = 96;
 const int NPC_AREA_DEGRADED_HIGH_WATERMARK = 72;
 const int NPC_AREA_DEGRADED_LOW_WATERMARK = 24;
 const int NPC_COALESCE_WINDOW_SEC = 2;
+const int NPC_AREA_CRITICAL_RESERVE = 8;
 
 const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
 const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
@@ -89,34 +90,45 @@ void NpcBehaviorMetricInc(object oTarget, string sMetric)
 
 void NpcBehaviorAreaQueueAdjust(object oArea, int nPriority, int nDelta)
 {
+    int nDepth;
+    int nBucket;
+    string sBucketVar;
+
     if (!GetIsObjectValid(oArea) || nDelta == 0)
     {
         return;
     }
 
-    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) + nDelta);
+    nDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) + nDelta;
+    if (nDepth < 0)
+    {
+        nDepth = 0;
+    }
+    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, nDepth);
 
     if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
     {
-        SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_CRITICAL, GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_CRITICAL) + nDelta);
+        sBucketVar = NPC_VAR_AREA_QUEUE_CRITICAL;
     }
     else if (nPriority == NPC_EVENT_PRIORITY_HIGH)
     {
-        SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH, GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH) + nDelta);
+        sBucketVar = NPC_VAR_AREA_QUEUE_HIGH;
     }
     else if (nPriority == NPC_EVENT_PRIORITY_NORMAL)
     {
-        SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL, GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL) + nDelta);
+        sBucketVar = NPC_VAR_AREA_QUEUE_NORMAL;
     }
     else
     {
-        SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW, GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW) + nDelta);
+        sBucketVar = NPC_VAR_AREA_QUEUE_LOW;
     }
 
-    if (GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) < 0)
+    nBucket = GetLocalInt(oArea, sBucketVar) + nDelta;
+    if (nBucket < 0)
     {
-        SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, 0);
+        nBucket = 0;
     }
+    SetLocalInt(oArea, sBucketVar, nBucket);
 }
 
 int NpcBehaviorAreaTryQueueEvent(object oArea, int nPriority)
@@ -137,17 +149,43 @@ int NpcBehaviorAreaTryQueueEvent(object oArea, int nPriority)
 
     NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_OVERFLOW);
 
-    // CRITICAL events могут вытеснить LOW из bounded queue.
-    if (nPriority == NPC_EVENT_PRIORITY_CRITICAL && GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW) > 0)
+    // CRITICAL events могут вытеснить сначала LOW, затем NORMAL/HIGH.
+    if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
     {
-        NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -1);
-        NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, 1);
-        NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_DEFERRED);
-        return TRUE;
+        if (GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW) > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -1);
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, 1);
+            NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_DEFERRED);
+            return TRUE;
+        }
+
+        if (GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL) > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_NORMAL, -1);
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, 1);
+            NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_DEFERRED);
+            return TRUE;
+        }
+
+        if (GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH) > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_HIGH, -1);
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, 1);
+            NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_DEFERRED);
+            return TRUE;
+        }
+
+        // Emergency reserve: CRITICAL может превысить nominal capacity.
+        if (nQueueDepth < (NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE))
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, 1);
+            return TRUE;
+        }
     }
 
     NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_DEFERRED);
-    return (nPriority == NPC_EVENT_PRIORITY_CRITICAL);
+    return FALSE;
 }
 
 int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
@@ -179,6 +217,63 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
 
     oArea = GetArea(oNpc);
     return NpcBehaviorAreaTryQueueEvent(oArea, nPriority);
+}
+
+
+void NpcBehaviorAreaDrainQueue(object oArea, int nBudget)
+{
+    int nTake;
+
+    if (!GetIsObjectValid(oArea) || nBudget <= 0)
+    {
+        return;
+    }
+
+    nTake = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW);
+    if (nTake > nBudget)
+    {
+        nTake = nBudget;
+    }
+    NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -nTake);
+    nBudget = nBudget - nTake;
+
+    if (nBudget <= 0)
+    {
+        return;
+    }
+
+    nTake = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL);
+    if (nTake > nBudget)
+    {
+        nTake = nBudget;
+    }
+    NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_NORMAL, -nTake);
+    nBudget = nBudget - nTake;
+
+    if (nBudget <= 0)
+    {
+        return;
+    }
+
+    nTake = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH);
+    if (nTake > nBudget)
+    {
+        nTake = nBudget;
+    }
+    NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_HIGH, -nTake);
+    nBudget = nBudget - nTake;
+
+    if (nBudget <= 0)
+    {
+        return;
+    }
+
+    nTake = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_CRITICAL);
+    if (nTake > nBudget)
+    {
+        nTake = nBudget;
+    }
+    NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, -nTake);
 }
 
 void NpcBehaviorUpdateAreaDegradedMode(object oArea)
@@ -557,18 +652,7 @@ void NpcBehaviorOnAreaTick(object oArea)
     nQueueDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH);
     if (nProcessed > 0 && nQueueDepth > 0)
     {
-        if (nProcessed >= nQueueDepth)
-        {
-            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, 0);
-            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_CRITICAL, 0);
-            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH, 0);
-            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL, 0);
-            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW, 0);
-        }
-        else
-        {
-            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -nProcessed);
-        }
+        NpcBehaviorAreaDrainQueue(oArea, nProcessed);
     }
 
     NpcBehaviorUpdateAreaDegradedMode(oArea);

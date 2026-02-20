@@ -81,7 +81,8 @@ Phase 1 использует единый helper записи метрик `NpcB
 
 - bounded area queue через `npc_area_queue_depth` + priority buckets (`critical/high/normal/low`);
 - coalesce окно `NPC_COALESCE_WINDOW_SEC` для шумных non-critical событий (`perception/dialogue/spell/combat_round`);
-- при overflow non-critical события уходят в defer, а `CRITICAL` может вытеснить `LOW`;
+- при overflow non-critical события уходят в defer, а `CRITICAL` вытесняет последовательно `LOW -> NORMAL -> HIGH`;
+- для пикового боевого шторма есть emergency reserve (`NPC_AREA_CRITICAL_RESERVE`) сверх nominal `queueCapacity`;
 - auto degraded mode (`npc_area_degraded_mode`) по high/low watermarks и selective skip idle-heartbeat при перегрузке.
 
 ### Metric keys для write-behind слоя (планируемый whitelist)
