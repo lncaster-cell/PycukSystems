@@ -1,4 +1,31 @@
 .venv/
 __pycache__/
 *.pyc
-.vs/ 
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor temp files
+*~
+*.swp
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# Local logs
+*.log
+
+# Generated artifacts
+/output/
+/benchmarks/npc_baseline/results/
+
+# NWN compiler artifacts (can appear near source files in check mode)
+*.ncs
+*.ndb
