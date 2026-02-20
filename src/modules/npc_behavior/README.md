@@ -8,14 +8,18 @@
 
 ## Hook-скрипты (entrypoints)
 
-- `npc_behavior_spawn.nss` — OnSpawn (P0)
-- `npc_behavior_perception.nss` — OnPerception (P0)
-- `npc_behavior_damaged.nss` — OnDamaged (P0)
-- `npc_behavior_death.nss` — OnDeath (P0)
-- `npc_behavior_dialogue.nss` — OnDialogue (P0)
-- `npc_behavior_heartbeat.nss` — OnHeartbeat (P1)
-- `npc_behavior_combat.nss` — OnEndCombatRound/боевой sync helper (P1)
-- `npc_behavior_tick.nss` — area-local tick dispatcher с budget cap
+| Hook | Core handler | Приоритет |
+| --- | --- | --- |
+| OnSpawn | `NpcBehaviorOnSpawn` | P0 |
+| OnPerception | `NpcBehaviorOnPerception` | P0 |
+| OnDamaged | `NpcBehaviorOnDamaged` | P0 |
+| OnPhysicalAttacked | `NpcBehaviorOnPhysicalAttacked` | P0 |
+| OnSpellCastAt | `NpcBehaviorOnSpellCastAt` | P0 |
+| OnDeath | `NpcBehaviorOnDeath` | P0 |
+| OnDialogue | `NpcBehaviorOnDialogue` | P0 |
+| OnHeartbeat | `NpcBehaviorOnHeartbeat` | P1 |
+| OnEndCombatRound | `NpcBehaviorOnEndCombatRound` | P1 |
+| area-local tick dispatcher | `NpcBehaviorOnAreaTick` | P2 |
 
 ## Поведенческие свойства (через Local Variables)
 
@@ -43,7 +47,7 @@
 - централизация логики хуков через единый include;
 - state transitions `IDLE/ALERT/COMBAT`;
 - tick pacing и лимит `NPC_TICK_PROCESS_LIMIT`;
-- минимальная телеметрия (`spawn/perception/damaged/death/dialogue` counters);
+- минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/end_combat_round/death/dialogue` counters);
 - связка `OnDeath + decays/lootable` и `OnPerception + hidden AI disable`.
 
 ## Следующие шаги

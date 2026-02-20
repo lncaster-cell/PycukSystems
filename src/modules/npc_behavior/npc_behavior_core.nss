@@ -39,6 +39,9 @@ string NPC_VAR_METRIC_PERCEPTION = "npc_metric_perception_count";
 string NPC_VAR_METRIC_DAMAGED = "npc_metric_damaged_count";
 string NPC_VAR_METRIC_DEATH = "npc_metric_death_count";
 string NPC_VAR_METRIC_DIALOG = "npc_metric_dialog_count";
+string NPC_VAR_METRIC_END_COMBAT_ROUND = "npc_metric_end_combat_round_count";
+string NPC_VAR_METRIC_PHYSICAL_ATTACKED = "npc_metric_physical_attacked_count";
+string NPC_VAR_METRIC_SPELL_CAST_AT = "npc_metric_spell_cast_at_count";
 
 int NpcBehaviorTickNow()
 {
@@ -159,6 +162,55 @@ void NpcBehaviorOnDamaged(object oNpc)
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DAMAGED);
 
     if (GetCurrentHitPoints(oNpc) > 0)
+    {
+        SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
+    }
+}
+
+void NpcBehaviorOnEndCombatRound(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc) || NpcBehaviorIsDisabled(oNpc))
+    {
+        return;
+    }
+
+    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_END_COMBAT_ROUND);
+
+    if (!GetIsInCombat(oNpc) && GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
+    {
+        SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_ALERT);
+    }
+}
+
+void NpcBehaviorOnPhysicalAttacked(object oNpc)
+{
+    object oAttacker = GetLastAttacker();
+
+    if (!GetIsObjectValid(oNpc) || NpcBehaviorIsDisabled(oNpc))
+    {
+        return;
+    }
+
+    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PHYSICAL_ATTACKED);
+
+    if (GetIsObjectValid(oAttacker) && GetIsReactionTypeHostile(oAttacker, oNpc))
+    {
+        SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
+    }
+}
+
+void NpcBehaviorOnSpellCastAt(object oNpc)
+{
+    object oCaster = GetLastSpellCaster();
+
+    if (!GetIsObjectValid(oNpc) || NpcBehaviorIsDisabled(oNpc))
+    {
+        return;
+    }
+
+    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPELL_CAST_AT);
+
+    if (GetIsObjectValid(oCaster) && GetIsReactionTypeHostile(oCaster, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
