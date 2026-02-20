@@ -8,6 +8,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INCLUDE_PATHS="${NWN_INCLUDE_PATHS:-${ROOT_DIR}}"
 OVERRIDE_COMPILER="${NWN_COMPILER:-}"
+DOCKER_IMAGE="${NWN_COMPILER_DOCKER_IMAGE:-scottyhardy/docker-wine:latest}"
 
 is_managed_dotnet_assembly() {
   local target="$1"
@@ -61,8 +62,14 @@ resolve_exe_runner() {
     return 0
   fi
 
-  echo "[ERROR] Для ${target} не найден подходящий раннер: mono/wine." >&2
-  echo "[HINT] Установите mono/wine, либо задайте NWN_COMPILER_RUNNER и/или NWN_COMPILER." >&2
+  if command -v docker >/dev/null 2>&1; then
+    printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+      "docker" "run" "--rm" "-v" "${ROOT_DIR}:/work" "-w" "/work" "${DOCKER_IMAGE}" "wine" "$(realpath --relative-to="${ROOT_DIR}" "${target}")"
+    return 0
+  fi
+
+  echo "[ERROR] Для ${target} не найден подходящий раннер: mono/wine/docker." >&2
+  echo "[HINT] Установите mono/wine/docker, либо задайте NWN_COMPILER_RUNNER и/или NWN_COMPILER." >&2
   return 1
 }
 

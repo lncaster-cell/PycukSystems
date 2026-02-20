@@ -42,7 +42,14 @@ bash scripts/compile.sh
 Переопределения для нестандартной среды:
 - `NWN_COMPILER` — путь до компилятора (исполняемый файл, `.exe` или команда из `PATH`).
 - `NWN_COMPILER_RUNNER` — принудительный раннер для `.exe` (например, `mono`, `wine`, `/usr/lib/wine/wine64`).
+- `NWN_COMPILER_DOCKER_IMAGE` — Docker-образ для fallback запуска `.exe` через `wine` (по умолчанию `scottyhardy/docker-wine:latest`).
 - `NWN_INCLUDE_PATHS` — include-пути для компилятора.
+
+Если Linux-версии компилятора нет и локально не установлены `mono/wine`, достаточно установленного Docker:
+```bash
+bash scripts/compile.sh
+```
+Скрипт автоматически попробует fallback через `docker run ... wine`.
 
 ## Observability contract (Phase 1)
 
