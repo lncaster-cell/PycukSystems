@@ -1,4 +1,23 @@
 .venv/
 __pycache__/
 *.pyc
-.vs/ 
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor temp files
+*~
+*.swp
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# Local logs
+*.log
