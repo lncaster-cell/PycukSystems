@@ -72,7 +72,17 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `NpcBehaviorOnAreaTick` (P1, area-level) аккумулирует на area:
   - processed (`npc_area_metric_processed_count`),
   - skipped (`npc_area_metric_skipped_count`),
-  - deferred (`npc_area_metric_deferred_count`).
+  - deferred (`npc_area_metric_deferred_count`),
+  - queue overflow (`npc_area_metric_queue_overflow_count`).
+
+### Intake/coalesce/degraded mode (Phase 1+)
+
+В `npc_behavior_core.nss` добавлены базовые guardrails из runtime-плана:
+
+- bounded area queue через `npc_area_queue_depth` + priority buckets (`critical/high/normal/low`);
+- coalesce окно `NPC_COALESCE_WINDOW_SEC` для шумных non-critical событий (`perception/dialogue/spell/combat_round`);
+- при overflow non-critical события уходят в defer, а `CRITICAL` может вытеснить `LOW`;
+- auto degraded mode (`npc_area_degraded_mode`) по high/low watermarks и selective skip idle-heartbeat при перегрузке.
 
 ### Metric keys для write-behind слоя (планируемый whitelist)
 
@@ -87,9 +97,10 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `npc_area_metric_processed_count`
 - `npc_area_metric_skipped_count`
 - `npc_area_metric_deferred_count`
+- `npc_area_metric_queue_overflow_count`
 
 ## Следующие шаги
 
 1. Подключить реальную инициализацию флагов из template-параметров NPC на OnSpawn.
-2. Добавить bounded queue + coalesce окно на area-orchestrator уровне.
-3. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
+2. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
+3. Формализовать area lifecycle состояния (RUNNING/PAUSED/STOPPED) в отдельном controller script.
