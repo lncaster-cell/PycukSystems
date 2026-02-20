@@ -1,34 +1,77 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Äîáàâëÿåò óäîáíûé ñêðèïò êîìïèëÿöèè âñåõ .nss ôàéëîâ â ïàïêå src/
-# Èñïîëüçîâàíèå:
-#   NWN_INCLUDE_PATHS="/path/to/nwn/includes" bash scripts/compile.sh
+# ÐšÐ¾Ð¼Ð¿Ð¸Ð»Ð¸Ñ€ÑƒÐµÑ‚ Ð²ÑÐµ .nss-ÑÐºÑ€Ð¸Ð¿Ñ‚Ñ‹ Ð¸Ð· src/.
+# ÐŸÐµÑ€ÐµÐ¾Ð¿Ñ€ÐµÐ´ÐµÐ»ÐµÐ½Ð¸Ñ:
+#   NWN_COMPILER="/path/to/compiler(.exe)" NWN_INCLUDE_PATHS="/path/to/includes" bash scripts/compile.sh
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPILER="${ROOT_DIR}/nwnsc"
 INCLUDE_PATHS="${NWN_INCLUDE_PATHS:-${ROOT_DIR}}"
+OVERRIDE_COMPILER="${NWN_COMPILER:-}"
 
-if [[ ! -f "${COMPILER}" ]]; then
-  echo "[ERROR] nwnsc íå íàéäåí ïî ïóòè ${COMPILER}" >&2
+resolve_compiler_cmd() {
+  if [[ -n "${OVERRIDE_COMPILER}" ]]; then
+    if [[ ! -f "${OVERRIDE_COMPILER}" ]]; then
+      echo "[ERROR] NWN_COMPILER ÑƒÐºÐ°Ð·Ñ‹Ð²Ð°ÐµÑ‚ Ð½Ð° Ð½ÐµÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ð¹ Ñ„Ð°Ð¹Ð»: ${OVERRIDE_COMPILER}" >&2
+      return 1
+    fi
+
+    if [[ -x "${OVERRIDE_COMPILER}" ]]; then
+      printf '%s\n' "${OVERRIDE_COMPILER}"
+      return 0
+    fi
+
+    if command -v mono >/dev/null 2>&1; then
+      printf '%s\n%s\n' "mono" "${OVERRIDE_COMPILER}"
+      return 0
+    fi
+
+    if command -v wine >/dev/null 2>&1; then
+      printf '%s\n%s\n' "wine" "${OVERRIDE_COMPILER}"
+      return 0
+    fi
+
+    echo "[ERROR] NWN_COMPILER Ð·Ð°Ð´Ð°Ð½, Ð½Ð¾ Ñ„Ð°Ð¹Ð» Ð½Ðµ Ð¸ÑÐ¿Ð¾Ð»Ð½ÑÐµÐ¼Ñ‹Ð¹ Ð¸ Ð² ÑÐ¸ÑÑ‚ÐµÐ¼Ðµ Ð½ÐµÑ‚ mono/wine: ${OVERRIDE_COMPILER}" >&2
+    return 1
+  fi
+
+  local windows_compiler="${ROOT_DIR}/tools/NWNScriptCompiler.exe"
+  if [[ -f "${windows_compiler}" ]]; then
+    if command -v mono >/dev/null 2>&1; then
+      printf '%s\n%s\n' "mono" "${windows_compiler}"
+      return 0
+    fi
+
+    if command -v wine >/dev/null 2>&1; then
+      printf '%s\n%s\n' "wine" "${windows_compiler}"
+      return 0
+    fi
+
+    echo "[ERROR] ÐÐ°Ð¹Ð´ÐµÐ½ ${windows_compiler}, Ð½Ð¾ Ð² ÑÐ¸ÑÑ‚ÐµÐ¼Ðµ Ð½ÐµÑ‚ mono/wine Ð´Ð»Ñ Ð·Ð°Ð¿ÑƒÑÐºÐ° .exe." >&2
+    echo "[HINT] Ð£ÑÑ‚Ð°Ð½Ð¾Ð²Ð¸Ñ‚Ðµ mono/wine Ð¸Ð»Ð¸ ÑƒÐºÐ°Ð¶Ð¸Ñ‚Ðµ Ð¿ÑƒÑ‚ÑŒ Ðº ÐºÐ¾Ð¼Ð¿Ð¸Ð»ÑÑ‚Ð¾Ñ€Ñƒ Ñ‡ÐµÑ€ÐµÐ· NWN_COMPILER." >&2
+    return 1
+  fi
+
+  echo "[ERROR] ÐšÐ¾Ð¼Ð¿Ð¸Ð»ÑÑ‚Ð¾Ñ€ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½. ÐžÐ¶Ð¸Ð´Ð°ÐµÑ‚ÑÑ ${windows_compiler} Ð¸Ð»Ð¸ Ð¿ÑƒÑ‚ÑŒ Ñ‡ÐµÑ€ÐµÐ· NWN_COMPILER." >&2
+  return 1
+}
+
+if ! COMPILER_CMD_RAW="$(resolve_compiler_cmd)"; then
   exit 1
 fi
-
-if [[ ! -x "${COMPILER}" ]]; then
-  chmod +x "${COMPILER}"
-fi
+mapfile -t COMPILER_CMD <<<"${COMPILER_CMD_RAW}"
 
 mapfile -t NSS_FILES < <(find "${ROOT_DIR}/src" -type f -name '*.nss' | sort)
 
 if [[ ${#NSS_FILES[@]} -eq 0 ]]; then
-  echo "[INFO] Â src/ íå íàéäåíî .nss ôàéëîâ äëÿ êîìïèëÿöèè"
+  echo "[INFO] Ð’ src/ Ð½Ðµ Ð½Ð°Ð¹Ð´ÐµÐ½Ñ‹ .nss Ñ„Ð°Ð¹Ð»Ñ‹ Ð´Ð»Ñ ÐºÐ¾Ð¼Ð¿Ð¸Ð»ÑÑ†Ð¸Ð¸"
   exit 0
 fi
 
-echo "[INFO] Êîìïèëÿöèÿ ${#NSS_FILES[@]} .nss ôàéëîâ ÷åðåç nwnsc"
-echo "[INFO] Ïóòè include: ${INCLUDE_PATHS}"
+echo "[INFO] ÐÐ°Ð¹Ð´ÐµÐ½Ð¾ ${#NSS_FILES[@]} .nss Ñ„Ð°Ð¹Ð»Ð¾Ð²"
+echo "[INFO] ÐŸÑƒÑ‚Ð¸ include: ${INCLUDE_PATHS}"
+echo "[INFO] ÐšÐ¾Ð¼Ð¿Ð¸Ð»ÑÑ‚Ð¾Ñ€: ${COMPILER_CMD[*]}"
 
-# Çàïóñêàåì êîìïèëÿöèþ. nwnsc ñàì ñîçäàñò âûõîäíûå ôàéëû ðÿäîì ñ èñõîäíèêàìè.
-"${COMPILER}" -y -i "${INCLUDE_PATHS}" "${NSS_FILES[@]}"
+"${COMPILER_CMD[@]}" -y -i "${INCLUDE_PATHS}" "${NSS_FILES[@]}"
 
-echo "[INFO] Êîìïèëÿöèÿ çàâåðøåíà"
+echo "[INFO] ÐšÐ¾Ð¼Ð¿Ð¸Ð»ÑÑ†Ð¸Ñ Ð·Ð°Ð²ÐµÑ€ÑˆÐµÐ½Ð°"
