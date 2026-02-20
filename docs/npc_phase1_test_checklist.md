@@ -19,8 +19,8 @@
 **Минимальные команды:**
 ```bash
 rg --files src/modules/npc_behavior
-rg -n "void On[A-Za-z0-9_]+\(" src/modules/npc_behavior
-rg -n "Handle|Route|Dispatch|OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" src/modules/npc_behavior
+rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnTick" src/modules/npc_behavior
 ```
 
 **Тип проверки:** **Blocking (merge gate)**.
@@ -38,8 +38,8 @@ rg -n "Handle|Route|Dispatch|OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" 
 
 **Минимальные команды:**
 ```bash
-rg -n "void On[A-Za-z0-9_]+\(" src/modules/npc_behavior
-rg -n "npc_behavior_core|Dispatch|Route|Handle" src/modules/npc_behavior/npc_behavior_*.nss
+rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
+rg -n "npc_behavior_core|NpcBehaviorOn" src/modules/npc_behavior/npc_behavior_*.nss
 rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" docs/design.md docs/npc_runtime_orchestration.md
 ```
 
@@ -105,8 +105,21 @@ rg -n "core|Dispatch|Route|Handle" src/modules/npc_behavior/npc_behavior_*.nss
 
 ## Быстрый итог перед merge
 
-- [ ] **Blocking:** структура и entrypoints валидны.
-- [ ] **Blocking:** все On\* маршрутизируются через core.
-- [ ] **Blocking:** статический smoke по spawn/perception/damaged/death/dialogue.
+- [x] **Blocking:** структура и entrypoints валидны.
+- [x] **Blocking:** все On\* маршрутизируются через core.
+- [x] **Blocking:** статический smoke по spawn/perception/damaged/death/dialogue.
 - [ ] **Informational:** runtime-лог smoke на стенде (если доступен).
 - [ ] **Blocking для perf-изменений:** SLO/perf-gate не нарушены.
+
+## Статус последней валидации
+
+- **Дата:** 2026-02-20
+- **Ветка:** `work`
+- **Результат:** статические merge-gate проверки пройдены; runtime/perf-пункты остаются в статусе pending до прогона на стенде.
+
+```bash
+rg --files src/modules/npc_behavior
+rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnTick" src/modules/npc_behavior
+bash scripts/run_npc_bench.sh scenario_a_nominal
+```
