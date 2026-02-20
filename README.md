@@ -44,6 +44,23 @@ bash scripts/check_code.sh
 NWN_INCLUDE_PATHS="/path/to/includes;/another/path" bash scripts/check_code.sh
 ```
 
+## Observability contract (Phase 1)
+
+Для модуля `src/modules/npc_behavior` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
+
+Ключи метрик Phase 1:
+- `npc_metric_spawn_count`
+- `npc_metric_perception_count`
+- `npc_metric_damaged_count`
+- `npc_metric_death_count`
+- `npc_metric_dialog_count`
+- `npc_metric_heartbeat_count`
+- `npc_metric_heartbeat_skipped_count`
+- `npc_metric_combat_round_count`
+- `npc_area_metric_processed_count`
+- `npc_area_metric_skipped_count`
+- `npc_area_metric_deferred_count`
+
 ## Принцип принятия архитектурных решений
 Перед принятием любого архитектурного решения выполняется короткий performance-research цикл:
 1. Сформулировать гипотезу.

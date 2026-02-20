@@ -4,5 +4,5 @@
 
 void main()
 {
-    NpcBehaviorOnHeartbeat(OBJECT_SELF);
+    NpcBehaviorOnCombatRound(OBJECT_SELF);
 }

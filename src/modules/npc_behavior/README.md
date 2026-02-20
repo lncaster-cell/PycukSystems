@@ -46,6 +46,37 @@
 - минимальная телеметрия (`spawn/perception/damaged/death/dialogue` counters);
 - связка `OnDeath + decays/lootable` и `OnPerception + hidden AI disable`.
 
+## Observability contract (Phase 1)
+
+Phase 1 использует единый helper записи метрик `NpcBehaviorMetricInc/NpcBehaviorMetricAdd` в `npc_behavior_core.nss`: каждый handler пишет counters через один и тот же API, без прямого `SetLocalInt` в entrypoints.
+
+### Контракт по handlers
+
+- `NpcBehaviorOnPerception` → `npc_metric_perception_count`.
+- `NpcBehaviorOnDamaged` → `npc_metric_damaged_count`.
+- `NpcBehaviorOnDeath` → `npc_metric_death_count`.
+- `NpcBehaviorOnDialogue` → `npc_metric_dialog_count`.
+- `NpcBehaviorOnHeartbeat` (P1) → `npc_metric_heartbeat_count`, при раннем выходе/skip также `npc_metric_heartbeat_skipped_count`.
+- `NpcBehaviorOnCombatRound` (P1) → `npc_metric_combat_round_count`, затем heartbeat sync.
+- `NpcBehaviorOnAreaTick` (P1, area-level) аккумулирует на area:
+  - processed (`npc_area_metric_processed_count`),
+  - skipped (`npc_area_metric_skipped_count`),
+  - deferred (`npc_area_metric_deferred_count`).
+
+### Metric keys для write-behind слоя (планируемый whitelist)
+
+- `npc_metric_spawn_count`
+- `npc_metric_perception_count`
+- `npc_metric_damaged_count`
+- `npc_metric_death_count`
+- `npc_metric_dialog_count`
+- `npc_metric_heartbeat_count`
+- `npc_metric_heartbeat_skipped_count`
+- `npc_metric_combat_round_count`
+- `npc_area_metric_processed_count`
+- `npc_area_metric_skipped_count`
+- `npc_area_metric_deferred_count`
+
 ## Следующие шаги
 
 1. Подключить реальную инициализацию флагов из template-параметров NPC на OnSpawn.

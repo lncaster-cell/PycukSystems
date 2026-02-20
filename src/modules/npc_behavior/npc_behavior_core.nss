@@ -39,6 +39,13 @@ string NPC_VAR_METRIC_PERCEPTION = "npc_metric_perception_count";
 string NPC_VAR_METRIC_DAMAGED = "npc_metric_damaged_count";
 string NPC_VAR_METRIC_DEATH = "npc_metric_death_count";
 string NPC_VAR_METRIC_DIALOG = "npc_metric_dialog_count";
+string NPC_VAR_METRIC_HEARTBEAT = "npc_metric_heartbeat_count";
+string NPC_VAR_METRIC_HEARTBEAT_SKIPPED = "npc_metric_heartbeat_skipped_count";
+string NPC_VAR_METRIC_COMBAT_ROUND = "npc_metric_combat_round_count";
+
+string NPC_VAR_METRIC_AREA_PROCESSED = "npc_area_metric_processed_count";
+string NPC_VAR_METRIC_AREA_SKIPPED = "npc_area_metric_skipped_count";
+string NPC_VAR_METRIC_AREA_DEFERRED = "npc_area_metric_deferred_count";
 
 int NpcBehaviorTickNow()
 {
@@ -83,9 +90,19 @@ int NpcBehaviorIsDisabled(object oNpc)
     return FALSE;
 }
 
-void NpcBehaviorMetricInc(object oNpc, string sMetric)
+void NpcBehaviorMetricAdd(object oTarget, string sMetric, int nValue)
 {
-    SetLocalInt(oNpc, sMetric, GetLocalInt(oNpc, sMetric) + 1);
+    if (!GetIsObjectValid(oTarget) || nValue == 0)
+    {
+        return;
+    }
+
+    SetLocalInt(oTarget, sMetric, GetLocalInt(oTarget, sMetric) + nValue);
+}
+
+void NpcBehaviorMetricInc(object oTarget, string sMetric)
+{
+    NpcBehaviorMetricAdd(oTarget, sMetric, 1);
 }
 
 void NpcBehaviorHandleIdle(object oNpc)
@@ -218,12 +235,16 @@ int NpcBehaviorOnHeartbeat(object oNpc)
 
     if (!GetIsObjectValid(oNpc) || GetIsDead(oNpc) || NpcBehaviorIsDisabled(oNpc))
     {
+        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT_SKIPPED);
         return FALSE;
     }
+
+    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT);
 
     nNow = NpcBehaviorTickNow();
     if (!NpcBehaviorShouldProcess(oNpc, nNow))
     {
+        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT_SKIPPED);
         return FALSE;
     }
 
@@ -240,18 +261,42 @@ int NpcBehaviorOnHeartbeat(object oNpc)
     return TRUE;
 }
 
+void NpcBehaviorOnCombatRound(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_COMBAT_ROUND);
+    NpcBehaviorOnHeartbeat(oNpc);
+}
+
 void NpcBehaviorOnAreaTick(object oArea)
 {
     object oObject = GetFirstObjectInArea(oArea);
     int nProcessed = 0;
+    int nSkipped = 0;
+    int nDeferred = 0;
 
-    while (GetIsObjectValid(oObject) && nProcessed < NPC_TICK_PROCESS_LIMIT)
+    while (GetIsObjectValid(oObject))
     {
         if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE && !GetIsPC(oObject))
         {
-            if (NpcBehaviorOnHeartbeat(oObject))
+            if (nProcessed < NPC_TICK_PROCESS_LIMIT)
             {
-                nProcessed = nProcessed + 1;
+                if (NpcBehaviorOnHeartbeat(oObject))
+                {
+                    nProcessed = nProcessed + 1;
+                }
+                else
+                {
+                    nSkipped = nSkipped + 1;
+                }
+            }
+            else
+            {
+                nDeferred = nDeferred + 1;
             }
         }
 
@@ -259,4 +304,7 @@ void NpcBehaviorOnAreaTick(object oArea)
     }
 
     SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, nProcessed);
+    NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_PROCESSED, nProcessed);
+    NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_SKIPPED, nSkipped);
+    NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_DEFERRED, nDeferred);
 }
