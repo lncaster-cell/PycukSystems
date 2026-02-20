@@ -23,24 +23,16 @@
 
 ## Поведенческие свойства (через Local Variables)
 
-`npc_behavior_core.nss` поддерживает набор переменных, которые можно синхронизировать с blueprint/template NPC:
+`npc_behavior_core.nss` использует минимальный runtime-набор переменных для логики,
+которая реально работает в обработчиках:
 
 - `npc_flag_decays`
-- `npc_flag_resurrectable`
-- `npc_flag_selectable_when_dead`
-- `npc_flag_spirit_override`
-- `npc_flag_immortal`
-- `npc_flag_always_seen`
 - `npc_flag_dialog_interruptible`
-- `npc_flag_can_talk_to_creatures`
 - `npc_flag_disable_ai_when_hidden`
 - `npc_flag_plot`
 - `npc_flag_lootable_corpse`
 - `npc_flag_disable_object`
 - `npc_decay_time_sec`
-- `npc_perception_range`
-- `npc_walk_speed`
-- `npc_soundset`
 
 
 ## Spawn defaults and validation
@@ -54,8 +46,6 @@
   - `npc_flag_dialog_interruptible` → `TRUE`
 - Параметры (защита от невалидных значений):
   - `npc_decay_time_sec` → если `<= 0`, то `5000`
-  - `npc_perception_range` → если `<= 0`, то `15`
-  - `npc_walk_speed` → если `<= 0`, то `1`
 
 Это сохраняет `npc_behavior_spawn.nss` thin-entrypoint: вся бизнес-логика остается в `npc_behavior_core.nss`.
 
