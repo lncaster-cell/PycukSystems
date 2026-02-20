@@ -5,7 +5,7 @@ MODE="${1:-check}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPILER_REL="tools/NWNScriptCompiler.exe"
 COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
-INCLUDE_PATH="$ROOT_DIR/tools/scripts"
+INCLUDE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
 OUTPUT_DIR="$ROOT_DIR/output"
 
 if [[ ! -f "$COMPILER_PATH" ]]; then
