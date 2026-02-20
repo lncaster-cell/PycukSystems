@@ -22,12 +22,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Verify compiler binary exists
+      - name: Verify runner OS and compiler binary
         shell: pwsh
         run: |
+          if ($env:RUNNER_OS -ne 'Windows') {
+            throw "This workflow requires windows-latest. Current RUNNER_OS: $env:RUNNER_OS"
+          }
+
           if (-not (Test-Path -Path 'tools/NWNScriptCompiler.exe' -PathType Leaf)) {
             throw "NWNScriptCompiler.exe not found at tools/NWNScriptCompiler.exe."
           }
+
+          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
+          Write-Host "Runner OS: $env:RUNNER_OS"
+          Write-Host "Compiler launch mode: direct executable invocation (& $compiler ...)"
 
       - name: Prepare stock includes for CI
         shell: pwsh
@@ -46,7 +54,11 @@ jobs:
           $lowerNwscript = Join-Path $ciStock 'nwscript.nss'
 
           if (Test-Path -Path $upperNwscript -PathType Leaf) {
-            Copy-Item -Path $upperNwscript -Destination $lowerNwscript -Force
+            if (-not (Test-Path -Path $lowerNwscript -PathType Leaf)) {
+              Copy-Item -Path $upperNwscript -Destination $lowerNwscript -Force
+            } else {
+              Write-Host "Lowercase nwscript path already resolves in current filesystem: $lowerNwscript"
+            }
           }
 
       - name: Log include diagnostics
