@@ -34,22 +34,12 @@ bash scripts/setup_env.sh
 
 Скрипт подготавливает базовую структуру директорий проекта для пошаговой разработки.
 
-### Компиляция скриптов
-```bash
-bash scripts/compile.sh
-```
+### Компиляция скриптов (GitHub Actions)
 
-Переопределения для нестандартной среды:
-- `NWN_COMPILER` — путь до компилятора (исполняемый файл, `.exe` или команда из `PATH`).
-- `NWN_COMPILER_RUNNER` — принудительный раннер для `.exe` (например, `mono`, `wine`, `/usr/lib/wine/wine64`).
-- `NWN_COMPILER_DOCKER_IMAGE` — Docker-образ для fallback запуска `.exe` через `wine` (по умолчанию `scottyhardy/docker-wine:latest`).
-- `NWN_INCLUDE_PATHS` — include-пути для компилятора.
+Компиляция NWScript выполняется только в GitHub Actions на `windows-latest` через workflow `.github/workflows/compile.yml`.
 
-Если Linux-версии компилятора нет и локально не установлены `mono/wine`, достаточно установленного Docker:
-```bash
-bash scripts/compile.sh
-```
-Скрипт автоматически попробует fallback через `docker run ... wine`.
+- Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
+- После успешного запуска откройте run и скачайте артефакт **compiled-ncs** (содержимое папки `output/` с `.ncs` файлами).
 
 ## Observability contract (Phase 1)
 
