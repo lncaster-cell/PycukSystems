@@ -4,5 +4,5 @@
 
 void main()
 {
-    NpcBehaviorOnEndCombatRound(OBJECT_SELF);
+    NpcBehaviorOnCombatRound(OBJECT_SELF);
 }
