@@ -27,6 +27,15 @@
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
+### Внешние/эталонные скрипты (read-only архив)
+- `third_party/nwn2_stock_scripts/` — архив стоковых NWN2-скриптов для include/reference.
+- Каталог не является частью нашего доменного кода и должен обновляться только пакетно (без точечных ручных правок).
+
+### Как не «утонуть» в сторонних файлах при поиске и ревью
+- Ищите по нашему коду прицельно: `rg "<query>" src scripts docs`.
+- Для `git grep` исключайте архив: `git grep "<query>" -- . ':(exclude)third_party/nwn2_stock_scripts'`.
+- Для обзора изменений используйте pathspec: `git diff -- src scripts docs`.
+
 ## Быстрый старт (подготовка workspace)
 ```bash
 bash scripts/setup_env.sh
@@ -50,6 +59,12 @@ bash scripts/compile.sh check
 
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
 - После успешного запуска откройте run и скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
+
+### Где лежат NWNX include-файлы и зачем
+
+NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
+
+Это отделяет внешние зависимости от проектных `.nss` скриптов в `src/`, упрощает обновление NWNX include-набора и позволяет явно подключать их через include path в `scripts/compile.sh`.
 
 ## Observability contract (Phase 1)
 
