@@ -29,12 +29,61 @@ jobs:
             throw "NWNScriptCompiler.exe not found at tools/NWNScriptCompiler.exe."
           }
 
+      - name: Prepare stock includes for CI
+        shell: pwsh
+        run: |
+          $sourceStock = Join-Path $PWD 'third_party/nwn2_stock_scripts'
+          $ciStock = Join-Path $PWD '.ci/nwn2_stock_scripts'
+
+          if (Test-Path -Path $ciStock) {
+            Remove-Item -Path $ciStock -Recurse -Force
+          }
+
+          New-Item -ItemType Directory -Path $ciStock -Force | Out-Null
+          Copy-Item -Path (Join-Path $sourceStock '*') -Destination $ciStock -Recurse -Force
+
+          $upperNwscript = Join-Path $ciStock 'nwscript.NSS'
+          $lowerNwscript = Join-Path $ciStock 'nwscript.nss'
+
+          if (Test-Path -Path $upperNwscript -PathType Leaf) {
+            Copy-Item -Path $upperNwscript -Destination $lowerNwscript -Force
+          }
+
+      - name: Log include diagnostics
+        shell: pwsh
+        run: |
+          $ciStock = Join-Path $PWD '.ci/nwn2_stock_scripts'
+          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
+          $projectInclude = Join-Path $PWD 'tools/scripts'
+          $nwnxInclude = Join-Path $PWD 'third_party/nwnx_includes'
+          $sampleFile = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName | Select-Object -First 1
+
+          $fileCount = (Get-ChildItem -Path $ciStock -Recurse -File | Measure-Object).Count
+          Write-Host "Stock include file count: $fileCount"
+
+          $lowerNwscript = Join-Path $ciStock 'nwscript.nss'
+          if (Test-Path -Path $lowerNwscript -PathType Leaf) {
+            Write-Host "Found lowercase nwscript: $lowerNwscript"
+          } else {
+            throw "Missing lowercase nwscript at $lowerNwscript"
+          }
+
+          if ($null -ne $sampleFile) {
+            Write-Host "Diagnostic compile sample: $($sampleFile.FullName)"
+            & $compiler -j -i $ciStock -i $projectInclude -i $nwnxInclude $sampleFile.FullName
+          } else {
+            Write-Host 'No .nss files found under src/; skipping diagnostic compile.'
+          }
+
       - name: Compile scripts
         shell: pwsh
         run: |
           $mode = '${{ github.event.inputs.mode }}'
           $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
-          $includePath = Join-Path $PWD 'third_party/nwn2_stock_scripts'
+          $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
+          $projectIncludePath = Join-Path $PWD 'tools/scripts'
+          $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
+          $includeArgs = @('-i', $stockIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
           $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
 
           if ($files.Count -eq 0) {
@@ -58,7 +107,7 @@ jobs:
 
               foreach ($file in $files) {
                 Write-Host "Compiling $($file.FullName)"
-                $output = & $compiler $file.FullName 2>&1
+                $output = & $compiler @includeArgs $file.FullName 2>&1
                 $exitCode = $LASTEXITCODE
 
                 foreach ($line in $output) {
@@ -107,13 +156,13 @@ jobs:
 
             switch ($mode) {
               'check' {
-                & $compiler $file.FullName
+                & $compiler @includeArgs $file.FullName
               }
               'build' {
-                & $compiler -o output $file.FullName
+                & $compiler @includeArgs -o output $file.FullName
               }
               'optimize' {
-                & $compiler -a -y -e -i $includePath -o output $file.FullName
+                & $compiler -a -y -e @includeArgs -o output $file.FullName
               }
               default {
                 throw "Unsupported mode: $mode"
