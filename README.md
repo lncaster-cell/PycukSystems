@@ -34,19 +34,6 @@ bash scripts/setup_env.sh
 
 Скрипт подготавливает базовую структуру директорий проекта для пошаговой разработки.
 
-## Проверка скриптов через `nwnsc`
-В репозиторий добавлен локальный компилятор `nwnsc`. Для проверки всех `.nss` файлов используйте:
-
-```bash
-bash scripts/check_code.sh
-```
-
-По умолчанию include-путь берётся из корня репозитория. Если нужно добавить путь к `nwscript.nss`, укажите переменную окружения `NWN_INCLUDE_PATHS` (формат как у `nwnsc -i`, несколько путей через `;`):
-
-```bash
-NWN_INCLUDE_PATHS="/path/to/includes;/another/path" bash scripts/check_code.sh
-```
-
 ## Observability contract (Phase 1)
 
 Для модуля `src/modules/npc_behavior` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
