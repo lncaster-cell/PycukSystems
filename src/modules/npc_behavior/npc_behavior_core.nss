@@ -8,12 +8,21 @@ const int NPC_DEFAULT_IDLE_INTERVAL = 6;
 const int NPC_DEFAULT_COMBAT_INTERVAL = 2;
 const int NPC_TICK_PROCESS_LIMIT = 32;
 
+const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
+const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
+const int NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN = FALSE;
+const int NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE = TRUE;
+const int NPC_DEFAULT_DECAY_TIME_SEC = 5000;
+const int NPC_DEFAULT_PERCEPTION_RANGE = 15;
+const int NPC_DEFAULT_WALK_SPEED = 1;
+
+// [Runtime Internal] служебные переменные оркестрации и state-machine.
 string NPC_VAR_STATE = "npc_state";
 string NPC_VAR_LAST_TICK = "npc_last_tick";
 string NPC_VAR_PROCESSED_TICK = "npc_processed_in_tick";
 string NPC_VAR_DEFERRED_EVENTS = "npc_deferred_events";
 
-// Флаги/параметры поведения: их можно заполнять на OnSpawn
+// [Behavior Flags] флаги/параметры поведения: их можно заполнять на OnSpawn
 // из шаблонов NPC или выставлять вручную в тулчете/скриптах инициализации.
 string NPC_VAR_FLAG_DECAYS = "npc_flag_decays";
 string NPC_VAR_FLAG_RESURRECTABLE = "npc_flag_resurrectable";
@@ -34,6 +43,7 @@ string NPC_VAR_PERCEPTION_RANGE = "npc_perception_range";
 string NPC_VAR_WALK_SPEED = "npc_walk_speed";
 string NPC_VAR_SOUNDSET = "npc_soundset";
 
+// [Runtime Metrics] счетчики и runtime-метрики для минимальной телеметрии.
 string NPC_VAR_METRIC_SPAWN = "npc_metric_spawn_count";
 string NPC_VAR_METRIC_PERCEPTION = "npc_metric_perception_count";
 string NPC_VAR_METRIC_DAMAGED = "npc_metric_damaged_count";
@@ -106,6 +116,14 @@ void NpcBehaviorHandleCombat(object oNpc)
 
 void NpcBehaviorOnSpawn(object oNpc)
 {
+    int nFlagDecays;
+    int nFlagLootableCorpse;
+    int nFlagDisableAiWhenHidden;
+    int nFlagDialogInterruptible;
+    int nDecayTimeSec;
+    int nPerceptionRange;
+    int nWalkSpeed;
+
     if (!GetIsObjectValid(oNpc))
     {
         return;
@@ -114,10 +132,55 @@ void NpcBehaviorOnSpawn(object oNpc)
     SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
     SetLocalInt(oNpc, NPC_VAR_FLAG_PLOT, GetPlotFlag(oNpc));
 
-    if (GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC) <= 0)
+    // [Behavior Flags] explicit defaults и fallback-валидация контрактных переменных.
+    nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
+    if (nFlagDecays != FALSE && nFlagDecays != TRUE)
     {
-        SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, 5000);
+        nFlagDecays = NPC_DEFAULT_FLAG_DECAYS;
     }
+    SetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS, nFlagDecays);
+
+    nFlagLootableCorpse = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE);
+    if (nFlagLootableCorpse != FALSE && nFlagLootableCorpse != TRUE)
+    {
+        nFlagLootableCorpse = NPC_DEFAULT_FLAG_LOOTABLE_CORPSE;
+    }
+    SetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE, nFlagLootableCorpse);
+
+    nFlagDisableAiWhenHidden = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN);
+    if (nFlagDisableAiWhenHidden != FALSE && nFlagDisableAiWhenHidden != TRUE)
+    {
+        nFlagDisableAiWhenHidden = NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN;
+    }
+    SetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN, nFlagDisableAiWhenHidden);
+
+    nFlagDialogInterruptible = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE);
+    if (nFlagDialogInterruptible != FALSE && nFlagDialogInterruptible != TRUE)
+    {
+        nFlagDialogInterruptible = NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE;
+    }
+    SetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE, nFlagDialogInterruptible);
+
+    nDecayTimeSec = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC);
+    if (nDecayTimeSec <= 0)
+    {
+        nDecayTimeSec = NPC_DEFAULT_DECAY_TIME_SEC;
+    }
+    SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, nDecayTimeSec);
+
+    nPerceptionRange = GetLocalInt(oNpc, NPC_VAR_PERCEPTION_RANGE);
+    if (nPerceptionRange <= 0)
+    {
+        nPerceptionRange = NPC_DEFAULT_PERCEPTION_RANGE;
+    }
+    SetLocalInt(oNpc, NPC_VAR_PERCEPTION_RANGE, nPerceptionRange);
+
+    nWalkSpeed = GetLocalInt(oNpc, NPC_VAR_WALK_SPEED);
+    if (nWalkSpeed <= 0)
+    {
+        nWalkSpeed = NPC_DEFAULT_WALK_SPEED;
+    }
+    SetLocalInt(oNpc, NPC_VAR_WALK_SPEED, nWalkSpeed);
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPAWN);
 }
