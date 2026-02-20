@@ -34,6 +34,17 @@ bash scripts/setup_env.sh
 
 Скрипт подготавливает базовую структуру директорий проекта для пошаговой разработки.
 
+### Компиляция скриптов
+```bash
+bash scripts/compile.sh
+```
+
+Переопределения для нестандартной среды:
+- `NWN_COMPILER` — путь до компилятора (исполняемый файл, `.exe` или команда из `PATH`).
+- `NWN_COMPILER_RUNNER` — принудительный раннер для `.exe` (например, `mono`, `wine`, `/usr/lib/wine/wine64`).
+- `NWN_INCLUDE_PATHS` — include-пути для компилятора.
+- Для `tools/NWNScriptCompiler.exe` (PE32) нужен рабочий `wine32` и поддержка IA32 в ядре; без этого в Linux-контейнере такой `.exe` не запустится.
+
 ## Observability contract (Phase 1)
 
 Для модуля `src/modules/npc_behavior` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
