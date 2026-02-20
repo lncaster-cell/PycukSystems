@@ -66,9 +66,13 @@ jobs:
         run: |
           $ciStock = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
+          $sourceRootInclude = Join-Path $PWD 'src'
+          $npcBehaviorInclude = Join-Path $PWD 'src/modules/npc_behavior'
           $projectInclude = Join-Path $PWD 'tools/scripts'
           $nwnxInclude = Join-Path $PWD 'third_party/nwnx_includes'
+          $includeArgs = @('-i', $ciStock, '-i', $sourceRootInclude, '-i', $npcBehaviorInclude, '-i', $projectInclude, '-i', $nwnxInclude)
           $sampleFile = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName | Select-Object -First 1
+          $npcBehaviorCore = Get-ChildItem -Path 'src' -Recurse -File -Filter 'npc_behavior_core.nss' | Select-Object -First 1
 
           $fileCount = (Get-ChildItem -Path $ciStock -Recurse -File | Measure-Object).Count
           Write-Host "Stock include file count: $fileCount"
@@ -80,9 +84,19 @@ jobs:
             throw "Missing lowercase nwscript at $lowerNwscript"
           }
 
+          if ($null -ne $npcBehaviorCore) {
+            Write-Host "Found npc_behavior_core include: $($npcBehaviorCore.FullName)"
+          } else {
+            throw 'Unable to find npc_behavior_core.nss under src/'
+          }
+
+          $includeDebug = ($includeArgs -join ' ')
+          Write-Host "Compiler include args: $includeDebug"
+
           if ($null -ne $sampleFile) {
             Write-Host "Diagnostic compile sample: $($sampleFile.FullName)"
-            & $compiler -j -i $ciStock -i $projectInclude -i $nwnxInclude $sampleFile.FullName
+            Write-Host "Diagnostic command: & $compiler -j $includeDebug $($sampleFile.FullName)"
+            & $compiler -j @includeArgs $sampleFile.FullName
           } else {
             Write-Host 'No .nss files found under src/; skipping diagnostic compile.'
           }
@@ -93,9 +107,11 @@ jobs:
           $mode = '${{ github.event.inputs.mode }}'
           $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
+          $sourceRootIncludePath = Join-Path $PWD 'src'
+          $npcBehaviorIncludePath = Join-Path $PWD 'src/modules/npc_behavior'
           $projectIncludePath = Join-Path $PWD 'tools/scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
-          $includeArgs = @('-i', $stockIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
           $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
 
           if ($files.Count -eq 0) {
