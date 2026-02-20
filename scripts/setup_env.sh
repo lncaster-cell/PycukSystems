@@ -15,10 +15,8 @@ mkdir -p \
 
 touch src/core/.gitkeep \
       src/controllers/.gitkeep \
-      src/modules/npc_behavior/.gitkeep \
       src/integrations/nwnx_sqlite/.gitkeep \
       tools/generators/.gitkeep \
-      tools/validators/.gitkeep \
-      benchmarks/.gitkeep
+      tools/validators/.gitkeep
 
 echo "[OK] Workspace подготовлен: создана базовая структура для NWN2 модульной системы"
