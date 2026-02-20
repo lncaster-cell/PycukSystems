@@ -13,8 +13,6 @@ const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
 const int NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN = FALSE;
 const int NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE = TRUE;
 const int NPC_DEFAULT_DECAY_TIME_SEC = 5000;
-const int NPC_DEFAULT_PERCEPTION_RANGE = 15;
-const int NPC_DEFAULT_WALK_SPEED = 1;
 
 // [Runtime Internal] служебные переменные оркестрации и state-machine.
 string NPC_VAR_STATE = "npc_state";
@@ -22,16 +20,11 @@ string NPC_VAR_LAST_TICK = "npc_last_tick";
 string NPC_VAR_PROCESSED_TICK = "npc_processed_in_tick";
 string NPC_VAR_DEFERRED_EVENTS = "npc_deferred_events";
 
-// [Behavior Flags] флаги/параметры поведения: их можно заполнять на OnSpawn
-// из шаблонов NPC или выставлять вручную в тулчете/скриптах инициализации.
+// [Behavior Flags] минимальный runtime-контракт.
+// Сюда оставляем только те параметры, которые реально используются обработчиками
+// и могут быть переопределены скриптами во время жизни NPC.
 string NPC_VAR_FLAG_DECAYS = "npc_flag_decays";
-string NPC_VAR_FLAG_RESURRECTABLE = "npc_flag_resurrectable";
-string NPC_VAR_FLAG_SELECTABLE_WHEN_DEAD = "npc_flag_selectable_when_dead";
-string NPC_VAR_FLAG_SPIRIT_OVERRIDE = "npc_flag_spirit_override";
-string NPC_VAR_FLAG_IMMORTAL = "npc_flag_immortal";
-string NPC_VAR_FLAG_ALWAYS_SEEN = "npc_flag_always_seen";
 string NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE = "npc_flag_dialog_interruptible";
-string NPC_VAR_FLAG_CAN_TALK_TO_CREATURES = "npc_flag_can_talk_to_creatures";
 string NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN = "npc_flag_disable_ai_when_hidden";
 string NPC_VAR_FLAG_PLOT = "npc_flag_plot";
 string NPC_VAR_FLAG_LOOTABLE_CORPSE = "npc_flag_lootable_corpse";
@@ -39,9 +32,6 @@ string NPC_VAR_FLAG_DISABLE_OBJECT = "npc_flag_disable_object";
 string NPC_VAR_RUNTIME_HIDDEN = "npc_runtime_hidden";
 
 string NPC_VAR_DECAY_TIME_SEC = "npc_decay_time_sec";
-string NPC_VAR_PERCEPTION_RANGE = "npc_perception_range";
-string NPC_VAR_WALK_SPEED = "npc_walk_speed";
-string NPC_VAR_SOUNDSET = "npc_soundset";
 
 // [Runtime Metrics] счетчики и runtime-метрики для минимальной телеметрии.
 string NPC_VAR_METRIC_SPAWN = "npc_metric_spawn_count";
@@ -138,8 +128,6 @@ void NpcBehaviorOnSpawn(object oNpc)
     int nFlagDisableAiWhenHidden;
     int nFlagDialogInterruptible;
     int nDecayTimeSec;
-    int nPerceptionRange;
-    int nWalkSpeed;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -184,20 +172,6 @@ void NpcBehaviorOnSpawn(object oNpc)
         nDecayTimeSec = NPC_DEFAULT_DECAY_TIME_SEC;
     }
     SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, nDecayTimeSec);
-
-    nPerceptionRange = GetLocalInt(oNpc, NPC_VAR_PERCEPTION_RANGE);
-    if (nPerceptionRange <= 0)
-    {
-        nPerceptionRange = NPC_DEFAULT_PERCEPTION_RANGE;
-    }
-    SetLocalInt(oNpc, NPC_VAR_PERCEPTION_RANGE, nPerceptionRange);
-
-    nWalkSpeed = GetLocalInt(oNpc, NPC_VAR_WALK_SPEED);
-    if (nWalkSpeed <= 0)
-    {
-        nWalkSpeed = NPC_DEFAULT_WALK_SPEED;
-    }
-    SetLocalInt(oNpc, NPC_VAR_WALK_SPEED, nWalkSpeed);
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPAWN);
 }
