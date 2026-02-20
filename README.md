@@ -34,12 +34,22 @@ bash scripts/setup_env.sh
 
 Скрипт подготавливает базовую структуру директорий проекта для пошаговой разработки.
 
-### Компиляция скриптов (GitHub Actions)
+### Компиляция скриптов
 
-Компиляция NWScript выполняется только в GitHub Actions на `windows-latest` через workflow `.github/workflows/compile.yml`.
+Локальная проверка компиляции доступна через:
+
+```bash
+bash scripts/compile.sh check
+```
+
+Поддерживаемые режимы: `check`, `build`, `optimize`, `bugscan`.
+
+> Рекомендуется запуск через Windows (нативно или из WSL через `powershell.exe`). `wine`/`mono` оставлены как fallback-вариант.
+
+Также можно запускать сборку в GitHub Actions на `windows-latest` через workflow `.github/workflows/nwn.yml`.
 
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
-- После успешного запуска откройте run и скачайте артефакт **compiled-ncs** (содержимое папки `output/` с `.ncs` файлами).
+- После успешного запуска откройте run и скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
 
 ## Observability contract (Phase 1)
 
