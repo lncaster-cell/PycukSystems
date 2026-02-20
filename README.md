@@ -20,6 +20,7 @@
 ## Структура репозитория
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
+- `tools/` — вспомогательные генераторы и валидаторы для development-пайплайнов.
 - `src/core/` — event-driven ядро и общие runtime-сервисы.
 - `src/controllers/` — area-tick контроллеры и планировщики.
 - `src/modules/npc_behavior/` — модуль поведения NPC (первая итерация).
@@ -32,19 +33,6 @@ bash scripts/setup_env.sh
 ```
 
 Скрипт подготавливает базовую структуру директорий проекта для пошаговой разработки.
-
-## Проверка скриптов через `nwnsc`
-В репозиторий добавлен локальный компилятор `nwnsc`. Для проверки всех `.nss` файлов используйте:
-
-```bash
-bash scripts/check_code.sh
-```
-
-По умолчанию include-путь берётся из корня репозитория. Если нужно добавить путь к `nwscript.nss`, укажите переменную окружения `NWN_INCLUDE_PATHS` (формат как у `nwnsc -i`, несколько путей через `;`):
-
-```bash
-NWN_INCLUDE_PATHS="/path/to/includes;/another/path" bash scripts/check_code.sh
-```
 
 ## Observability contract (Phase 1)
 
