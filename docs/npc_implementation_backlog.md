@@ -83,6 +83,22 @@
 
 ## Epic 3. Area orchestration
 
+### Task 3.0 — Наполнение `src/core` базовыми runtime-контрактами
+- **Артефакты:**
+  - `src/core/event_router.nss`
+  - `src/core/module_lifecycle.nss`
+  - `src/core/runtime_contracts.nss`
+  - `src/core/README.md`
+- **Definition of Done:**
+  - В `src/core` зафиксирован минимальный контракт event routing и lifecycle (`init/start/stop/reload`) для модулей.
+  - Общие runtime guardrails/метрики вынесены в core и переиспользуются модулем `npc_behavior`.
+- **Минимальные метрики/проверки:**
+  - Smoke-сценарий подтверждает корректную маршрутизацию базовых событий через core-контракт.
+  - Нет деградации p95 area-tick latency относительно текущего baseline из-за добавления core-слоя.
+- **Риски/зависимости:**
+  - Риск избыточной абстракции до стабилизации hot path.
+  - Зависимость от согласования минимального module API между командами.
+
 ### Task 3.1 — Lifecycle-оркестрация NPC по area events
 - **Артефакты:**
   - `src/npc/area_orchestrator.*`
@@ -112,6 +128,22 @@
 - **Риски/зависимости:**
   - Риск «просыпающихся» NPC с устаревшим blackboard.
   - Зависимость от корректных эвристик presence/activity.
+
+### Task 3.3 — Наполнение `src/controllers` area-controller реализацией
+- **Артефакты:**
+  - `src/controllers/area_tick_controller.nss`
+  - `src/controllers/area_scheduler.nss`
+  - `src/controllers/lifecycle_controller.nss`
+  - `src/controllers/README.md`
+- **Definition of Done:**
+  - В `src/controllers` реализован рабочий area-tick контроллер с bucket/jitter и step-based обработчиками.
+  - Реализованы и проверены переходы lifecycle `RUNNING/PAUSED/STOPPED` для area-контекстов.
+- **Минимальные метрики/проверки:**
+  - Queue fairness выдерживает сценарные проверки под burst-нагрузкой без starvation.
+  - p95 latency area orchestration остаётся в целевом диапазоне первой фазы.
+- **Риски/зависимости:**
+  - Риск несогласованности контрактов между `src/controllers` и `src/core`.
+  - Зависимость от корректных runtime-констант (tick budget, queue limits, jitter window).
 
 ---
 
