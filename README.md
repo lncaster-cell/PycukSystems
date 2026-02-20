@@ -21,10 +21,10 @@
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
 - `tools/` — вспомогательные генераторы и валидаторы для development-пайплайнов.
-- `src/core/` — event-driven ядро и общие runtime-сервисы.
-- `src/controllers/` — area-tick контроллеры и планировщики.
-- `src/modules/npc_behavior/` — модуль поведения NPC (первая итерация).
-- `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX.
+- `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
+- `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
+- `src/modules/npc_behavior/` — модуль поведения NPC (первая итерация, **реализовано**).
+- `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
 ## Быстрый старт (подготовка workspace)
