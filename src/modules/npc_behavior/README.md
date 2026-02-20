@@ -38,6 +38,23 @@
 - `npc_walk_speed`
 - `npc_soundset`
 
+
+## Spawn defaults and validation
+
+В `NpcBehaviorOnSpawn` добавлена явная инициализация контрактных переменных с fallback-валидацией:
+
+- Флаги (допускаются только `TRUE/FALSE`, иначе применяется дефолт):
+  - `npc_flag_decays` → `TRUE`
+  - `npc_flag_lootable_corpse` → `TRUE`
+  - `npc_flag_disable_ai_when_hidden` → `FALSE`
+  - `npc_flag_dialog_interruptible` → `TRUE`
+- Параметры (защита от невалидных значений):
+  - `npc_decay_time_sec` → если `<= 0`, то `5000`
+  - `npc_perception_range` → если `<= 0`, то `15`
+  - `npc_walk_speed` → если `<= 0`, то `1`
+
+Это сохраняет `npc_behavior_spawn.nss` thin-entrypoint: вся бизнес-логика остается в `npc_behavior_core.nss`.
+
 ## Что уже покрыто
 
 - централизация логики хуков через единый include;
