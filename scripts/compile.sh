@@ -21,15 +21,18 @@ case "$MODE" in
     ;;
 esac
 
-if command -v wine >/dev/null 2>&1; then
-  COMPILER_CMD=(wine "$COMPILER_PATH")
+RUNNER=""
+if [[ "${OS:-}" == "Windows_NT" ]]; then
+  RUNNER="windows-native"
+elif command -v powershell.exe >/dev/null 2>&1; then
+  RUNNER="windows-bridge"
+elif command -v wine >/dev/null 2>&1; then
+  RUNNER="wine"
 elif command -v mono >/dev/null 2>&1; then
-  COMPILER_CMD=(mono "$COMPILER_PATH")
-elif [[ "${OS:-}" == "Windows_NT" ]]; then
-  COMPILER_CMD=("$COMPILER_PATH")
+  RUNNER="mono"
 else
-  echo "[ERROR] Local compilation requires one of: wine, mono, or Windows execution."
-  echo "[INFO] Install wine (Linux/macOS) or run from Windows."
+  echo "[ERROR] Local compilation requires Windows (native or powershell.exe bridge), wine, or mono."
+  echo "[INFO] Preferred option: run from Windows or WSL with powershell.exe available."
   exit 1
 fi
 
@@ -40,11 +43,56 @@ if [[ "${#FILES[@]}" -eq 0 ]]; then
   exit 0
 fi
 
+ps_escape() {
+  printf "%s" "$1" | sed "s/'/''/g"
+}
+
+to_windows_path() {
+  local p="$1"
+  if command -v wslpath >/dev/null 2>&1; then
+    wslpath -w "$p"
+  else
+    printf "%s" "$p"
+  fi
+}
+
+run_compiler() {
+  local args=("$@")
+
+  case "$RUNNER" in
+    windows-native)
+      "$COMPILER_PATH" "${args[@]}"
+      ;;
+    wine)
+      wine "$COMPILER_PATH" "${args[@]}"
+      ;;
+    mono)
+      mono "$COMPILER_PATH" "${args[@]}"
+      ;;
+    windows-bridge)
+      local compiler_win
+      compiler_win="$(to_windows_path "$COMPILER_PATH")"
+
+      local ps_cmd="& '$(ps_escape "$compiler_win")'"
+      local a
+      for a in "${args[@]}"; do
+        ps_cmd+=" '$(ps_escape "$(to_windows_path "$a")")'"
+      done
+
+      powershell.exe -NoProfile -Command "$ps_cmd"
+      ;;
+    *)
+      echo "[ERROR] Unsupported runner: $RUNNER"
+      exit 1
+      ;;
+  esac
+}
+
 run_compile() {
   local file="$1"
   shift
   echo "Compiling $file"
-  "${COMPILER_CMD[@]}" "$@" "$file"
+  run_compiler "$@" "$file"
 }
 
 if [[ "$MODE" == "optimize" ]] && [[ -d "$OUTPUT_DIR" ]]; then
@@ -62,7 +110,7 @@ if [[ "$MODE" == "bugscan" ]]; then
   for file in "${FILES[@]}"; do
     echo "Compiling $file"
     set +e
-    output=$("${COMPILER_CMD[@]}" "$file" 2>&1)
+    output=$(run_compiler "$file" 2>&1)
     exit_code=$?
     set -e
 
@@ -116,4 +164,4 @@ for file in "${FILES[@]}"; do
   esac
 done
 
-echo "[OK] Compilation completed in mode: $MODE"
+echo "[OK] Compilation completed in mode: $MODE (runner: $RUNNER)"

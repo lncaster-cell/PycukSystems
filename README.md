@@ -44,7 +44,7 @@ bash scripts/compile.sh check
 
 Поддерживаемые режимы: `check`, `build`, `optimize`, `bugscan`.
 
-> Для локальной компиляции нужен `wine` или `mono` (Linux/macOS), либо запуск из Windows.
+> Рекомендуется запуск через Windows (нативно или из WSL через `powershell.exe`). `wine`/`mono` оставлены как fallback-вариант.
 
 Также можно запускать сборку в GitHub Actions на `windows-latest` через workflow `.github/workflows/nwn.yml`.
 
