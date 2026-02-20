@@ -5,8 +5,10 @@ MODE="${1:-check}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPILER_REL="tools/NWNScriptCompiler.exe"
 COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
-INCLUDE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
+INCLUDE_PATH="$ROOT_DIR/tools/scripts"
+NWNX_INCLUDE_PATH="$ROOT_DIR/third_party/nwnx_includes"
 OUTPUT_DIR="$ROOT_DIR/output"
+INCLUDE_ARGS=(-i "$INCLUDE_PATH" -i "$NWNX_INCLUDE_PATH")
 
 if [[ ! -f "$COMPILER_PATH" ]]; then
   echo "[ERROR] Compiler not found: $COMPILER_REL"
@@ -110,7 +112,7 @@ if [[ "$MODE" == "bugscan" ]]; then
   for file in "${FILES[@]}"; do
     echo "Compiling $file"
     set +e
-    output=$(run_compiler "$file" 2>&1)
+    output=$(run_compiler "${INCLUDE_ARGS[@]}" "$file" 2>&1)
     exit_code=$?
     set -e
 
@@ -153,13 +155,13 @@ fi
 for file in "${FILES[@]}"; do
   case "$MODE" in
     check)
-      run_compile "$file"
+      run_compile "$file" "${INCLUDE_ARGS[@]}"
       ;;
     build)
-      run_compile "$file" -o "$OUTPUT_DIR"
+      run_compile "$file" "${INCLUDE_ARGS[@]}" -o "$OUTPUT_DIR"
       ;;
     optimize)
-      run_compile "$file" -a -y -e -i "$INCLUDE_PATH" -o "$OUTPUT_DIR"
+      run_compile "$file" -a -y -e "${INCLUDE_ARGS[@]}" -o "$OUTPUT_DIR"
       ;;
   esac
 done

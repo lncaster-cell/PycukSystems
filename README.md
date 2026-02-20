@@ -59,6 +59,12 @@ bash scripts/compile.sh check
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
 - После успешного запуска откройте run и скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
 
+### Где лежат NWNX include-файлы и зачем
+
+NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
+
+Это отделяет внешние зависимости от проектных `.nss` скриптов в `src/`, упрощает обновление NWNX include-набора и позволяет явно подключать их через include path в `scripts/compile.sh`.
+
 ## Observability contract (Phase 1)
 
 Для модуля `src/modules/npc_behavior` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
