@@ -25,3 +25,7 @@ Thumbs.db
 # Generated artifacts
 /output/
 /benchmarks/npc_baseline/results/
+
+# NWN compiler artifacts (can appear near source files in check mode)
+*.ncs
+*.ndb
