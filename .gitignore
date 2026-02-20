@@ -21,3 +21,7 @@ Thumbs.db
 
 # Local logs
 *.log
+
+# Generated artifacts
+/output/
+/benchmarks/npc_baseline/results/
