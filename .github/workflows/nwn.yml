@@ -34,7 +34,7 @@ jobs:
         run: |
           $mode = '${{ github.event.inputs.mode }}'
           $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
-          $includePath = Join-Path $PWD 'tools/Scripts'
+          $includePath = Join-Path $PWD 'third_party/nwn2_stock_scripts'
           $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
 
           if ($files.Count -eq 0) {
