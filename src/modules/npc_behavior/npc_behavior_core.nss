@@ -563,6 +563,9 @@ void NpcBehaviorFlushPendingForNpc(object oNpc)
     int nPendingNormal;
     int nPendingLow;
     int nPendingTotal;
+    int nBucketTotal;
+    int nResidual;
+    int nDepth;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -598,7 +601,9 @@ void NpcBehaviorFlushPendingForNpc(object oNpc)
         nPendingTotal = 0;
     }
 
-    if (nPendingTotal <= 0 && nPendingCritical <= 0 && nPendingHigh <= 0 && nPendingNormal <= 0 && nPendingLow <= 0)
+    nBucketTotal = nPendingCritical + nPendingHigh + nPendingNormal + nPendingLow;
+
+    if (nPendingTotal <= 0 && nBucketTotal <= 0)
     {
         SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
         SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
@@ -629,6 +634,18 @@ void NpcBehaviorFlushPendingForNpc(object oNpc)
         if (nPendingLow > 0)
         {
             NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -nPendingLow);
+        }
+
+        // If pending_total is larger than per-priority buckets, reconcile queue depth too.
+        if (nPendingTotal > nBucketTotal)
+        {
+            nResidual = nPendingTotal - nBucketTotal;
+            nDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) - nResidual;
+            if (nDepth < 0)
+            {
+                nDepth = 0;
+            }
+            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, nDepth);
         }
     }
 
