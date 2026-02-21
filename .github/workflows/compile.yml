@@ -109,14 +109,15 @@ jobs:
 
           $warningCount = 0
           $errorCount = 0
+          $hasNonZeroExit = $false
 
           foreach ($file in $files) {
             "=== FILE: $($file.FullName) ===" | Tee-Object -FilePath $logPath -Append
 
             $commandArgs = @()
             switch ($mode) {
-              'check' { $commandArgs = @($includeArgs + $file.FullName) }
-              'bugscan' { $commandArgs = @($includeArgs + $file.FullName) }
+              'check' { $commandArgs = @('-y') + $includeArgs + @($file.FullName) }
+              'bugscan' { $commandArgs = @('-a', '-y') + $includeArgs + @($file.FullName) }
               'optimize' { $commandArgs = @('-a', '-y', '-e') + $includeArgs + @('-o', 'output', $file.FullName) }
               default { throw "Unsupported mode: $mode" }
             }
@@ -127,13 +128,13 @@ jobs:
             foreach ($line in $output) {
               $text = [string]$line
               $text | Tee-Object -FilePath $logPath -Append
-              if ($text -match '(?i)warning') { $warningCount++ }
-              if ($text -match '(?i)error') { $errorCount++ }
+              if ($text -match ':\s+Warning\b') { $warningCount++ }
+              if ($text -match ':\s+Error\b') { $errorCount++ }
             }
 
             if ($exitCode -ne 0) {
-              $errorCount++
               "Compiler exited with non-zero code $exitCode for $($file.FullName)" | Tee-Object -FilePath $logPath -Append
+              $hasNonZeroExit = $true
             }
           }
 
@@ -143,7 +144,7 @@ jobs:
           "WARNINGS=$warningCount" | Tee-Object -FilePath $logPath -Append
           "ERRORS=$errorCount" | Tee-Object -FilePath $logPath -Append
 
-          if ($errorCount -gt 0) {
+          if ($errorCount -gt 0 -or $hasNonZeroExit) {
             throw "Compilation finished with ERRORS=$errorCount"
           }
 
@@ -242,14 +243,15 @@ jobs:
 
           $warningCount = 0
           $errorCount = 0
+          $hasNonZeroExit = $false
 
           foreach ($file in $files) {
             "=== FILE: $($file.FullName) ===" | Tee-Object -FilePath $logPath -Append
 
             $commandArgs = @()
             switch ($mode) {
-              'check' { $commandArgs = @($includeArgs + $file.FullName) }
-              'bugscan' { $commandArgs = @($includeArgs + $file.FullName) }
+              'check' { $commandArgs = @('-y') + $includeArgs + @($file.FullName) }
+              'bugscan' { $commandArgs = @('-a', '-y') + $includeArgs + @($file.FullName) }
               'build' { $commandArgs = $includeArgs + @('-o', 'output', $file.FullName) }
               'optimize' { $commandArgs = @('-a', '-y', '-e') + $includeArgs + @('-o', 'output', $file.FullName) }
               default { throw "Unsupported mode: $mode" }
@@ -261,13 +263,13 @@ jobs:
             foreach ($line in $output) {
               $text = [string]$line
               $text | Tee-Object -FilePath $logPath -Append
-              if ($text -match '(?i)warning') { $warningCount++ }
-              if ($text -match '(?i)error') { $errorCount++ }
+              if ($text -match ':\s+Warning\b') { $warningCount++ }
+              if ($text -match ':\s+Error\b') { $errorCount++ }
             }
 
             if ($exitCode -ne 0) {
-              $errorCount++
               "Compiler exited with non-zero code $exitCode for $($file.FullName)" | Tee-Object -FilePath $logPath -Append
+              $hasNonZeroExit = $true
             }
           }
 
@@ -277,7 +279,7 @@ jobs:
           "WARNINGS=$warningCount" | Tee-Object -FilePath $logPath -Append
           "ERRORS=$errorCount" | Tee-Object -FilePath $logPath -Append
 
-          if ($errorCount -gt 0) {
+          if ($errorCount -gt 0 -or $hasNonZeroExit) {
             throw "Compilation finished with ERRORS=$errorCount"
           }
 
