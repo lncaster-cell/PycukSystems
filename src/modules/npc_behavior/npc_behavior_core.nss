@@ -1,5 +1,8 @@
 // NPC behavior module: shared constants and handlers for event hooks.
 
+#include "controllers/lifecycle_controller"
+
+
 const int NPC_STATE_IDLE = 0;
 const int NPC_STATE_ALERT = 1;
 const int NPC_STATE_COMBAT = 2;
@@ -52,8 +55,6 @@ string NPC_VAR_AREA_QUEUE_SLOT_ACTIVE = "npc_area_queue_slot_active_";
 string NPC_VAR_AREA_QUEUE_SLOT_PRIORITY = "npc_area_queue_slot_priority_";
 string NPC_VAR_AREA_QUEUE_SLOT_OWNER = "npc_area_queue_slot_owner_";
 string NPC_VAR_AREA_DEGRADED = "npc_area_degraded_mode";
-string NPC_VAR_AREA_ACTIVE = "nb_area_active";
-string NPC_VAR_AREA_TIMER_RUNNING = "nb_area_timer_running";
 string NPC_VAR_AREA_TICK_SEQ = "nb_area_tick_seq";
 
 // [Behavior Flags] минимальный runtime-контракт.
@@ -807,7 +808,7 @@ int NpcBehaviorAreaIsActive(object oArea)
         return FALSE;
     }
 
-    return (GetLocalInt(oArea, NPC_VAR_AREA_ACTIVE) == TRUE);
+    return NpcControllerAreaIsRunning(oArea);
 }
 
 void NpcBehaviorAreaTickLoop(object oArea);
@@ -819,13 +820,13 @@ void NpcBehaviorAreaActivate(object oArea)
         return;
     }
 
-    SetLocalInt(oArea, NPC_VAR_AREA_ACTIVE, TRUE);
-    if (GetLocalInt(oArea, NPC_VAR_AREA_TIMER_RUNNING) == TRUE)
+    NpcControllerAreaStart(oArea);
+    if (NpcControllerAreaIsTimerRunning(oArea))
     {
         return;
     }
 
-    SetLocalInt(oArea, NPC_VAR_AREA_TIMER_RUNNING, TRUE);
+    NpcControllerAreaSetTimerRunning(oArea, TRUE);
     DelayCommand(0.0, NpcBehaviorAreaTickLoop(oArea));
 }
 
@@ -836,7 +837,7 @@ void NpcBehaviorAreaDeactivate(object oArea)
         return;
     }
 
-    SetLocalInt(oArea, NPC_VAR_AREA_ACTIVE, FALSE);
+    NpcControllerAreaStop(oArea);
 }
 
 int NpcBehaviorIsDisabled(object oNpc)
@@ -1422,9 +1423,9 @@ void NpcBehaviorAreaTickLoop(object oArea)
         return;
     }
 
-    if (!NpcBehaviorAreaIsActive(oArea))
+    if (!NpcControllerAreaCanProcessTick(oArea))
     {
-        SetLocalInt(oArea, NPC_VAR_AREA_TIMER_RUNNING, FALSE);
+        NpcControllerAreaSetTimerRunning(oArea, FALSE);
         return;
     }
 
