@@ -12,6 +12,16 @@
   - `npc_area_metric_deferred_count`
   - `npc_area_metric_queue_overflow_count`
 
+## Локальная статическая проверка контракта
+
+Перед сценарными прогонами выполнить:
+
+```bash
+bash scripts/check_area_lifecycle_contract.sh
+```
+
+Проверка валидирует, что `npc_behavior_core.nss` использует `src/controllers/lifecycle_controller.nss` как единую точку lifecycle-контракта и не дублирует legacy area lifecycle vars.
+
 ## Scenario A — Burst fairness без starvation
 
 1. Поднять area в состоянии `RUNNING` (`NpcControllerAreaStart`).

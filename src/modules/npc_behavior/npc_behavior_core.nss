@@ -840,6 +840,21 @@ void NpcBehaviorAreaDeactivate(object oArea)
     NpcControllerAreaStop(oArea);
 }
 
+void NpcBehaviorAreaPause(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    NpcControllerAreaPause(oArea);
+}
+
+void NpcBehaviorAreaResume(object oArea)
+{
+    NpcBehaviorAreaActivate(oArea);
+}
+
 int NpcBehaviorIsDisabled(object oNpc)
 {
     if (GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_OBJECT) == TRUE)
