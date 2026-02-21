@@ -554,6 +554,98 @@ int NpcBehaviorConsumePending(object oNpc, int nPriority)
     return TRUE;
 }
 
+void NpcBehaviorFlushPendingForNpc(object oNpc)
+{
+    object oArea;
+    int nPendingCritical;
+    int nPendingHigh;
+    int nPendingNormal;
+    int nPendingLow;
+    int nPendingTotal;
+    int nBucketTotal;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    oArea = GetArea(oNpc);
+    nPendingCritical = GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL);
+    nPendingHigh = GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH);
+    nPendingNormal = GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL);
+    nPendingLow = GetLocalInt(oNpc, NPC_VAR_PENDING_LOW);
+    nPendingTotal = GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL);
+
+    // Guards against broken runtime state: local counters cannot be negative.
+    if (nPendingCritical < 0)
+    {
+        nPendingCritical = 0;
+    }
+    if (nPendingHigh < 0)
+    {
+        nPendingHigh = 0;
+    }
+    if (nPendingNormal < 0)
+    {
+        nPendingNormal = 0;
+    }
+    if (nPendingLow < 0)
+    {
+        nPendingLow = 0;
+    }
+    if (nPendingTotal < 0)
+    {
+        nPendingTotal = 0;
+    }
+
+    nBucketTotal = nPendingCritical + nPendingHigh + nPendingNormal + nPendingLow;
+    if (nPendingTotal < nBucketTotal)
+    {
+        nPendingTotal = nBucketTotal;
+    }
+
+    if (nPendingTotal <= 0)
+    {
+        SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+        return;
+    }
+
+    if (GetIsObjectValid(oArea))
+    {
+        if (nPendingCritical > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, -nPendingCritical);
+        }
+
+        if (nPendingHigh > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_HIGH, -nPendingHigh);
+        }
+
+        if (nPendingNormal > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_NORMAL, -nPendingNormal);
+        }
+
+        if (nPendingLow > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -nPendingLow);
+        }
+    }
+
+    SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+}
+
 int NpcBehaviorGetTopPendingPriority(object oNpc)
 {
     int nTopPriority;
@@ -1010,7 +1102,7 @@ void NpcBehaviorOnDeath(object oNpc)
 
     // Death is terminal: cleanup pending queue state before terminal side-effects
     // so per-NPC counters and area buckets cannot leak after death.
-    NpcBehaviorFlushPendingQueueState(oNpc);
+    NpcBehaviorFlushPendingForNpc(oNpc);
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 

@@ -91,7 +91,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - **Strict policy**: `NpcBehaviorOnPerception`, `NpcBehaviorOnEndCombatRound`, `NpcBehaviorOnDialogue`, `NpcBehaviorOnSpellCastAt` делают ранний `return`, если intake/coalesce вернул `FALSE`.
 - **Explicit CRITICAL bypass policy**: `NpcBehaviorOnDamaged`, `NpcBehaviorOnPhysicalAttacked` продолжают обработку даже при отказе queue/coalesce, чтобы не потерять критические side-effects (state flow).
 - Для CRITICAL bypass добавлена отдельная метрика `npc_metric_intake_bypass_critical`: инкрементируется только когда intake для CRITICAL вернул `FALSE` в `NpcBehaviorOnDamaged/OnPhysicalAttacked`, и тем самым отделяет bypass от обычного queued/deferred пути.
-- `NpcBehaviorOnDeath` работает без intake: пишет только `npc_metric_death_count` и выполняет terminal side-effects (`lootable/decay`) без постановки в queue.
+- `NpcBehaviorOnDeath` работает без intake: перед terminal side-effects (`lootable/decay`) вызывает flush pending/queue-состояния (`npc_pending_*`, `npc_pending_total`, `npc_pending_priority`) и снимает соответствующие area queue buckets, затем пишет `npc_metric_death_count`.
 
 ### Intake/coalesce/degraded mode (Phase 1+)
 
