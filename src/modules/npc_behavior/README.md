@@ -73,6 +73,8 @@ Phase 1 использует единый helper записи метрик `NpcB
 
 - `NpcBehaviorOnPerception` → `npc_metric_perception_count`.
 - `NpcBehaviorOnDamaged` → `npc_metric_damaged_count`.
+- `NpcBehaviorOnPhysicalAttacked` → `npc_metric_physical_attacked_count`.
+- `NpcBehaviorOnSpellCastAt` → `npc_metric_spell_cast_at_count`.
 - `NpcBehaviorOnDeath` → `npc_metric_death_count`.
 - `NpcBehaviorOnDialogue` → `npc_metric_dialog_count`.
 - `NpcBehaviorOnHeartbeat` (P1) → `npc_metric_heartbeat_count`, при раннем выходе/skip также `npc_metric_heartbeat_skipped_count`.
@@ -83,6 +85,12 @@ Phase 1 использует единый helper записи метрик `NpcB
   - skipped (`npc_area_metric_skipped_count`),
   - deferred (`npc_area_metric_deferred_count`),
   - queue overflow (`npc_area_metric_queue_overflow_count`).
+
+### Intake policy after `NpcBehaviorTryIntakeEvent(...)`
+
+- **Strict policy**: `NpcBehaviorOnPerception`, `NpcBehaviorOnEndCombatRound`, `NpcBehaviorOnDialogue`, `NpcBehaviorOnSpellCastAt` делают ранний `return`, если intake/coalesce вернул `FALSE`.
+- **Explicit CRITICAL bypass policy**: `NpcBehaviorOnDamaged`, `NpcBehaviorOnPhysicalAttacked`, `NpcBehaviorOnDeath` продолжают обработку даже при отказе queue/coalesce, чтобы не потерять критические side-effects (state/death flow).
+- Для CRITICAL bypass добавлена отдельная метрика `npc_metric_intake_bypass_critical`: инкрементируется только когда intake для CRITICAL вернул `FALSE`, и тем самым отделяет bypass от обычного queued/deferred пути.
 
 ### Intake/coalesce/degraded mode (Phase 1+)
 
@@ -104,6 +112,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `npc_metric_heartbeat_count`
 - `npc_metric_heartbeat_skipped_count`
 - `npc_metric_combat_round_count` (единый ключ для OnEndCombatRound/compat-wrapper)
+- `npc_metric_intake_bypass_critical`
 - `npc_area_metric_processed_count`
 - `npc_area_metric_skipped_count`
 - `npc_area_metric_deferred_count`
