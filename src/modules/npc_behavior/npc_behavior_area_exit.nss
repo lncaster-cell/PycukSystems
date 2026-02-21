@@ -14,7 +14,7 @@ void main()
         return;
     }
 
-    oArea = GetArea(OBJECT_SELF);
+    oArea = GetArea(oExiting);
     AL_Dbg("AreaExit OK");
     if (NpcBehaviorCountPlayersInArea(oArea) == 0)
     {
