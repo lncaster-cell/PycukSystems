@@ -5,20 +5,22 @@ MODE="${1:-check}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPILER_REL="tools/NWNScriptCompiler.exe"
 COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
-INCLUDE_PATH="$ROOT_DIR/tools/scripts"
+# Project-level shared include scripts/helpers (.nss), used by compiler -i lookup.
+INCLUDE_PATH="$ROOT_DIR/scripts"
 NWNX_INCLUDE_PATH="$ROOT_DIR/third_party/nwnx_includes"
 SOURCE_ROOT_INCLUDE_PATH="$ROOT_DIR/src"
 NPC_BEHAVIOR_INCLUDE_PATH="$ROOT_DIR/src/modules/npc_behavior"
 STOCK_INCLUDE_SOURCE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
 STOCK_INCLUDE_PATH="$ROOT_DIR/.ci/nwn2_stock_scripts"
 OUTPUT_DIR="$ROOT_DIR/output"
-INCLUDE_ARGS=(
-  -i "$STOCK_INCLUDE_PATH"
-  -i "$SOURCE_ROOT_INCLUDE_PATH"
-  -i "$NPC_BEHAVIOR_INCLUDE_PATH"
-  -i "$INCLUDE_PATH"
-  -i "$NWNX_INCLUDE_PATH"
+INCLUDE_CANDIDATES=(
+  "$STOCK_INCLUDE_PATH"
+  "$SOURCE_ROOT_INCLUDE_PATH"
+  "$NPC_BEHAVIOR_INCLUDE_PATH"
+  "$INCLUDE_PATH"
+  "$NWNX_INCLUDE_PATH"
 )
+INCLUDE_ARGS=()
 
 if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
   echo "[ERROR] Local execution is disabled."
@@ -66,6 +68,12 @@ prepare_stock_includes() {
 }
 
 prepare_stock_includes
+
+for include_dir in "${INCLUDE_CANDIDATES[@]}"; do
+  if [[ -d "$include_dir" ]]; then
+    INCLUDE_ARGS+=( -i "$include_dir" )
+  fi
+done
 
 mapfile -t FILES < <(find "$ROOT_DIR/src" -type f -name '*.nss' | LC_ALL=C sort)
 

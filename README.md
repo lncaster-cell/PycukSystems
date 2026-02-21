@@ -54,6 +54,7 @@ bash scripts/setup_env.sh
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
 - Для диагностики падений используйте артефакты **logs-${mode}** и исправляйте ошибки только по конкретным строкам (`file:line`, `NSCxxxx`) из `logs-${mode}.log`.
 - После успешного запуска `build`/`optimize` скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
+- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `src/modules/npc_behavior/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
 
 ### Где лежат NWNX include-файлы и зачем
 
