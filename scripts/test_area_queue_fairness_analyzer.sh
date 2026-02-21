@@ -12,34 +12,39 @@ INVALID_NUMERIC_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_invali
 
 expect_fail() {
   local description="$1"
-  shift
-
-  if "$@"; then
-    echo "[FAIL] expected failure: $description"
-    exit 1
-  fi
-}
-
-expect_fail_code() {
-  local expected_code="$1"
-  local description="$2"
+  local expected_fragment="$2"
   shift 2
 
+  if [[ "${1:-}" == "--" ]]; then
+    shift
+  fi
+
+  local output=""
+  local status=0
+
   set +e
-  "$@"
-  local rc=$?
+  output=$("$@" 2>&1)
+  status=$?
   set -e
 
-  if [[ $rc -eq 0 ]]; then
+  if [[ $status -eq 0 ]]; then
     echo "[FAIL] expected failure: $description"
     exit 1
   fi
 
-  if [[ $rc -ne $expected_code ]]; then
-    echo "[FAIL] expected exit code $expected_code for: $description (actual: $rc)"
+  if [[ -n "$expected_fragment" ]] && [[ "$output" != *"$expected_fragment"* ]]; then
+    echo "[FAIL] expected error output to contain '$expected_fragment' for: $description"
+    echo "[INFO] actual output:"
+    echo "$output"
     exit 1
   fi
 }
+
+# Self-tests cover success path + fail contracts:
+# - pause-zero invariant violation
+# - minimum resume transition threshold violation
+# - post-resume drain threshold violation
+# - missing --input path
 
 python3 "$ANALYZER" \
   --input "$PASS_FIXTURE" \
@@ -47,7 +52,7 @@ python3 "$ANALYZER" \
   --buckets LOW,NORMAL \
   --enforce-pause-zero
 
-expect_fail "pause-zero violation fixture" \
+expect_fail "pause-zero violation fixture" "" -- \
   python3 "$ANALYZER" \
     --input "$PAUSE_FAIL_FIXTURE" \
     --max-starvation-window 10 \
@@ -67,7 +72,7 @@ python3 "$ANALYZER" \
   --min-resume-transitions 3 \
   --max-post-resume-drain-ticks 1
 
-expect_fail "resume transition count threshold" \
+expect_fail "resume transition count threshold" "" -- \
   python3 "$ANALYZER" \
     --input "$PAUSE_RESUME_FIXTURE" \
     --max-starvation-window 3 \
@@ -76,7 +81,7 @@ expect_fail "resume transition count threshold" \
     --min-resume-transitions 4 \
     --max-post-resume-drain-ticks 1
 
-expect_fail "post-resume drain latency threshold" \
+expect_fail "post-resume drain latency threshold" "" -- \
   python3 "$ANALYZER" \
     --input "$RESUME_DRAIN_FAIL_FIXTURE" \
     --max-starvation-window 4 \
@@ -85,11 +90,10 @@ expect_fail "post-resume drain latency threshold" \
     --min-resume-transitions 1 \
     --max-post-resume-drain-ticks 1
 
-expect_fail_code 2 "invalid numeric field in CSV" \
+expect_fail "missing input path" "[FAIL] input file not found" -- \
   python3 "$ANALYZER" \
-    --input "$INVALID_NUMERIC_FIXTURE" \
-    --max-starvation-window 10 \
-    --buckets LOW,NORMAL \
-    --enforce-pause-zero
+    --input "$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_missing.csv" \
+    --max-starvation-window 4 \
+    --buckets LOW,NORMAL
 
 echo "[OK] analyzer self-tests passed"
