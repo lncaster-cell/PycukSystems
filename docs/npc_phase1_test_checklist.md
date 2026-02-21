@@ -121,5 +121,6 @@ rg -n "core|Dispatch|Route|Handle" src/modules/npc_behavior/npc_behavior_*.nss
 rg --files src/modules/npc_behavior
 rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
 rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnTick" src/modules/npc_behavior
-bash scripts/run_npc_bench.sh scenario_a_nominal
+# RUNS должен быть целым числом >= 1 (например, RUNS=3).
+RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ```
