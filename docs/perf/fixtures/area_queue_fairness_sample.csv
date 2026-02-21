@@ -1,0 +1,11 @@
+tick,lifecycle_state,processed_low,processed_normal,processed_high,processed_critical
+1,RUNNING,1,0,1,0
+2,RUNNING,0,1,0,1
+3,RUNNING,0,0,1,1
+4,RUNNING,1,0,0,1
+5,PAUSED,0,0,0,0
+6,RUNNING,0,1,1,0
+7,RUNNING,1,0,0,1
+8,RUNNING,0,1,0,1
+9,RUNNING,1,0,1,0
+10,RUNNING,0,1,0,1
