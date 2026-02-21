@@ -59,6 +59,10 @@ string NPC_VAR_FLAG_PLOT = "npc_flag_plot";
 string NPC_VAR_FLAG_LOOTABLE_CORPSE = "npc_flag_lootable_corpse";
 string NPC_VAR_FLAG_DISABLE_OBJECT = "npc_flag_disable_object";
 string NPC_VAR_RUNTIME_HIDDEN = "npc_runtime_hidden";
+string NPC_VAR_FLAG_DECAYS_SET = "npc_flag_decays_set";
+string NPC_VAR_FLAG_LOOTABLE_CORPSE_SET = "npc_flag_lootable_corpse_set";
+string NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET = "npc_flag_disable_ai_when_hidden_set";
+string NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET = "npc_flag_dialog_interruptible_set";
 
 string NPC_VAR_DECAY_TIME_SEC = "npc_decay_time_sec";
 string NPC_VAR_TICK_INTERVAL_IDLE_SEC = "npc_tick_interval_idle_sec";
@@ -601,6 +605,10 @@ void NpcBehaviorHandleCombat(object oNpc)
 
 void NpcBehaviorOnSpawn(object oNpc)
 {
+    int bFlagDecaysSet;
+    int bFlagLootableCorpseSet;
+    int bFlagDisableAiWhenHiddenSet;
+    int bFlagDialogInterruptibleSet;
     int nFlagDecays;
     int nFlagLootableCorpse;
     int nFlagDisableAiWhenHidden;
@@ -617,33 +625,57 @@ void NpcBehaviorOnSpawn(object oNpc)
 
     SetLocalInt(oNpc, NPC_VAR_FLAG_PLOT, GetPlotFlag(oNpc));
 
+    bFlagDecaysSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS_SET);
     nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
-    if (nFlagDecays != FALSE && nFlagDecays != TRUE)
+    if (bFlagDecaysSet != TRUE)
+    {
+        nFlagDecays = NPC_DEFAULT_FLAG_DECAYS;
+    }
+    else if (nFlagDecays != FALSE && nFlagDecays != TRUE)
     {
         nFlagDecays = NPC_DEFAULT_FLAG_DECAYS;
     }
     SetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS, nFlagDecays);
+    SetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS_SET, TRUE);
 
+    bFlagLootableCorpseSet = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE_SET);
     nFlagLootableCorpse = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE);
-    if (nFlagLootableCorpse != FALSE && nFlagLootableCorpse != TRUE)
+    if (bFlagLootableCorpseSet != TRUE)
+    {
+        nFlagLootableCorpse = NPC_DEFAULT_FLAG_LOOTABLE_CORPSE;
+    }
+    else if (nFlagLootableCorpse != FALSE && nFlagLootableCorpse != TRUE)
     {
         nFlagLootableCorpse = NPC_DEFAULT_FLAG_LOOTABLE_CORPSE;
     }
     SetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE, nFlagLootableCorpse);
+    SetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE_SET, TRUE);
 
+    bFlagDisableAiWhenHiddenSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET);
     nFlagDisableAiWhenHidden = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN);
-    if (nFlagDisableAiWhenHidden != FALSE && nFlagDisableAiWhenHidden != TRUE)
+    if (bFlagDisableAiWhenHiddenSet != TRUE)
+    {
+        nFlagDisableAiWhenHidden = NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN;
+    }
+    else if (nFlagDisableAiWhenHidden != FALSE && nFlagDisableAiWhenHidden != TRUE)
     {
         nFlagDisableAiWhenHidden = NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN;
     }
     SetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN, nFlagDisableAiWhenHidden);
+    SetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET, TRUE);
 
+    bFlagDialogInterruptibleSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET);
     nFlagDialogInterruptible = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE);
-    if (nFlagDialogInterruptible != FALSE && nFlagDialogInterruptible != TRUE)
+    if (bFlagDialogInterruptibleSet != TRUE)
+    {
+        nFlagDialogInterruptible = NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE;
+    }
+    else if (nFlagDialogInterruptible != FALSE && nFlagDialogInterruptible != TRUE)
     {
         nFlagDialogInterruptible = NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE;
     }
     SetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE, nFlagDialogInterruptible);
+    SetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET, TRUE);
 
     nDecayTimeSec = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC);
     if (nDecayTimeSec <= 0)
