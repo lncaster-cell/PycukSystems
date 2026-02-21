@@ -21,7 +21,7 @@ const int NPC_AREA_DEGRADED_HIGH_WATERMARK = 72;
 const int NPC_AREA_DEGRADED_LOW_WATERMARK = 24;
 const int NPC_COALESCE_WINDOW_SEC = 2;
 const int NPC_AREA_CRITICAL_RESERVE = 8;
-const int NPC_AREA_QUEUE_STORAGE_CAPACITY = NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE;
+const int NPC_AREA_QUEUE_STORAGE_CAPACITY = 104;
 
 const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
 const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
@@ -127,18 +127,23 @@ void NpcBehaviorMetricInc(object oTarget, string sMetric)
     NpcBehaviorMetricAdd(oTarget, sMetric, 1);
 }
 
-int NpcBehaviorIsHostileForCombat(object oNpc, object oTarget)
+int NpcBehaviorIsHostileForCombat(object oSource, object oTarget)
 {
-    if (!GetIsObjectValid(oNpc) || !GetIsObjectValid(oTarget))
+    if (!GetIsObjectValid(oSource) || !GetIsObjectValid(oTarget))
     {
         return FALSE;
     }
 
-    // NWScript contract: GetIsReactionTypeHostile(oSource, oTarget)
-    // проверяет отношение source -> target. Для combat-enter используем
-    // двустороннюю проверку, чтобы не терять переходы при faction/charm кейсах,
-    // где hostility может быть асимметричной в конкретный тик.
-    if (GetIsReactionTypeHostile(oNpc, oTarget) || GetIsReactionTypeHostile(oTarget, oNpc))
+    // Единый контракт вызова NWScript:
+    // GetIsReactionTypeHostile(source, target) проверяет реакцию source -> target.
+    if (GetIsReactionTypeHostile(oSource, oTarget))
+    {
+        return TRUE;
+    }
+
+    // Совместимость: fallback на обратное направление target -> source,
+    // т.к. в faction/charm кейсах реакция может быть асимметричной.
+    if (GetIsReactionTypeHostile(oTarget, oSource))
     {
         return TRUE;
     }
@@ -988,10 +993,9 @@ void NpcBehaviorOnPerception(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PERCEPTION);
 
-    // В COMBAT переходим, если hostility есть хотя бы в одну сторону:
-    // npc -> seen (базовый сценарий контракта NWScript) или seen -> npc
-    // для совместимости с faction/charm асимметрией.
-    if (NpcBehaviorIsHostileForCombat(oNpc, oSeen))
+    // source = seen, target = npc (единый контракт source -> target).
+    // Для совместимости helper допускает и обратное направление.
+    if (NpcBehaviorIsHostileForCombat(oSeen, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
         return;
@@ -1070,9 +1074,9 @@ void NpcBehaviorOnPhysicalAttacked(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PHYSICAL_ATTACKED);
 
-    // В COMBAT переходим по двусторонней hostility-проверке, чтобы корректно
-    // отрабатывать faction/charm сценарии и порядок source/target по контракту.
-    if (NpcBehaviorIsHostileForCombat(oNpc, oAttacker))
+    // source = attacker, target = npc (контракт source -> target).
+    // Для совместимости helper также проверяет обратное направление.
+    if (NpcBehaviorIsHostileForCombat(oAttacker, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
@@ -1094,9 +1098,9 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPELL_CAST_AT);
 
-    // В COMBAT переходим по двусторонней hostility-проверке, чтобы корректно
-    // отрабатывать faction/charm сценарии и порядок source/target по контракту.
-    if (NpcBehaviorIsHostileForCombat(oNpc, oCaster))
+    // source = caster, target = npc (контракт source -> target).
+    // Для совместимости helper также проверяет обратное направление.
+    if (NpcBehaviorIsHostileForCombat(oCaster, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
