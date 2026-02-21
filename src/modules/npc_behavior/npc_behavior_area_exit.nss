@@ -8,16 +8,24 @@ void main()
 {
     object oExiting;
     object oArea;
+    int nPlayers;
 
     oExiting = GetExitingObject();
-    if (!GetIsObjectValid(oExiting) || !GetIsPC(oExiting))
+    if (!GetIsObjectValid(oExiting))
     {
         return;
     }
 
     oArea = OBJECT_SELF;
+    nPlayers = NpcBehaviorCountPlayersInArea(oArea);
     AL_Dbg("AreaExit OK");
-    if (NpcBehaviorCountPlayersInArea(oArea) == 0)
+
+    if (!NpcBehaviorAreaIsActive(oArea))
+    {
+        return;
+    }
+
+    if ((GetIsPC(oExiting) && nPlayers <= 1) || (!GetIsPC(oExiting) && nPlayers == 0))
     {
         NpcBehaviorAreaDeactivate(oArea);
     }

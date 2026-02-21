@@ -7,16 +7,18 @@ void main()
 {
     object oEntering;
     object oArea;
+    int nPlayers;
 
     oEntering = GetEnteringObject();
-    if (!GetIsObjectValid(oEntering) || !GetIsPC(oEntering))
+    if (!GetIsObjectValid(oEntering))
     {
         return;
     }
 
     oArea = OBJECT_SELF;
+    nPlayers = NpcBehaviorCountPlayersInArea(oArea);
     AL_Dbg("AreaEnter OK");
-    if (NpcBehaviorCountPlayersInArea(oArea) == 1)
+    if ((GetIsPC(oEntering) || nPlayers > 0) && !NpcBehaviorAreaIsActive(oArea))
     {
         NpcBehaviorAreaActivate(oArea);
     }
