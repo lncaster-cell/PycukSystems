@@ -7,8 +7,18 @@ COMPILER_REL="tools/NWNScriptCompiler.exe"
 COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
 INCLUDE_PATH="$ROOT_DIR/tools/scripts"
 NWNX_INCLUDE_PATH="$ROOT_DIR/third_party/nwnx_includes"
+SOURCE_ROOT_INCLUDE_PATH="$ROOT_DIR/src"
+NPC_BEHAVIOR_INCLUDE_PATH="$ROOT_DIR/src/modules/npc_behavior"
+STOCK_INCLUDE_SOURCE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
+STOCK_INCLUDE_PATH="$ROOT_DIR/.ci/nwn2_stock_scripts"
 OUTPUT_DIR="$ROOT_DIR/output"
-INCLUDE_ARGS=(-i "$INCLUDE_PATH" -i "$NWNX_INCLUDE_PATH")
+INCLUDE_ARGS=(
+  -i "$STOCK_INCLUDE_PATH"
+  -i "$SOURCE_ROOT_INCLUDE_PATH"
+  -i "$NPC_BEHAVIOR_INCLUDE_PATH"
+  -i "$INCLUDE_PATH"
+  -i "$NWNX_INCLUDE_PATH"
+)
 
 if [[ ! -f "$COMPILER_PATH" ]]; then
   echo "[ERROR] Compiler not found: $COMPILER_REL"
@@ -30,13 +40,33 @@ elif command -v powershell.exe >/dev/null 2>&1; then
   RUNNER="windows-bridge"
 elif command -v wine >/dev/null 2>&1; then
   RUNNER="wine"
-elif command -v mono >/dev/null 2>&1; then
-  RUNNER="mono"
 else
-  echo "[ERROR] Local compilation requires Windows (native or powershell.exe bridge), wine, or mono."
+  echo "[ERROR] Local compilation requires Windows (native or powershell.exe bridge) or wine."
   echo "[INFO] Preferred option: run from Windows or WSL with powershell.exe available."
   exit 1
 fi
+
+prepare_stock_includes() {
+  if [[ ! -d "$STOCK_INCLUDE_SOURCE_PATH" ]]; then
+    echo "[ERROR] Stock include directory not found: $STOCK_INCLUDE_SOURCE_PATH"
+    exit 1
+  fi
+
+  rm -rf "$STOCK_INCLUDE_PATH"
+  mkdir -p "$STOCK_INCLUDE_PATH"
+  cp -R "$STOCK_INCLUDE_SOURCE_PATH"/. "$STOCK_INCLUDE_PATH"/
+
+  if [[ -f "$STOCK_INCLUDE_PATH/nwscript.NSS" && ! -f "$STOCK_INCLUDE_PATH/nwscript.nss" ]]; then
+    cp "$STOCK_INCLUDE_PATH/nwscript.NSS" "$STOCK_INCLUDE_PATH/nwscript.nss"
+  fi
+
+  if [[ ! -f "$STOCK_INCLUDE_PATH/nwscript.nss" ]]; then
+    echo "[ERROR] Missing stock include file: $STOCK_INCLUDE_PATH/nwscript.nss"
+    exit 1
+  fi
+}
+
+prepare_stock_includes
 
 mapfile -t FILES < <(find "$ROOT_DIR/src" -type f -name '*.nss' | LC_ALL=C sort)
 
@@ -67,9 +97,6 @@ run_compiler() {
       ;;
     wine)
       wine "$COMPILER_PATH" "${args[@]}"
-      ;;
-    mono)
-      mono "$COMPILER_PATH" "${args[@]}"
       ;;
     windows-bridge)
       local compiler_win
