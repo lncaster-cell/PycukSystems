@@ -8,6 +8,7 @@ PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_viola
 LONG_BURST_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_long_burst.csv"
 PAUSE_RESUME_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_resume_fault_injection.csv"
 RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_violation.csv"
+INVALID_NUMERIC_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_invalid_numeric.csv"
 
 expect_fail() {
   local description="$1"
@@ -15,6 +16,27 @@ expect_fail() {
 
   if "$@"; then
     echo "[FAIL] expected failure: $description"
+    exit 1
+  fi
+}
+
+expect_fail_code() {
+  local expected_code="$1"
+  local description="$2"
+  shift 2
+
+  set +e
+  "$@"
+  local rc=$?
+  set -e
+
+  if [[ $rc -eq 0 ]]; then
+    echo "[FAIL] expected failure: $description"
+    exit 1
+  fi
+
+  if [[ $rc -ne $expected_code ]]; then
+    echo "[FAIL] expected exit code $expected_code for: $description (actual: $rc)"
     exit 1
   fi
 }
@@ -62,5 +84,12 @@ expect_fail "post-resume drain latency threshold" \
     --enforce-pause-zero \
     --min-resume-transitions 1 \
     --max-post-resume-drain-ticks 1
+
+expect_fail_code 2 "invalid numeric field in CSV" \
+  python3 "$ANALYZER" \
+    --input "$INVALID_NUMERIC_FIXTURE" \
+    --max-starvation-window 10 \
+    --buckets LOW,NORMAL \
+    --enforce-pause-zero
 
 echo "[OK] analyzer self-tests passed"
