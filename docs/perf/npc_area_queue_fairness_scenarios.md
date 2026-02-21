@@ -56,3 +56,18 @@ bash scripts/check_area_lifecycle_contract.sh
 - после stop loop завершён и `nb_area_timer_running=FALSE`;
 - повторный start поднимает ровно один loop;
 - метрики queue depth/buckets остаются консистентны.
+
+## Анализ экспортированных метрик fairness
+
+Для быстрого анализа starvation-window по bucket и инварианта pause-zero:
+
+```bash
+python3 scripts/analyze_area_queue_fairness.py \
+  --input docs/perf/fixtures/area_queue_fairness_sample.csv \
+  --max-starvation-window 10 \
+  --buckets LOW,NORMAL \
+  --enforce-pause-zero
+```
+
+Скрипт ожидает CSV с колонками `tick`, `lifecycle_state`, `processed_low`, `processed_normal` (остальные `processed_*` — опционально).
+
