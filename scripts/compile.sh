@@ -20,6 +20,18 @@ INCLUDE_ARGS=(
   -i "$NWNX_INCLUDE_PATH"
 )
 
+if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  echo "[ERROR] Local execution is disabled."
+  echo "[INFO] Run compilation only in GitHub Actions workflow: .github/workflows/compile.yml (windows-latest)."
+  exit 1
+fi
+
+if [[ "${RUNNER_OS:-}" != "Windows" ]]; then
+  echo "[ERROR] This script may run only on a GitHub Actions Windows runner."
+  echo "[INFO] Current RUNNER_OS=${RUNNER_OS:-unknown}."
+  exit 1
+fi
+
 if [[ ! -f "$COMPILER_PATH" ]]; then
   echo "[ERROR] Compiler not found: $COMPILER_REL"
   exit 1
@@ -32,18 +44,6 @@ case "$MODE" in
     exit 2
     ;;
 esac
-
-if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
-  echo "[ERROR] Local execution is disabled."
-  echo "[INFO] Run compilation only in GitHub Actions workflow: .github/workflows/compile.yml (windows-latest)."
-  exit 1
-fi
-
-if [[ "${RUNNER_OS:-}" != "Windows" ]]; then
-  echo "[ERROR] This script may run only on a GitHub Actions Windows runner."
-  echo "[INFO] Current RUNNER_OS=${RUNNER_OS:-unknown}."
-  exit 1
-fi
 
 prepare_stock_includes() {
   if [[ ! -d "$STOCK_INCLUDE_SOURCE_PATH" ]]; then

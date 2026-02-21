@@ -47,12 +47,13 @@ bash scripts/setup_env.sh
 
 Запуск компилятора выполняется **только** в GitHub Actions на `windows-latest` через workflow `.github/workflows/compile.yml`.
 
-Локальный запуск `tools/NWNScriptCompiler.exe` в Linux/WSL окружении не поддерживается. Скрипт `scripts/compile.sh` предназначен для выполнения внутри GitHub Actions runner и завершится ошибкой вне CI.
+Локальный запуск `tools/NWNScriptCompiler.exe` в Linux/WSL окружении не поддерживается.
 
 Поддерживаемые режимы workflow: `check`, `build`, `optimize`, `bugscan`.
 
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
-- После успешного запуска откройте run и скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
+- Для диагностики падений используйте артефакты **logs-${mode}** и исправляйте ошибки только по конкретным строкам (`file:line`, `NSCxxxx`) из `logs-${mode}.log`.
+- После успешного запуска `build`/`optimize` скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
 
 ### Где лежат NWNX include-файлы и зачем
 
