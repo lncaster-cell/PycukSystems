@@ -936,6 +936,7 @@ void NpcBehaviorOnAreaTick(object oArea)
     {
         if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE
             && !GetIsPC(oObject)
+            && !GetIsDead(oObject)
             && GetLocalInt(oObject, NPC_VAR_FLAG_DISABLE_OBJECT) != TRUE
             && GetLocalInt(oObject, NPC_VAR_INIT_DONE) == TRUE)
         {
@@ -980,6 +981,7 @@ void NpcBehaviorOnAreaTick(object oArea)
     {
         if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE
             && !GetIsPC(oObject)
+            && !GetIsDead(oObject)
             && GetLocalInt(oObject, NPC_VAR_FLAG_DISABLE_OBJECT) != TRUE
             && GetLocalInt(oObject, NPC_VAR_INIT_DONE) == TRUE)
         {
@@ -1033,6 +1035,7 @@ void NpcBehaviorOnAreaTick(object oArea)
         {
             if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE
                 && !GetIsPC(oObject)
+                && !GetIsDead(oObject)
                 && GetLocalInt(oObject, NPC_VAR_FLAG_DISABLE_OBJECT) != TRUE
                 && GetLocalInt(oObject, NPC_VAR_INIT_DONE) == TRUE)
             {
