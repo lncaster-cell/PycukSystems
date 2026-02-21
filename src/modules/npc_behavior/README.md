@@ -154,8 +154,9 @@ Phase 1 использует единый helper записи метрик `NpcB
 - Area activity lifecycle:
   - Area OnEnter handler is resilient to area-list update timing: it activates when there is at least one PC already counted in area **or** the entering object is a PC, but only if `NpcBehaviorAreaIsActive(oArea) == FALSE`.
   - Area OnExit handler is resilient to delayed removal from area list: it counts `nPlayers = NpcBehaviorCountPlayersInArea(oArea)` and deactivates when no PCs remain after exit (`GetIsPC(oExiting) && nPlayers <= 1`, or `!GetIsPC(oExiting) && nPlayers == 0`), with an additional guard that area must be active.
-  - `NpcBehaviorAreaActivate(oArea)` sets `nb_area_active=TRUE` and starts one timer loop (`nb_area_timer_running`) without duplicates.
-  - `NpcBehaviorAreaDeactivate(oArea)` sets `nb_area_active=FALSE`; loop stops on next iteration.
+  - `NpcBehaviorAreaActivate(oArea)` переводит lifecycle в `RUNNING` через controller, синхронизирует `nb_area_active=TRUE` (compat) и стартует ровно один timer loop (`nb_area_timer_running`).
+  - `NpcBehaviorAreaDeactivate(oArea)` переводит lifecycle в `STOPPED`; loop останавливается на следующей итерации.
+  - `NpcBehaviorAreaPause(oArea)` переводит lifecycle в `PAUSED` без принудительного drain очереди; `NpcBehaviorAreaResume(oArea)` возвращает `RUNNING` через activate-path.
 - Timer loop: `NpcBehaviorAreaTickLoop(oArea)` self-schedules with 1.0 sec interval and does not use Area OnHeartbeat.
 - Dispatcher: `NpcBehaviorOnAreaTick(oArea)` processes only creatures in current area with budget (`NPC_AREA_BUDGET_PER_TICK`) and stagger offset (`nb_area_tick_seq`).
 - Filtering in dispatcher:
@@ -181,4 +182,4 @@ Phase 1 использует единый helper записи метрик `NpcB
 
 1. Подключить реальную инициализацию флагов из template-параметров NPC на OnSpawn.
 2. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
-3. Формализовать area lifecycle состояния (RUNNING/PAUSED/STOPPED) в отдельном controller script.
+3. Расширить scenario/perf-проверки fairness для PAUSED/RESUME/STOPPED и добавить длительные burst-профили со starvation guard.

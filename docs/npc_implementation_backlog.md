@@ -6,8 +6,8 @@
 
 ## Текущий статус (обновление)
 
-- **Task 3.2 (частично):** в `src/modules/npc_behavior/npc_behavior_core.nss` внедрены базовые runtime guardrails (bounded queue, coalesce, degraded mode, overflow handling c CRITICAL reserve).
-- **Следующий шаг по Task 3.2:** вынести area lifecycle (`RUNNING/PAUSED/STOPPED`) в отдельный area-controller script и добавить сценарные perf-проверки под queue fairness.
+- **Task 3.2 (частично):** в `src/modules/npc_behavior/npc_behavior_core.nss` внедрены базовые runtime guardrails (bounded queue, coalesce, degraded mode, overflow handling c CRITICAL reserve); lifecycle вынесен в `src/controllers/lifecycle_controller.nss` с состояниями `RUNNING/PAUSED/STOPPED`.
+- **Следующий шаг по Task 3.2:** прогнать нагрузочные профили с длительным starvation-окном и fault-injection на pause/resume, используя `scripts/analyze_area_queue_fairness.py` для автоматической оценки starvation-window.
 
 ---
 
