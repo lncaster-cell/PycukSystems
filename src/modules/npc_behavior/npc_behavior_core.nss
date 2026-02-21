@@ -126,6 +126,71 @@ void NpcBehaviorMetricInc(object oTarget, string sMetric)
     NpcBehaviorMetricAdd(oTarget, sMetric, 1);
 }
 
+
+void NpcBehaviorPendingAdjust(object oNpc, int nPriority, int nDelta)
+{
+    int nPendingTotal;
+    int nBucketValue;
+    string sBucketVar;
+    int nTopPriority;
+
+    if (!GetIsObjectValid(oNpc) || nPriority < NPC_EVENT_PRIORITY_LOW || nPriority > NPC_EVENT_PRIORITY_CRITICAL || nDelta == 0)
+    {
+        return;
+    }
+
+    if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
+    {
+        sBucketVar = NPC_VAR_PENDING_CRITICAL;
+    }
+    else if (nPriority == NPC_EVENT_PRIORITY_HIGH)
+    {
+        sBucketVar = NPC_VAR_PENDING_HIGH;
+    }
+    else if (nPriority == NPC_EVENT_PRIORITY_NORMAL)
+    {
+        sBucketVar = NPC_VAR_PENDING_NORMAL;
+    }
+    else
+    {
+        sBucketVar = NPC_VAR_PENDING_LOW;
+    }
+
+    nBucketValue = GetLocalInt(oNpc, sBucketVar) + nDelta;
+    if (nBucketValue < 0)
+    {
+        nBucketValue = 0;
+    }
+    SetLocalInt(oNpc, sBucketVar, nBucketValue);
+
+    nPendingTotal = GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL) + nDelta;
+    if (nPendingTotal < 0)
+    {
+        nPendingTotal = 0;
+    }
+    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, nPendingTotal);
+
+    nTopPriority = NPC_EVENT_PRIORITY_LOW;
+    if (GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL) > 0)
+    {
+        nTopPriority = NPC_EVENT_PRIORITY_CRITICAL;
+    }
+    else if (GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH) > 0)
+    {
+        nTopPriority = NPC_EVENT_PRIORITY_HIGH;
+    }
+    else if (GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL) > 0)
+    {
+        nTopPriority = NPC_EVENT_PRIORITY_NORMAL;
+    }
+
+    if (nPendingTotal <= 0)
+    {
+        nTopPriority = NPC_EVENT_PRIORITY_LOW;
+    }
+    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, nTopPriority);
+}
+
 int NpcBehaviorIsHostileForCombat(object oNpc, object oTarget)
 {
     if (!GetIsObjectValid(oNpc) || !GetIsObjectValid(oTarget))
@@ -270,7 +335,7 @@ int NpcBehaviorAreaQueueEvictSlot(object oArea, int nSlot)
 
     if (GetIsObjectValid(oOwner))
     {
-        NpcBehaviorConsumePending(oOwner, nPriority);
+        NpcBehaviorPendingAdjust(oOwner, nPriority, -1);
     }
 
     return TRUE;
@@ -337,6 +402,7 @@ int NpcBehaviorAreaQueueConsumeByOwner(object oArea, object oOwner, int nPriorit
         {
             NpcBehaviorAreaQueueClearSlot(oArea, nSlot);
             NpcBehaviorAreaQueueAdjust(oArea, nPriority, -1);
+            NpcBehaviorPendingAdjust(oOwner, nPriority, -1);
             return TRUE;
         }
     }
@@ -384,7 +450,7 @@ int NpcBehaviorAreaTryQueueEvent(object oArea, object oOwner, int nPriority)
 
     NpcBehaviorMetricInc(oArea, NPC_VAR_METRIC_AREA_OVERFLOW);
 
-    // CRITICAL events могут вытеснить сначала LOW, затем NORMAL/HIGH.
+    // CRITICAL events выполняют owner-aware вытеснение: удаляется конкретный slot (LOW -> NORMAL -> HIGH).
     if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
     {
         nVictimSlot = NpcBehaviorAreaQueueFindVictimSlot(oArea);
@@ -446,28 +512,7 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
         SetLocalInt(oNpc, sCoalesceVar, nNow);
     }
 
-    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL) + 1);
-    if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
-    {
-        SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL) + 1);
-    }
-    else if (nPriority == NPC_EVENT_PRIORITY_HIGH)
-    {
-        SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH) + 1);
-    }
-    else if (nPriority == NPC_EVENT_PRIORITY_NORMAL)
-    {
-        SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL) + 1);
-    }
-    else
-    {
-        SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, GetLocalInt(oNpc, NPC_VAR_PENDING_LOW) + 1);
-    }
-
-    if (nPriority > GetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY))
-    {
-        SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, nPriority);
-    }
+    NpcBehaviorPendingAdjust(oNpc, nPriority, 1);
 
     return TRUE;
 }
@@ -475,82 +520,32 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
 
 int NpcBehaviorConsumePending(object oNpc, int nPriority)
 {
-    int nPendingTotal;
-    int nPendingCritical;
-    int nPendingHigh;
-    int nPendingNormal;
-    int nPendingLow;
-    int nTopPriority;
-
     if (!GetIsObjectValid(oNpc) || nPriority < NPC_EVENT_PRIORITY_LOW || nPriority > NPC_EVENT_PRIORITY_CRITICAL)
     {
         return FALSE;
     }
 
-    if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
+    if (nPriority == NPC_EVENT_PRIORITY_CRITICAL && GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL) <= 0)
     {
-        nPendingCritical = GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL);
-        if (nPendingCritical <= 0)
-        {
-            return FALSE;
-        }
-        SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, nPendingCritical - 1);
-    }
-    else if (nPriority == NPC_EVENT_PRIORITY_HIGH)
-    {
-        nPendingHigh = GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH);
-        if (nPendingHigh <= 0)
-        {
-            return FALSE;
-        }
-        SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, nPendingHigh - 1);
-    }
-    else if (nPriority == NPC_EVENT_PRIORITY_NORMAL)
-    {
-        nPendingNormal = GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL);
-        if (nPendingNormal <= 0)
-        {
-            return FALSE;
-        }
-        SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, nPendingNormal - 1);
-    }
-    else
-    {
-        nPendingLow = GetLocalInt(oNpc, NPC_VAR_PENDING_LOW);
-        if (nPendingLow <= 0)
-        {
-            return FALSE;
-        }
-        SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, nPendingLow - 1);
+        return FALSE;
     }
 
-    nPendingTotal = GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL);
-    if (nPendingTotal > 0)
+    if (nPriority == NPC_EVENT_PRIORITY_HIGH && GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH) <= 0)
     {
-        nPendingTotal = nPendingTotal - 1;
-    }
-    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, nPendingTotal);
-
-    nTopPriority = NPC_EVENT_PRIORITY_LOW;
-    if (GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL) > 0)
-    {
-        nTopPriority = NPC_EVENT_PRIORITY_CRITICAL;
-    }
-    else if (GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH) > 0)
-    {
-        nTopPriority = NPC_EVENT_PRIORITY_HIGH;
-    }
-    else if (GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL) > 0)
-    {
-        nTopPriority = NPC_EVENT_PRIORITY_NORMAL;
+        return FALSE;
     }
 
-    if (nPendingTotal <= 0)
+    if (nPriority == NPC_EVENT_PRIORITY_NORMAL && GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL) <= 0)
     {
-        nTopPriority = NPC_EVENT_PRIORITY_LOW;
+        return FALSE;
     }
-    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, nTopPriority);
 
+    if (nPriority == NPC_EVENT_PRIORITY_LOW && GetLocalInt(oNpc, NPC_VAR_PENDING_LOW) <= 0)
+    {
+        return FALSE;
+    }
+
+    NpcBehaviorPendingAdjust(oNpc, nPriority, -1);
     return TRUE;
 }
 
@@ -1175,10 +1170,9 @@ void NpcBehaviorOnAreaTick(object oArea)
                 {
                     nProcessed = nProcessed + 1;
 
-                    if (nPendingBefore > 0 && nPendingPriority >= NPC_EVENT_PRIORITY_LOW
-                        && NpcBehaviorAreaQueueConsumeByOwner(oArea, oObject, nPendingPriority))
+                    if (nPendingBefore > 0 && nPendingPriority >= NPC_EVENT_PRIORITY_LOW)
                     {
-                        NpcBehaviorConsumePending(oObject, nPendingPriority);
+                        NpcBehaviorAreaQueueConsumeByOwner(oArea, oObject, nPendingPriority);
                     }
                 }
                 else
@@ -1217,10 +1211,9 @@ void NpcBehaviorOnAreaTick(object oArea)
                 {
                     nProcessed = nProcessed + 1;
 
-                    if (nPendingBefore > 0 && nPendingPriority >= NPC_EVENT_PRIORITY_LOW
-                        && NpcBehaviorAreaQueueConsumeByOwner(oArea, oObject, nPendingPriority))
+                    if (nPendingBefore > 0 && nPendingPriority >= NPC_EVENT_PRIORITY_LOW)
                     {
-                        NpcBehaviorConsumePending(oObject, nPendingPriority);
+                        NpcBehaviorAreaQueueConsumeByOwner(oArea, oObject, nPendingPriority);
                     }
                 }
                 else
