@@ -24,7 +24,7 @@ bash scripts/check_area_lifecycle_contract.sh
 
 ## Scenario A — Burst fairness без starvation
 
-1. Поднять area в состоянии `RUNNING` (`NpcControllerAreaStart`).
+1. Поднять area в состоянии `RUNNING` (`NpcBehaviorAreaActivate`).
 2. Создать burst событий в очередь с mix приоритетов: LOW/NORMAL/HIGH/CRITICAL.
 3. Прогнать не менее 120 area-tick итераций.
 4. Проверить, что LOW/NORMAL события не голодают: каждый bucket получает обработку в пределах окна 10 tick.

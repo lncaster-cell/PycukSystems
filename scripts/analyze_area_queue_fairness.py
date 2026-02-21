@@ -62,6 +62,10 @@ def main() -> int:
         return 2
 
     buckets = [b.strip().upper() for b in args.buckets.split(",") if b.strip()]
+    if not buckets:
+        print("[FAIL] no buckets specified")
+        return 2
+
     for b in buckets:
         if b not in BUCKET_COLUMN:
             print(f"[FAIL] unknown bucket: {b}")
@@ -83,7 +87,7 @@ def main() -> int:
     streak = {b: 0 for b in buckets}
     worst = {b: 0 for b in buckets}
 
-    pause_violations = 0
+    pause_violation_rows = 0
     running_ticks = 0
     resume_transitions = 0
     resume_window_tick = -1
@@ -98,9 +102,13 @@ def main() -> int:
             resume_window_tick = 0
 
         if state == "PAUSED" and args.enforce_pause_zero:
+            row_has_processing = False
             for col in ("processed_low", "processed_normal", "processed_high", "processed_critical"):
                 if to_int(row.get(col, "0")) > 0:
-                    pause_violations += 1
+                    row_has_processing = True
+                    break
+            if row_has_processing:
+                pause_violation_rows += 1
 
         if state != "RUNNING":
             previous_state = state
@@ -150,8 +158,8 @@ def main() -> int:
             )
             failed = True
 
-    if args.enforce_pause_zero and pause_violations > 0:
-        print(f"[FAIL] pause-zero invariant violated on {pause_violations} rows")
+    if args.enforce_pause_zero and pause_violation_rows > 0:
+        print(f"[FAIL] pause-zero invariant violated on {pause_violation_rows} rows")
         failed = True
 
     if resume_transitions < args.min_resume_transitions:
