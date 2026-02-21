@@ -8,6 +8,7 @@ PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_viola
 LONG_BURST_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_long_burst.csv"
 PAUSE_RESUME_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_resume_fault_injection.csv"
 RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_violation.csv"
+INVALID_NUMERIC_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_invalid_numeric.csv"
 
 expect_fail() {
   local description="$1"

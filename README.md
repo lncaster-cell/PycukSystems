@@ -66,18 +66,30 @@ NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
 
 Для модуля `src/modules/npc_behavior` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
 
-Ключи метрик Phase 1:
-- `npc_metric_spawn_count`
-- `npc_metric_perception_count`
-- `npc_metric_damaged_count`
-- `npc_metric_death_count`
-- `npc_metric_dialog_count`
-- `npc_metric_heartbeat_count`
-- `npc_metric_heartbeat_skipped_count`
-- `npc_metric_combat_round_count`
-- `npc_area_metric_processed_count`
-- `npc_area_metric_skipped_count`
-- `npc_area_metric_deferred_count`
+Ключи `NPC_VAR_METRIC_*` (полное соответствие `npc_behavior_core.nss`):
+
+- **Per-NPC метрики**
+  - `npc_metric_spawn_count`
+  - `npc_metric_perception_count`
+  - `npc_metric_damaged_count`
+  - `npc_metric_physical_attacked_count`
+  - `npc_metric_spell_cast_at_count`
+  - `npc_metric_death_count`
+  - `npc_metric_dialog_count`
+  - `npc_metric_heartbeat_count`
+  - `npc_metric_heartbeat_skipped_count`
+  - `npc_metric_combat_round_count`
+
+- **Per-area метрики**
+  - `npc_area_metric_processed_count`
+  - `npc_area_metric_skipped_count`
+  - `npc_area_metric_deferred_count`
+  - `npc_area_metric_queue_overflow_count`
+
+- **Служебные/защитные метрики**
+  - `npc_metric_intake_bypass_critical`
+
+Правило сопровождения контракта: любые изменения в `NPC_VAR_METRIC_*` обязаны сопровождаться обновлением этого раздела `README.md`.
 
 
 ### Benchmark (NPC baseline)
