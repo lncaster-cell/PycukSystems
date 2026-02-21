@@ -95,6 +95,7 @@ string NPC_VAR_METRIC_AREA_OVERFLOW = "npc_area_metric_queue_overflow_count";
 
 int NpcBehaviorOnHeartbeat(object oNpc);
 int NpcBehaviorConsumePending(object oNpc, int nPriority);
+void NpcBehaviorFlushPendingForNpc(object oNpc);
 
 int NpcBehaviorTickNow()
 {
@@ -562,7 +563,6 @@ void NpcBehaviorFlushPendingForNpc(object oNpc)
     int nPendingNormal;
     int nPendingLow;
     int nPendingTotal;
-    int nBucketTotal;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -598,13 +598,7 @@ void NpcBehaviorFlushPendingForNpc(object oNpc)
         nPendingTotal = 0;
     }
 
-    nBucketTotal = nPendingCritical + nPendingHigh + nPendingNormal + nPendingLow;
-    if (nPendingTotal < nBucketTotal)
-    {
-        nPendingTotal = nBucketTotal;
-    }
-
-    if (nPendingTotal <= 0)
+    if (nPendingTotal <= 0 && nPendingCritical <= 0 && nPendingHigh <= 0 && nPendingNormal <= 0 && nPendingLow <= 0)
     {
         SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
         SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
