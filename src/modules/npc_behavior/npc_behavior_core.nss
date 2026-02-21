@@ -553,7 +553,7 @@ void NpcBehaviorOnDeath(object oNpc)
 
 void NpcBehaviorOnDialogue(object oNpc)
 {
-    if (!GetIsObjectValid(oNpc))
+    if (!GetIsObjectValid(oNpc) || NpcBehaviorIsDisabled(oNpc))
     {
         return;
     }

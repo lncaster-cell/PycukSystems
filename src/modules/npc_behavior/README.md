@@ -101,6 +101,22 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `npc_area_metric_deferred_count`
 - `npc_area_metric_queue_overflow_count`
 
+
+## Disable flags behavior for dialogue hook
+
+`NpcBehaviorOnDialogue` использует тот же ранний disable-check, что и другие event handlers: `NpcBehaviorIsDisabled(oNpc)`.
+
+Ожидаемое поведение:
+
+- `npc_flag_disable_object = TRUE`
+  - dialogue hook завершает обработку сразу;
+  - не выполняется intake/coalesce для `dialogue`;
+  - не инкрементируется `npc_metric_dialog_count`;
+  - не применяются `dialog_interruptible`-действия и state transition `COMBAT -> ALERT`.
+- `npc_flag_disable_ai_when_hidden = TRUE`
+  - при `npc_runtime_hidden = TRUE` поведение идентично полному disable: dialogue hook выходит сразу;
+  - при `npc_runtime_hidden = FALSE` dialogue hook работает штатно.
+
 ## Следующие шаги
 
 1. Подключить реальную инициализацию флагов из template-параметров NPC на OnSpawn.
