@@ -382,6 +382,44 @@ int NpcBehaviorConsumePending(object oNpc, int nPriority)
     return TRUE;
 }
 
+int NpcBehaviorGetTopPendingPriority(object oNpc)
+{
+    int nTopPriority;
+
+    if (!GetIsObjectValid(oNpc) || GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL) <= 0)
+    {
+        return -1;
+    }
+
+    if (GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL) > 0)
+    {
+        return NPC_EVENT_PRIORITY_CRITICAL;
+    }
+
+    if (GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH) > 0)
+    {
+        return NPC_EVENT_PRIORITY_HIGH;
+    }
+
+    if (GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL) > 0)
+    {
+        return NPC_EVENT_PRIORITY_NORMAL;
+    }
+
+    if (GetLocalInt(oNpc, NPC_VAR_PENDING_LOW) > 0)
+    {
+        return NPC_EVENT_PRIORITY_LOW;
+    }
+
+    nTopPriority = GetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY);
+    if (nTopPriority < NPC_EVENT_PRIORITY_LOW || nTopPriority > NPC_EVENT_PRIORITY_CRITICAL)
+    {
+        return -1;
+    }
+
+    return nTopPriority;
+}
+
 void NpcBehaviorUpdateAreaDegradedMode(object oArea)
 {
     int nQueueDepth;
@@ -846,6 +884,12 @@ void NpcBehaviorOnAreaTick(object oArea)
     int nBudget;
     int nProcessed = 0;
     int nSkipped = 0;
+    int nConsumedCritical = 0;
+    int nConsumedHigh = 0;
+    int nConsumedNormal = 0;
+    int nConsumedLow = 0;
+    int nPendingBefore;
+    int nPendingPriority;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -869,6 +913,7 @@ void NpcBehaviorOnAreaTick(object oArea)
     if (nEligibleCount <= 0)
     {
         SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, 0);
+        NpcBehaviorAreaDrainQueue(oArea, 0, 0, 0, 0);
         NpcBehaviorUpdateAreaDegradedMode(oArea);
         return;
     }
@@ -893,9 +938,32 @@ void NpcBehaviorOnAreaTick(object oArea)
         {
             if (nEligibleIndex >= nStartOffset)
             {
+                nPendingBefore = GetLocalInt(oObject, NPC_VAR_PENDING_TOTAL);
+                nPendingPriority = NpcBehaviorGetTopPendingPriority(oObject);
+
                 if (NpcBehaviorShouldProcess(oObject) && NpcBehaviorOnHeartbeat(oObject))
                 {
                     nProcessed = nProcessed + 1;
+
+                    if (nPendingBefore > 0 && nPendingPriority >= NPC_EVENT_PRIORITY_LOW && NpcBehaviorConsumePending(oObject, nPendingPriority))
+                    {
+                        if (nPendingPriority == NPC_EVENT_PRIORITY_CRITICAL)
+                        {
+                            nConsumedCritical = nConsumedCritical + 1;
+                        }
+                        else if (nPendingPriority == NPC_EVENT_PRIORITY_HIGH)
+                        {
+                            nConsumedHigh = nConsumedHigh + 1;
+                        }
+                        else if (nPendingPriority == NPC_EVENT_PRIORITY_NORMAL)
+                        {
+                            nConsumedNormal = nConsumedNormal + 1;
+                        }
+                        else
+                        {
+                            nConsumedLow = nConsumedLow + 1;
+                        }
+                    }
                 }
                 else
                 {
@@ -925,9 +993,32 @@ void NpcBehaviorOnAreaTick(object oArea)
                     break;
                 }
 
+                nPendingBefore = GetLocalInt(oObject, NPC_VAR_PENDING_TOTAL);
+                nPendingPriority = NpcBehaviorGetTopPendingPriority(oObject);
+
                 if (NpcBehaviorShouldProcess(oObject) && NpcBehaviorOnHeartbeat(oObject))
                 {
                     nProcessed = nProcessed + 1;
+
+                    if (nPendingBefore > 0 && nPendingPriority >= NPC_EVENT_PRIORITY_LOW && NpcBehaviorConsumePending(oObject, nPendingPriority))
+                    {
+                        if (nPendingPriority == NPC_EVENT_PRIORITY_CRITICAL)
+                        {
+                            nConsumedCritical = nConsumedCritical + 1;
+                        }
+                        else if (nPendingPriority == NPC_EVENT_PRIORITY_HIGH)
+                        {
+                            nConsumedHigh = nConsumedHigh + 1;
+                        }
+                        else if (nPendingPriority == NPC_EVENT_PRIORITY_NORMAL)
+                        {
+                            nConsumedNormal = nConsumedNormal + 1;
+                        }
+                        else
+                        {
+                            nConsumedLow = nConsumedLow + 1;
+                        }
+                    }
                 }
                 else
                 {
@@ -949,6 +1040,7 @@ void NpcBehaviorOnAreaTick(object oArea)
         NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_DEFERRED, nEligibleCount - nProcessed);
     }
 
+    NpcBehaviorAreaDrainQueue(oArea, nConsumedCritical, nConsumedHigh, nConsumedNormal, nConsumedLow);
     NpcBehaviorUpdateAreaDegradedMode(oArea);
 }
 
