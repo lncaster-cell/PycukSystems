@@ -8,6 +8,8 @@ const int NPC_DEFAULT_IDLE_INTERVAL = 6;
 const int NPC_DEFAULT_COMBAT_INTERVAL = 2;
 const int NPC_TICK_PROCESS_LIMIT = 32;
 const float NPC_MIN_TICK_INTERVAL_SEC = 0.2;
+const float NPC_AREA_TICK_INTERVAL_SEC = 1.0;
+const int NPC_AREA_BUDGET_PER_TICK = 20;
 
 const int NPC_EVENT_PRIORITY_CRITICAL = 3;
 const int NPC_EVENT_PRIORITY_HIGH = 2;
@@ -45,6 +47,9 @@ string NPC_VAR_AREA_QUEUE_HIGH = "npc_area_queue_high";
 string NPC_VAR_AREA_QUEUE_NORMAL = "npc_area_queue_normal";
 string NPC_VAR_AREA_QUEUE_LOW = "npc_area_queue_low";
 string NPC_VAR_AREA_DEGRADED = "npc_area_degraded_mode";
+string NPC_VAR_AREA_ACTIVE = "nb_area_active";
+string NPC_VAR_AREA_TIMER_RUNNING = "nb_area_timer_running";
+string NPC_VAR_AREA_TICK_SEQ = "nb_area_tick_seq";
 
 // [Behavior Flags] минимальный runtime-контракт.
 string NPC_VAR_FLAG_DECAYS = "npc_flag_decays";
@@ -439,7 +444,7 @@ float NpcBehaviorGetInterval(object oNpc)
     return NpcBehaviorNormalizeInterval(fInterval, IntToFloat(NPC_DEFAULT_IDLE_INTERVAL));
 }
 
-int NpcBehaviorShouldProcess(object oNpc, int nNow)
+int NpcBehaviorShouldProcessAtTime(object oNpc, int nNow)
 {
     int nLastTick = GetLocalInt(oNpc, NPC_VAR_LAST_TICK);
     float fInterval = NpcBehaviorGetInterval(oNpc);
@@ -450,6 +455,74 @@ int NpcBehaviorShouldProcess(object oNpc, int nNow)
     }
 
     return (IntToFloat(NpcBehaviorElapsedSec(nNow, nLastTick)) >= fInterval);
+}
+
+int NpcBehaviorShouldProcess(object oNpc)
+{
+    return NpcBehaviorShouldProcessAtTime(oNpc, NpcBehaviorTickNow());
+}
+
+int NpcBehaviorCountPlayersInArea(object oArea)
+{
+    object oObject;
+    int nCount;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    oObject = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObject))
+    {
+        if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE && GetIsPC(oObject))
+        {
+            nCount = nCount + 1;
+        }
+
+        oObject = GetNextObjectInArea(oArea);
+    }
+
+    return nCount;
+}
+
+int NpcBehaviorAreaIsActive(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    return (GetLocalInt(oArea, NPC_VAR_AREA_ACTIVE) == TRUE);
+}
+
+void NpcBehaviorAreaTickLoop(object oArea);
+
+void NpcBehaviorAreaActivate(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_VAR_AREA_ACTIVE, TRUE);
+    if (GetLocalInt(oArea, NPC_VAR_AREA_TIMER_RUNNING) == TRUE)
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_VAR_AREA_TIMER_RUNNING, TRUE);
+    DelayCommand(0.0, NpcBehaviorAreaTickLoop(oArea));
+}
+
+void NpcBehaviorAreaDeactivate(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_VAR_AREA_ACTIVE, FALSE);
 }
 
 int NpcBehaviorIsDisabled(object oNpc)
@@ -738,7 +811,7 @@ int NpcBehaviorOnHeartbeat(object oNpc)
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT);
 
     nNow = NpcBehaviorTickNow();
-    if (!NpcBehaviorShouldProcess(oNpc, nNow))
+    if (!NpcBehaviorShouldProcessAtTime(oNpc, nNow))
     {
         NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT_SKIPPED);
         return FALSE;
@@ -766,87 +839,132 @@ void NpcBehaviorOnCombatRound(object oNpc)
 void NpcBehaviorOnAreaTick(object oArea)
 {
     object oObject;
-    int nPriority;
-    int nQueueDepth;
+    int nEligibleCount = 0;
+    int nEligibleIndex = 0;
+    int nStartOffset;
+    int nSeq;
     int nBudget;
-    int nProcessedCritical = 0;
-    int nProcessedHigh = 0;
-    int nProcessedNormal = 0;
-    int nProcessedLow = 0;
     int nProcessed = 0;
     int nSkipped = 0;
-    int nDeferred = 0;
 
     if (!GetIsObjectValid(oArea))
     {
         return;
     }
 
-    nQueueDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH);
-    nBudget = nQueueDepth;
+    oObject = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObject))
+    {
+        if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE
+            && !GetIsPC(oObject)
+            && GetLocalInt(oObject, NPC_VAR_FLAG_DISABLE_OBJECT) != TRUE
+            && GetLocalInt(oObject, NPC_VAR_INIT_DONE) == TRUE)
+        {
+            nEligibleCount = nEligibleCount + 1;
+        }
+
+        oObject = GetNextObjectInArea(oArea);
+    }
+
+    if (nEligibleCount <= 0)
+    {
+        SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, 0);
+        NpcBehaviorUpdateAreaDegradedMode(oArea);
+        return;
+    }
+
+    nSeq = GetLocalInt(oArea, NPC_VAR_AREA_TICK_SEQ);
+    nStartOffset = nSeq % nEligibleCount;
+    SetLocalInt(oArea, NPC_VAR_AREA_TICK_SEQ, nSeq + 1);
+
+    nBudget = NPC_AREA_BUDGET_PER_TICK;
     if (nBudget > NPC_TICK_PROCESS_LIMIT)
     {
         nBudget = NPC_TICK_PROCESS_LIMIT;
     }
 
-    for (nPriority = NPC_EVENT_PRIORITY_CRITICAL; nPriority >= NPC_EVENT_PRIORITY_LOW; nPriority = nPriority - 1)
+    oObject = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObject) && nProcessed < nBudget)
     {
+        if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE
+            && !GetIsPC(oObject)
+            && GetLocalInt(oObject, NPC_VAR_FLAG_DISABLE_OBJECT) != TRUE
+            && GetLocalInt(oObject, NPC_VAR_INIT_DONE) == TRUE)
+        {
+            if (nEligibleIndex >= nStartOffset)
+            {
+                if (NpcBehaviorShouldProcess(oObject) && NpcBehaviorOnHeartbeat(oObject))
+                {
+                    nProcessed = nProcessed + 1;
+                }
+                else
+                {
+                    nSkipped = nSkipped + 1;
+                }
+            }
+
+            nEligibleIndex = nEligibleIndex + 1;
+        }
+
+        oObject = GetNextObjectInArea(oArea);
+    }
+
+    if (nProcessed < nBudget && nStartOffset > 0)
+    {
+        nEligibleIndex = 0;
         oObject = GetFirstObjectInArea(oArea);
         while (GetIsObjectValid(oObject) && nProcessed < nBudget)
         {
-            if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE && !GetIsPC(oObject) && GetLocalInt(oObject, NPC_VAR_PENDING_TOTAL) > 0)
+            if (GetObjectType(oObject) == OBJECT_TYPE_CREATURE
+                && !GetIsPC(oObject)
+                && GetLocalInt(oObject, NPC_VAR_FLAG_DISABLE_OBJECT) != TRUE
+                && GetLocalInt(oObject, NPC_VAR_INIT_DONE) == TRUE)
             {
-                if (GetLocalInt(oObject, NPC_VAR_PENDING_PRIORITY) == nPriority)
+                if (nEligibleIndex >= nStartOffset)
                 {
-                    if (NpcBehaviorOnHeartbeat(oObject))
-                    {
-                        if (NpcBehaviorConsumePending(oObject, nPriority))
-                        {
-                            nProcessed = nProcessed + 1;
-                            if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
-                            {
-                                nProcessedCritical = nProcessedCritical + 1;
-                            }
-                            else if (nPriority == NPC_EVENT_PRIORITY_HIGH)
-                            {
-                                nProcessedHigh = nProcessedHigh + 1;
-                            }
-                            else if (nPriority == NPC_EVENT_PRIORITY_NORMAL)
-                            {
-                                nProcessedNormal = nProcessedNormal + 1;
-                            }
-                            else
-                            {
-                                nProcessedLow = nProcessedLow + 1;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        nSkipped = nSkipped + 1;
-                    }
+                    break;
                 }
+
+                if (NpcBehaviorShouldProcess(oObject) && NpcBehaviorOnHeartbeat(oObject))
+                {
+                    nProcessed = nProcessed + 1;
+                }
+                else
+                {
+                    nSkipped = nSkipped + 1;
+                }
+
+                nEligibleIndex = nEligibleIndex + 1;
             }
 
             oObject = GetNextObjectInArea(oArea);
         }
     }
 
-    nDeferred = nQueueDepth - nProcessed;
-    if (nDeferred < 0)
-    {
-        nDeferred = 0;
-    }
-
     SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, nProcessed);
     NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_PROCESSED, nProcessed);
     NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_SKIPPED, nSkipped);
-    NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_DEFERRED, nDeferred);
-
-    if (nProcessed > 0)
+    if (nEligibleCount > nProcessed)
     {
-        NpcBehaviorAreaDrainQueue(oArea, nProcessedCritical, nProcessedHigh, nProcessedNormal, nProcessedLow);
+        NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_DEFERRED, nEligibleCount - nProcessed);
     }
 
     NpcBehaviorUpdateAreaDegradedMode(oArea);
+}
+
+void NpcBehaviorAreaTickLoop(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (!NpcBehaviorAreaIsActive(oArea))
+    {
+        SetLocalInt(oArea, NPC_VAR_AREA_TIMER_RUNNING, FALSE);
+        return;
+    }
+
+    NpcBehaviorOnAreaTick(oArea);
+    DelayCommand(NPC_AREA_TICK_INTERVAL_SEC, NpcBehaviorAreaTickLoop(oArea));
 }
