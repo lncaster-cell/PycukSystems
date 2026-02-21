@@ -193,7 +193,7 @@ void NpcBehaviorPendingAdjust(object oNpc, int nPriority, int nDelta)
     SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, nTopPriority);
 }
 
-int NpcBehaviorIsHostileForCombat(object oNpc, object oTarget)
+int NpcBehaviorIsHostileForCombat(object oSource, object oTarget)
 {
     if (!GetIsObjectValid(oSource) || !GetIsObjectValid(oTarget))
     {

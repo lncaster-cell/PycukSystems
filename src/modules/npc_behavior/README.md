@@ -103,6 +103,34 @@ Phase 1 использует единый helper записи метрик `NpcB
 - для пикового боевого шторма есть emergency reserve (`NPC_AREA_CRITICAL_RESERVE`) сверх nominal `queueCapacity`; при вытеснении синхронно обновляются и area buckets/depth, и `npc_pending_*`/`npc_pending_total` владельца;
 - auto degraded mode (`npc_area_degraded_mode`) по high/low watermarks и selective skip idle-heartbeat при перегрузке; coalesce применяется только к non-critical событиям в окне `NPC_COALESCE_WINDOW_SEC`.
 
+## Invariants
+
+- `sum(area buckets) == npc_area_queue_depth` (`critical + high + normal + low` всегда равны текущей глубине area queue).
+- Сумма `npc_pending_total` по всем NPC в area согласована с area queue: enqueue/dequeue/coalesce/defer/evict обновляют owner pending и area buckets/depth синхронно.
+- Death-path полностью очищает вклад NPC в pending/queue: перед terminal side-effects `NpcBehaviorOnDeath` снимает pending-state NPC и соответствующие записи из area queue, чтобы после смерти не оставалось orphaned вкладов.
+
+Ключевые точки кода для проверки инвариантов:
+
+- `NpcBehaviorTryIntakeEvent` (intake/coalesce/owner pending синхронизация);
+- `NpcBehaviorAreaTryQueueEvent` (queue admission, overflow/defer, bucket/depth accounting);
+- `NpcBehaviorOnDeath` (death cleanup pending/queue);
+- `NpcBehaviorConsumePending` (dequeue/consume и поддержание pending/queue консистентности).
+
+## Code review checklist
+
+- Intake/coalesce:
+  - Проверить, что `NpcBehaviorTryIntakeEvent` корректно применяет coalesce окно только для non-critical событий и не ломает CRITICAL path.
+  - Проверить, что `NpcBehaviorConsumePending` и intake-путь не расходятся по счетчикам `npc_pending_*`/`npc_pending_total`.
+- Overflow/deferred:
+  - Проверить, что `NpcBehaviorAreaTryQueueEvent` при overflow корректно различает deferred для non-critical и owner-aware eviction для CRITICAL.
+  - Проверить, что при deferred/evict синхронно обновляются area buckets, `npc_area_queue_depth` и pending владельца.
+- Death cleanup:
+  - Проверить, что `NpcBehaviorOnDeath` всегда выполняет очистку pending/queue до `lootable/decay` side-effects и метрик смерти.
+  - Проверить, что после death cleanup инварианты queue depth/buckets/pending сохраняются.
+- Hostility-trigger в COMBAT:
+  - Проверить, что hostile-trigger переход в `NPC_STATE_COMBAT` в `OnPerception/OnPhysicalAttacked/OnSpellCastAt` остается на контракте `GetIsReactionTypeHostile(source, target)` с compat fallback.
+  - Проверить, что strict vs CRITICAL bypass intake-policy не пропускает обязательные COMBAT state transitions.
+
 ### Metric keys для write-behind слоя (планируемый whitelist)
 
 - `npc_metric_spawn_count`
