@@ -1,6 +1,12 @@
 name: NWN Script Compiler
 
 on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - dev
   workflow_dispatch:
     inputs:
       mode:
@@ -15,8 +21,14 @@ on:
         default: check
 
 jobs:
-  compile:
+  compile-pr:
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [check, bugscan, optimize]
+    name: compile (${{ matrix.mode }})
 
     steps:
       - name: Checkout
@@ -32,10 +44,6 @@ jobs:
           if (-not (Test-Path -Path 'tools/NWNScriptCompiler.exe' -PathType Leaf)) {
             throw "NWNScriptCompiler.exe not found at tools/NWNScriptCompiler.exe."
           }
-
-          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
-          Write-Host "Runner OS: $env:RUNNER_OS"
-          Write-Host "Compiler launch mode: direct executable invocation (& $compiler ...)"
 
       - name: Prepare stock includes for CI
         shell: pwsh
@@ -53,55 +61,152 @@ jobs:
           $upperNwscript = Join-Path $ciStock 'nwscript.NSS'
           $lowerNwscript = Join-Path $ciStock 'nwscript.nss'
 
-          if (Test-Path -Path $upperNwscript -PathType Leaf) {
-            if (-not (Test-Path -Path $lowerNwscript -PathType Leaf)) {
-              Copy-Item -Path $upperNwscript -Destination $lowerNwscript -Force
-            } else {
-              Write-Host "Lowercase nwscript path already resolves in current filesystem: $lowerNwscript"
+          if (-not (Test-Path -Path $upperNwscript -PathType Leaf)) {
+            throw "Missing stock include file: $upperNwscript"
+          }
+
+          if (-not (Test-Path -Path $lowerNwscript -PathType Leaf)) {
+            Copy-Item -Path $upperNwscript -Destination $lowerNwscript -Force
+          }
+
+          $fileCount = (Get-ChildItem -Path $ciStock -Recurse -File | Measure-Object).Count
+          Write-Host "Prepared stock includes in $ciStock"
+          Write-Host "Stock include file count: $fileCount"
+
+      - name: Compile scripts (${{ matrix.mode }})
+        shell: pwsh
+        run: |
+          $mode = '${{ matrix.mode }}'
+          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
+          $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
+          $sourceRootIncludePath = Join-Path $PWD 'src'
+          $npcBehaviorIncludePath = Join-Path $PWD 'src/modules/npc_behavior'
+          $projectIncludePath = Join-Path $PWD 'tools/scripts'
+          $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
+          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+
+          $logDir = Join-Path $PWD 'ci-logs'
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logPath = Join-Path $logDir "$mode.log"
+          if (Test-Path $logPath) { Remove-Item $logPath -Force }
+
+          if ($mode -eq 'optimize') {
+            if (Test-Path -Path 'output') {
+              Remove-Item -Path 'output' -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path 'output' -Force | Out-Null
+          }
+
+          $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
+          if ($files.Count -eq 0) {
+            "No .nss files found under src/." | Tee-Object -FilePath $logPath -Append
+            "MODE=$mode" | Tee-Object -FilePath $logPath -Append
+            "SCRIPTS=0" | Tee-Object -FilePath $logPath -Append
+            "WARNINGS=0" | Tee-Object -FilePath $logPath -Append
+            "ERRORS=0" | Tee-Object -FilePath $logPath -Append
+            exit 0
+          }
+
+          $warningCount = 0
+          $errorCount = 0
+
+          foreach ($file in $files) {
+            "=== FILE: $($file.FullName) ===" | Tee-Object -FilePath $logPath -Append
+
+            $commandArgs = @()
+            switch ($mode) {
+              'check' { $commandArgs = @($includeArgs + $file.FullName) }
+              'bugscan' { $commandArgs = @($includeArgs + $file.FullName) }
+              'optimize' { $commandArgs = @('-a', '-y', '-e') + $includeArgs + @('-o', 'output', $file.FullName) }
+              default { throw "Unsupported mode: $mode" }
+            }
+
+            $output = & $compiler @commandArgs 2>&1
+            $exitCode = $LASTEXITCODE
+
+            foreach ($line in $output) {
+              $text = [string]$line
+              $text | Tee-Object -FilePath $logPath -Append
+              if ($text -match '(?i)warning') { $warningCount++ }
+              if ($text -match '(?i)error') { $errorCount++ }
+            }
+
+            if ($exitCode -ne 0) {
+              $errorCount++
+              "Compiler exited with non-zero code $exitCode for $($file.FullName)" | Tee-Object -FilePath $logPath -Append
             }
           }
 
-      - name: Log include diagnostics
+          "" | Tee-Object -FilePath $logPath -Append
+          "MODE=$mode" | Tee-Object -FilePath $logPath -Append
+          "SCRIPTS=$($files.Count)" | Tee-Object -FilePath $logPath -Append
+          "WARNINGS=$warningCount" | Tee-Object -FilePath $logPath -Append
+          "ERRORS=$errorCount" | Tee-Object -FilePath $logPath -Append
+
+          if ($errorCount -gt 0) {
+            throw "Compilation finished with ERRORS=$errorCount"
+          }
+
+      - name: Upload logs (${{ matrix.mode }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.mode }}
+          path: ci-logs/${{ matrix.mode }}.log
+
+      - name: Upload compiled scripts (optimize)
+        if: ${{ matrix.mode == 'optimize' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-ncs-${{ matrix.mode }}
+          path: output/*.ncs
+          if-no-files-found: warn
+
+  compile-manual:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    runs-on: windows-latest
+    name: compile (manual ${{ github.event.inputs.mode }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify runner OS and compiler binary
         shell: pwsh
         run: |
+          if ($env:RUNNER_OS -ne 'Windows') {
+            throw "This workflow requires windows-latest. Current RUNNER_OS: $env:RUNNER_OS"
+          }
+
+          if (-not (Test-Path -Path 'tools/NWNScriptCompiler.exe' -PathType Leaf)) {
+            throw "NWNScriptCompiler.exe not found at tools/NWNScriptCompiler.exe."
+          }
+
+      - name: Prepare stock includes for CI
+        shell: pwsh
+        run: |
+          $sourceStock = Join-Path $PWD 'third_party/nwn2_stock_scripts'
           $ciStock = Join-Path $PWD '.ci/nwn2_stock_scripts'
-          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
-          $sourceRootInclude = Join-Path $PWD 'src'
-          $npcBehaviorInclude = Join-Path $PWD 'src/modules/npc_behavior'
-          $projectInclude = Join-Path $PWD 'tools/scripts'
-          $nwnxInclude = Join-Path $PWD 'third_party/nwnx_includes'
-          $includeArgs = @('-i', $ciStock, '-i', $sourceRootInclude, '-i', $npcBehaviorInclude, '-i', $projectInclude, '-i', $nwnxInclude)
-          $sampleFile = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName | Select-Object -First 1
-          $npcBehaviorCore = Get-ChildItem -Path 'src' -Recurse -File -Filter 'npc_behavior_core.nss' | Select-Object -First 1
 
-          $fileCount = (Get-ChildItem -Path $ciStock -Recurse -File | Measure-Object).Count
-          Write-Host "Stock include file count: $fileCount"
+          if (Test-Path -Path $ciStock) {
+            Remove-Item -Path $ciStock -Recurse -Force
+          }
 
+          New-Item -ItemType Directory -Path $ciStock -Force | Out-Null
+          Copy-Item -Path (Join-Path $sourceStock '*') -Destination $ciStock -Recurse -Force
+
+          $upperNwscript = Join-Path $ciStock 'nwscript.NSS'
           $lowerNwscript = Join-Path $ciStock 'nwscript.nss'
-          if (Test-Path -Path $lowerNwscript -PathType Leaf) {
-            Write-Host "Found lowercase nwscript: $lowerNwscript"
-          } else {
-            throw "Missing lowercase nwscript at $lowerNwscript"
+
+          if (-not (Test-Path -Path $upperNwscript -PathType Leaf)) {
+            throw "Missing stock include file: $upperNwscript"
           }
 
-          if ($null -ne $npcBehaviorCore) {
-            Write-Host "Found npc_behavior_core include: $($npcBehaviorCore.FullName)"
-          } else {
-            throw 'Unable to find npc_behavior_core.nss under src/'
+          if (-not (Test-Path -Path $lowerNwscript -PathType Leaf)) {
+            Copy-Item -Path $upperNwscript -Destination $lowerNwscript -Force
           }
 
-          $includeDebug = ($includeArgs -join ' ')
-          Write-Host "Compiler include args: $includeDebug"
-
-          if ($null -ne $sampleFile) {
-            Write-Host "Diagnostic compile sample: $($sampleFile.FullName)"
-            Write-Host "Diagnostic command: & $compiler -j $includeDebug $($sampleFile.FullName)"
-            & $compiler -j @includeArgs $sampleFile.FullName
-          } else {
-            Write-Host 'No .nss files found under src/; skipping diagnostic compile.'
-          }
-
-      - name: Compile scripts
+      - name: Compile scripts (${{ github.event.inputs.mode }})
         shell: pwsh
         run: |
           $mode = '${{ github.event.inputs.mode }}'
@@ -112,99 +217,81 @@ jobs:
           $projectIncludePath = Join-Path $PWD 'tools/scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
           $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
-          $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
 
+          $logDir = Join-Path $PWD 'ci-logs'
+          New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+          $logPath = Join-Path $logDir "$mode.log"
+          if (Test-Path $logPath) { Remove-Item $logPath -Force }
+
+          if ($mode -eq 'optimize' -or $mode -eq 'build') {
+            if (Test-Path -Path 'output') {
+              Remove-Item -Path 'output' -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path 'output' -Force | Out-Null
+          }
+
+          $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
           if ($files.Count -eq 0) {
-            Write-Host 'No .nss files found under src/; nothing to compile.'
+            "No .nss files found under src/." | Tee-Object -FilePath $logPath -Append
+            "MODE=$mode" | Tee-Object -FilePath $logPath -Append
+            "SCRIPTS=0" | Tee-Object -FilePath $logPath -Append
+            "WARNINGS=0" | Tee-Object -FilePath $logPath -Append
+            "ERRORS=0" | Tee-Object -FilePath $logPath -Append
             exit 0
           }
 
-          switch ($mode) {
-            'optimize' {
-              if (Test-Path -Path 'output') {
-                Remove-Item -Path 'output' -Recurse -Force
-              }
-            }
-            'build' {
-              New-Item -ItemType Directory -Path 'output' -Force | Out-Null
-            }
-            'bugscan' {
-              $issues = New-Object System.Collections.Generic.List[string]
-              $errorCount = 0
-              $warningCount = 0
-
-              foreach ($file in $files) {
-                Write-Host "Compiling $($file.FullName)"
-                $output = & $compiler @includeArgs $file.FullName 2>&1
-                $exitCode = $LASTEXITCODE
-
-                foreach ($line in $output) {
-                  Write-Host $line
-                  if ($line -match '(?i)warning') {
-                    $warningCount++
-                    $issues.Add("[WARNING] $($file.FullName): $line")
-                  }
-                  if ($line -match '(?i)error') {
-                    $errorCount++
-                    $issues.Add("[ERROR] $($file.FullName): $line")
-                  }
-                }
-
-                if ($exitCode -ne 0 -and -not ($output -match '(?i)error')) {
-                  $errorCount++
-                  $issues.Add("[ERROR] $($file.FullName): compiler exited with code $exitCode")
-                }
-              }
-
-              Write-Host ''
-              Write-Host '=== BUGSCAN SUMMARY ==='
-              if ($issues.Count -eq 0) {
-                Write-Host 'No warnings or errors found.'
-                exit 0
-              }
-
-              foreach ($issue in $issues) {
-                Write-Host $issue
-              }
-
-              Write-Host "Total warnings: $warningCount"
-              Write-Host "Total errors: $errorCount"
-
-              if ($errorCount -gt 0) {
-                exit 1
-              }
-
-              exit 0
-            }
-            default {}
-          }
+          $warningCount = 0
+          $errorCount = 0
 
           foreach ($file in $files) {
-            Write-Host "Compiling $($file.FullName)"
+            "=== FILE: $($file.FullName) ===" | Tee-Object -FilePath $logPath -Append
 
+            $commandArgs = @()
             switch ($mode) {
-              'check' {
-                & $compiler @includeArgs $file.FullName
-              }
-              'build' {
-                & $compiler @includeArgs -o output $file.FullName
-              }
-              'optimize' {
-                & $compiler -a -y -e @includeArgs -o output $file.FullName
-              }
-              default {
-                throw "Unsupported mode: $mode"
-              }
+              'check' { $commandArgs = @($includeArgs + $file.FullName) }
+              'bugscan' { $commandArgs = @($includeArgs + $file.FullName) }
+              'build' { $commandArgs = $includeArgs + @('-o', 'output', $file.FullName) }
+              'optimize' { $commandArgs = @('-a', '-y', '-e') + $includeArgs + @('-o', 'output', $file.FullName) }
+              default { throw "Unsupported mode: $mode" }
             }
 
-            if ($LASTEXITCODE -ne 0) {
-              throw "Compilation failed for $($file.FullName)"
+            $output = & $compiler @commandArgs 2>&1
+            $exitCode = $LASTEXITCODE
+
+            foreach ($line in $output) {
+              $text = [string]$line
+              $text | Tee-Object -FilePath $logPath -Append
+              if ($text -match '(?i)warning') { $warningCount++ }
+              if ($text -match '(?i)error') { $errorCount++ }
+            }
+
+            if ($exitCode -ne 0) {
+              $errorCount++
+              "Compiler exited with non-zero code $exitCode for $($file.FullName)" | Tee-Object -FilePath $logPath -Append
             }
           }
 
+          "" | Tee-Object -FilePath $logPath -Append
+          "MODE=$mode" | Tee-Object -FilePath $logPath -Append
+          "SCRIPTS=$($files.Count)" | Tee-Object -FilePath $logPath -Append
+          "WARNINGS=$warningCount" | Tee-Object -FilePath $logPath -Append
+          "ERRORS=$errorCount" | Tee-Object -FilePath $logPath -Append
+
+          if ($errorCount -gt 0) {
+            throw "Compilation finished with ERRORS=$errorCount"
+          }
+
+      - name: Upload logs (${{ github.event.inputs.mode }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ github.event.inputs.mode }}
+          path: ci-logs/${{ github.event.inputs.mode }}.log
+
       - name: Upload compiled scripts
-        if: ${{ github.event.inputs.mode == 'build' || github.event.inputs.mode == 'optimize' }}
+        if: ${{ (github.event.inputs.mode == 'build' || github.event.inputs.mode == 'optimize') && always() }}
         uses: actions/upload-artifact@v4
         with:
           name: compiled-ncs-${{ github.event.inputs.mode }}
-          path: output
+          path: output/*.ncs
+          if-no-files-found: warn
