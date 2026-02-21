@@ -60,6 +60,7 @@
 
 - централизация логики хуков через единый include;
 - state transitions `IDLE/ALERT/COMBAT`;
+- переход в `NPC_STATE_COMBAT` в `OnPerception/OnPhysicalAttacked/OnSpellCastAt` выполняется при hostile-отношении хотя бы в одну сторону между NPC и инициатором события (`npc -> target` **или** `target -> npc`) для совместимости с faction/charm асимметрией;
 - tick pacing и лимит `NPC_TICK_PROCESS_LIMIT`;
 - минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/combat_round/death/dialogue` counters);
 - связка `OnDeath + decays/lootable` и `OnPerception + hidden AI disable`.
@@ -70,10 +71,10 @@ Phase 1 использует единый helper записи метрик `NpcB
 
 ### Контракт по handlers
 
-- `NpcBehaviorOnPerception` → `npc_metric_perception_count`.
+- `NpcBehaviorOnPerception` → `npc_metric_perception_count`; при двустороннем hostile-check (`npc <-> seen`) переводит NPC в `NPC_STATE_COMBAT`, иначе при `IDLE` переводит в `ALERT`.
 - `NpcBehaviorOnDamaged` → `npc_metric_damaged_count`.
-- `NpcBehaviorOnPhysicalAttacked` → `npc_metric_physical_attacked_count`.
-- `NpcBehaviorOnSpellCastAt` → `npc_metric_spell_cast_at_count`.
+- `NpcBehaviorOnPhysicalAttacked` → `npc_metric_physical_attacked_count`; при двустороннем hostile-check (`npc <-> attacker`) переводит NPC в `NPC_STATE_COMBAT`.
+- `NpcBehaviorOnSpellCastAt` → `npc_metric_spell_cast_at_count`; при двустороннем hostile-check (`npc <-> caster`) переводит NPC в `NPC_STATE_COMBAT`.
 - `NpcBehaviorOnDeath` → `npc_metric_death_count`.
 - `NpcBehaviorOnDialogue` → `npc_metric_dialog_count`.
 - `NpcBehaviorOnHeartbeat` (P1) → `npc_metric_heartbeat_count`, при раннем выходе/skip также `npc_metric_heartbeat_skipped_count`.
