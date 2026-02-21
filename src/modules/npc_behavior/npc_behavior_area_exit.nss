@@ -1,6 +1,7 @@
 // NPC behavior module: area OnExit entrypoint.
 
 #include "npc_behavior_core"
+#include "al_dbg"
 
 void main()
 {
@@ -14,6 +15,7 @@ void main()
     }
 
     oArea = GetArea(OBJECT_SELF);
+    AL_Dbg("AreaExit OK");
     if (NpcBehaviorCountPlayersInArea(oArea) == 0)
     {
         NpcBehaviorAreaDeactivate(oArea);
