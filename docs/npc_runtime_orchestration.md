@@ -65,8 +65,8 @@
 
 При достижении `queueCapacity`:
 
-- критичные события не отбрасываются (вытесняют наименее важные non-critical defer-элементы);
-- non-critical события переводятся в defer/coalesce вместо немедленного исполнения;
+- критичные события не отбрасываются: используется owner-aware вытеснение реального pending-элемента (`LOW -> NORMAL -> HIGH`) из bounded queue с синхронным обновлением area depth/buckets и pending-счётчиков владельца;
+- non-critical события не вытесняют чужие элементы и переводятся в defer/coalesce вместо немедленного исполнения;
 - фиксируется метрика перегрузки (`queue_overflow_count`, `deferred_count`).
 
 ---
@@ -117,11 +117,11 @@
 
 ### Гарантии
 
-- `CRITICAL` **не дропаются** даже при перегрузке (допускается вытеснение low/non-critical и emergency reserve budget).
+- `CRITICAL` **не дропаются** даже при перегрузке (допускается owner-aware вытеснение low/non-critical и emergency reserve budget).
 - Для `HIGH/NORMAL/LOW` применяется graceful degradation:
-  - coalesce (объединение/дедупликация);
+  - coalesce (объединение/дедупликация в non-critical окне);
   - defer (перенос на следующие тики);
-  - selective skip (для `LOW`, если истёк SLA-таймаут актуальности).
+  - без вытеснения чужих pending-элементов при overflow.
 
 ### Режим деградации
 
