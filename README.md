@@ -79,6 +79,17 @@ NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
 - `npc_area_metric_skipped_count`
 - `npc_area_metric_deferred_count`
 
+
+### Benchmark (NPC baseline)
+
+Для запуска baseline-бенчмарка используйте:
+
+```bash
+RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
+```
+
+Ограничение: переменная `RUNS` должна быть целым числом `>= 1`.
+
 ## Принцип принятия архитектурных решений
 Перед принятием любого архитектурного решения выполняется короткий performance-research цикл:
 1. Сформулировать гипотезу.

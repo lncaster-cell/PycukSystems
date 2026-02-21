@@ -20,6 +20,11 @@ case "${SCENARIO}" in
     ;;
 esac
 
+if ! [[ "${RUNS}" =~ ^[0-9]+$ ]] || (( RUNS < 1 )); then
+  echo "[ERR] Invalid RUNS value: ${RUNS}. RUNS must be an integer >= 1 (example: RUNS=3)." >&2
+  exit 2
+fi
+
 echo "[INFO] Running NPC benchmark"
 echo "[INFO] Scenario: ${SCENARIO}"
 echo "[INFO] Runs: ${RUNS}"
