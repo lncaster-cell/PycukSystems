@@ -610,6 +610,7 @@ void NpcBehaviorOnSpawn(object oNpc)
         return;
     }
 
+
     SetLocalInt(oNpc, NPC_VAR_FLAG_PLOT, GetPlotFlag(oNpc));
 
     nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
