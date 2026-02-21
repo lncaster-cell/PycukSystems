@@ -29,3 +29,6 @@ Thumbs.db
 # NWN compiler artifacts (can appear near source files in check mode)
 *.ncs
 *.ndb
+dist/
+output/
+.ci/

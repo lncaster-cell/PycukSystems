@@ -34,6 +34,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cleanup workspace
+        shell: pwsh
+        run: |
+          Remove-Item -Path 'dist', 'output', '.ci' -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'dist/ncs' -Force | Out-Null
+
       - name: Verify runner OS and compiler binary
         shell: pwsh
         run: |
@@ -161,12 +167,6 @@ jobs:
           }
           New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
-          if ($mode -notin @('build', 'optimize')) {
-            "ncs_count=0" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            Write-Host "Skipping required NCS collection for mode $mode"
-            exit 0
-          }
-
           $sourceScriptsRoot = Join-Path $PWD 'src'
           $compiledFiles = Get-ChildItem -Path $sourceScriptsRoot -Recurse -File -Filter '*.ncs' -ErrorAction SilentlyContinue
 
@@ -269,21 +269,14 @@ jobs:
           path: reports/${{ matrix.mode }}.txt
           if-no-files-found: warn
 
-      - name: Upload ready scripts (build)
-        if: ${{ matrix.mode == 'build' && always() }}
+      - name: Upload ready scripts (${{ matrix.mode }})
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ready-ncs-build
+          name: ready-ncs-${{ matrix.mode }}
           path: dist/ncs/*.ncs
           if-no-files-found: warn
-
-      - name: Upload ready scripts (optimize)
-        if: ${{ matrix.mode == 'optimize' && always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ready-ncs-optimize
-          path: dist/ncs/*.ncs
-          if-no-files-found: warn
+          retention-days: 3
 
   compile-manual:
     if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -293,6 +286,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Cleanup workspace
+        shell: pwsh
+        run: |
+          Remove-Item -Path 'dist', 'output', '.ci' -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path 'dist/ncs' -Force | Out-Null
 
       - name: Verify runner OS and compiler binary
         shell: pwsh
@@ -417,12 +416,6 @@ jobs:
           }
           New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
-          if ($mode -notin @('build', 'optimize')) {
-            "ncs_count=0" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            Write-Host "Skipping required NCS collection for mode $mode"
-            exit 0
-          }
-
           $sourceScriptsRoot = Join-Path $PWD 'src'
           $compiledFiles = Get-ChildItem -Path $sourceScriptsRoot -Recurse -File -Filter '*.ncs' -ErrorAction SilentlyContinue
 
@@ -525,18 +518,11 @@ jobs:
           path: reports/${{ github.event.inputs.mode }}.txt
           if-no-files-found: warn
 
-      - name: Upload ready scripts (build)
-        if: ${{ github.event.inputs.mode == 'build' && always() }}
+      - name: Upload ready scripts (${{ github.event.inputs.mode }})
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ready-ncs-build
+          name: ready-ncs-${{ github.event.inputs.mode }}
           path: dist/ncs/*.ncs
           if-no-files-found: warn
-
-      - name: Upload ready scripts (optimize)
-        if: ${{ github.event.inputs.mode == 'optimize' && always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ready-ncs-optimize
-          path: dist/ncs/*.ncs
-          if-no-files-found: warn
+          retention-days: 3
