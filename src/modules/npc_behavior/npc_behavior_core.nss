@@ -597,9 +597,13 @@ void NpcBehaviorHandleCombat(object oNpc)
 
 void NpcBehaviorOnSpawn(object oNpc)
 {
+    int nUnsetMarker;
+    int bHasFlagDecays;
     int nFlagDecays;
+    int bHasFlagLootableCorpse;
     int nFlagLootableCorpse;
     int nFlagDisableAiWhenHidden;
+    int bHasFlagDialogInterruptible;
     int nFlagDialogInterruptible;
     int nDecayTimeSec;
     float fIdleIntervalSec;
@@ -610,17 +614,21 @@ void NpcBehaviorOnSpawn(object oNpc)
         return;
     }
 
+    nUnsetMarker = -2147483647;
+
     SetLocalInt(oNpc, NPC_VAR_FLAG_PLOT, GetPlotFlag(oNpc));
 
+    bHasFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS, nUnsetMarker) != nUnsetMarker;
     nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
-    if (nFlagDecays != FALSE && nFlagDecays != TRUE)
+    if (!bHasFlagDecays || (nFlagDecays != FALSE && nFlagDecays != TRUE))
     {
         nFlagDecays = NPC_DEFAULT_FLAG_DECAYS;
     }
     SetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS, nFlagDecays);
 
+    bHasFlagLootableCorpse = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE, nUnsetMarker) != nUnsetMarker;
     nFlagLootableCorpse = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE);
-    if (nFlagLootableCorpse != FALSE && nFlagLootableCorpse != TRUE)
+    if (!bHasFlagLootableCorpse || (nFlagLootableCorpse != FALSE && nFlagLootableCorpse != TRUE))
     {
         nFlagLootableCorpse = NPC_DEFAULT_FLAG_LOOTABLE_CORPSE;
     }
@@ -633,8 +641,9 @@ void NpcBehaviorOnSpawn(object oNpc)
     }
     SetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN, nFlagDisableAiWhenHidden);
 
+    bHasFlagDialogInterruptible = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE, nUnsetMarker) != nUnsetMarker;
     nFlagDialogInterruptible = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE);
-    if (nFlagDialogInterruptible != FALSE && nFlagDialogInterruptible != TRUE)
+    if (!bHasFlagDialogInterruptible || (nFlagDialogInterruptible != FALSE && nFlagDialogInterruptible != TRUE))
     {
         nFlagDialogInterruptible = NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE;
     }
