@@ -73,6 +73,8 @@ string NPC_VAR_METRIC_AREA_SKIPPED = "npc_area_metric_skipped_count";
 string NPC_VAR_METRIC_AREA_DEFERRED = "npc_area_metric_deferred_count";
 string NPC_VAR_METRIC_AREA_OVERFLOW = "npc_area_metric_queue_overflow_count";
 
+int NpcBehaviorOnHeartbeat(object oNpc);
+
 int NpcBehaviorTickNow()
 {
     return GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
