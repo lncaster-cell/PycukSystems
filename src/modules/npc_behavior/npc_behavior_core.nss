@@ -126,7 +126,7 @@ void NpcBehaviorMetricInc(object oTarget, string sMetric)
     NpcBehaviorMetricAdd(oTarget, sMetric, 1);
 }
 
-int NpcBehaviorIsHostileReaction(object oSource, object oTarget)
+int NpcBehaviorIsHostileForCombat(object oSource, object oTarget)
 {
     if (!GetIsObjectValid(oSource) || !GetIsObjectValid(oTarget))
     {
@@ -140,20 +140,9 @@ int NpcBehaviorIsHostileReaction(object oSource, object oTarget)
         return TRUE;
     }
 
-    return FALSE;
-}
-
-int NpcBehaviorIsHostileForCombat(object oSource, object oTarget)
-{
-    if (!GetIsObjectValid(oSource) || !GetIsObjectValid(oTarget))
-    {
-        return FALSE;
-    }
-
-    // Совместимость: переход в COMBAT допускает hostility в любую сторону
-    // (source -> target или target -> source), т.к. в faction/charm кейсах
-    // реакция может быть асимметричной в конкретный тик.
-    if (NpcBehaviorIsHostileReaction(oSource, oTarget) || NpcBehaviorIsHostileReaction(oTarget, oSource))
+    // Совместимость: fallback на обратное направление target -> source,
+    // т.к. в faction/charm кейсах реакция может быть асимметричной.
+    if (GetIsReactionTypeHostile(oTarget, oSource))
     {
         return TRUE;
     }
