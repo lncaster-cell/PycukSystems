@@ -76,6 +76,7 @@ string NPC_VAR_METRIC_DIALOG = "npc_metric_dialog_count";
 string NPC_VAR_METRIC_HEARTBEAT = "npc_metric_heartbeat_count";
 string NPC_VAR_METRIC_HEARTBEAT_SKIPPED = "npc_metric_heartbeat_skipped_count";
 string NPC_VAR_METRIC_COMBAT_ROUND = "npc_metric_combat_round_count";
+string NPC_VAR_METRIC_INTAKE_BYPASS_CRITICAL = "npc_metric_intake_bypass_critical";
 
 string NPC_VAR_METRIC_AREA_PROCESSED = "npc_area_metric_processed_count";
 string NPC_VAR_METRIC_AREA_SKIPPED = "npc_area_metric_skipped_count";
@@ -702,12 +703,19 @@ void NpcBehaviorOnPerception(object oNpc)
 
 void NpcBehaviorOnDamaged(object oNpc)
 {
+    int bQueued;
+
     if (!GetIsObjectValid(oNpc) || NpcBehaviorIsDisabled(oNpc))
     {
         return;
     }
 
-    NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
+    bQueued = NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
+    if (!bQueued)
+    {
+        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_INTAKE_BYPASS_CRITICAL);
+    }
+
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DAMAGED);
 
     if (GetCurrentHitPoints(oNpc) > 0)
@@ -741,13 +749,19 @@ void NpcBehaviorOnEndCombatRound(object oNpc)
 void NpcBehaviorOnPhysicalAttacked(object oNpc)
 {
     object oAttacker = GetLastAttacker();
+    int bQueued;
 
     if (!GetIsObjectValid(oNpc) || NpcBehaviorIsDisabled(oNpc))
     {
         return;
     }
 
-    NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
+    bQueued = NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
+    if (!bQueued)
+    {
+        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_INTAKE_BYPASS_CRITICAL);
+    }
+
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PHYSICAL_ATTACKED);
 
     if (GetIsObjectValid(oAttacker) && GetIsReactionTypeHostile(oAttacker, oNpc))
@@ -765,7 +779,11 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
         return;
     }
 
-    NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_HIGH, "spell_cast_at");
+    if (!NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_HIGH, "spell_cast_at"))
+    {
+        return;
+    }
+
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPELL_CAST_AT);
 
     if (GetIsObjectValid(oCaster) && GetIsReactionTypeHostile(oCaster, oNpc))
@@ -777,13 +795,19 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
 void NpcBehaviorOnDeath(object oNpc)
 {
     int nDecaySeconds;
+    int bQueued;
 
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
-    NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
+    bQueued = NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
+    if (!bQueued)
+    {
+        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_INTAKE_BYPASS_CRITICAL);
+    }
+
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 
     if (GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE) == FALSE)
