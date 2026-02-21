@@ -80,6 +80,7 @@ string NPC_VAR_METRIC_INTAKE_BYPASS_CRITICAL = "npc_metric_intake_bypass_critica
 
 string NPC_VAR_METRIC_AREA_PROCESSED = "npc_area_metric_processed_count";
 string NPC_VAR_METRIC_AREA_SKIPPED = "npc_area_metric_skipped_count";
+// Только deferred по budget/очереди area-tick (не включает heartbeat skip/guard причины).
 string NPC_VAR_METRIC_AREA_DEFERRED = "npc_area_metric_deferred_count";
 string NPC_VAR_METRIC_AREA_OVERFLOW = "npc_area_metric_queue_overflow_count";
 
@@ -912,6 +913,7 @@ void NpcBehaviorOnAreaTick(object oArea)
     int nBudget;
     int nProcessed = 0;
     int nSkipped = 0;
+    int nDeferredByBudget = 0;
     int nConsumedCritical = 0;
     int nConsumedHigh = 0;
     int nConsumedNormal = 0;
@@ -1076,12 +1078,23 @@ void NpcBehaviorOnAreaTick(object oArea)
         }
     }
 
+    // Deferred здесь трактуется строго как eligible NPC, которые не дошли до обработки
+    // из-за исчерпания area-tick budget в текущей ротации/очереди.
+    if (nProcessed >= nBudget)
+    {
+        nDeferredByBudget = nEligibleCount - (nProcessed + nSkipped);
+        if (nDeferredByBudget < 0)
+        {
+            nDeferredByBudget = 0;
+        }
+    }
+
     SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, nProcessed);
     NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_PROCESSED, nProcessed);
     NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_SKIPPED, nSkipped);
-    if (nEligibleCount > nProcessed)
+    if (nDeferredByBudget > 0)
     {
-        NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_DEFERRED, nEligibleCount - nProcessed);
+        NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_DEFERRED, nDeferredByBudget);
     }
 
     NpcBehaviorAreaDrainQueue(oArea, nConsumedCritical, nConsumedHigh, nConsumedNormal, nConsumedLow);
