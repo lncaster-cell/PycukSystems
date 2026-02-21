@@ -7,7 +7,7 @@ const int NPC_STATE_COMBAT = 2;
 const int NPC_DEFAULT_IDLE_INTERVAL = 6;
 const int NPC_DEFAULT_COMBAT_INTERVAL = 2;
 const int NPC_TICK_PROCESS_LIMIT = 32;
-const float NPC_MIN_TICK_INTERVAL_SEC = 0.2;
+const int NPC_MIN_TICK_INTERVAL_SEC = 1;
 const float NPC_AREA_TICK_INTERVAL_SEC = 1.0;
 const int NPC_AREA_BUDGET_PER_TICK = 20;
 
@@ -452,14 +452,14 @@ void NpcBehaviorUpdateAreaDegradedMode(object oArea)
     }
 }
 
-float NpcBehaviorNormalizeInterval(float fValue, float fDefault)
+int NpcBehaviorNormalizeInterval(int nValue, int nDefault)
 {
-    if (fValue < NPC_MIN_TICK_INTERVAL_SEC)
+    if (nValue < NPC_MIN_TICK_INTERVAL_SEC)
     {
-        return fDefault;
+        return nDefault;
     }
 
-    return fValue;
+    return nValue;
 }
 
 void NpcBehaviorInitialize(object oNpc)
@@ -477,31 +477,31 @@ void NpcBehaviorInitialize(object oNpc)
     SetLocalInt(oNpc, NPC_VAR_INIT_DONE, TRUE);
 }
 
-float NpcBehaviorGetInterval(object oNpc)
+int NpcBehaviorGetInterval(object oNpc)
 {
-    float fInterval;
+    int nInterval;
 
     if (GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
     {
-        fInterval = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
-        return NpcBehaviorNormalizeInterval(fInterval, IntToFloat(NPC_DEFAULT_COMBAT_INTERVAL));
+        nInterval = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
+        return NpcBehaviorNormalizeInterval(nInterval, NPC_DEFAULT_COMBAT_INTERVAL);
     }
 
-    fInterval = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
-    return NpcBehaviorNormalizeInterval(fInterval, IntToFloat(NPC_DEFAULT_IDLE_INTERVAL));
+    nInterval = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
+    return NpcBehaviorNormalizeInterval(nInterval, NPC_DEFAULT_IDLE_INTERVAL);
 }
 
 int NpcBehaviorShouldProcessAtTime(object oNpc, int nNow)
 {
     int nLastTick = GetLocalInt(oNpc, NPC_VAR_LAST_TICK);
-    float fInterval = NpcBehaviorGetInterval(oNpc);
+    int nIntervalSec = NpcBehaviorGetInterval(oNpc);
 
     if (nLastTick == 0)
     {
         return TRUE;
     }
 
-    return (IntToFloat(NpcBehaviorElapsedSec(nNow, nLastTick)) >= fInterval);
+    return (NpcBehaviorElapsedSec(nNow, nLastTick) >= nIntervalSec);
 }
 
 int NpcBehaviorShouldProcess(object oNpc)
@@ -614,8 +614,8 @@ void NpcBehaviorOnSpawn(object oNpc)
     int nFlagDisableAiWhenHidden;
     int nFlagDialogInterruptible;
     int nDecayTimeSec;
-    float fIdleIntervalSec;
-    float fCombatIntervalSec;
+    int nIdleIntervalSec;
+    int nCombatIntervalSec;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -684,13 +684,13 @@ void NpcBehaviorOnSpawn(object oNpc)
     }
     SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, nDecayTimeSec);
 
-    fIdleIntervalSec = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
-    fIdleIntervalSec = NpcBehaviorNormalizeInterval(fIdleIntervalSec, IntToFloat(NPC_DEFAULT_IDLE_INTERVAL));
-    SetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC, fIdleIntervalSec);
+    nIdleIntervalSec = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
+    nIdleIntervalSec = NpcBehaviorNormalizeInterval(nIdleIntervalSec, NPC_DEFAULT_IDLE_INTERVAL);
+    SetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC, nIdleIntervalSec);
 
-    fCombatIntervalSec = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
-    fCombatIntervalSec = NpcBehaviorNormalizeInterval(fCombatIntervalSec, IntToFloat(NPC_DEFAULT_COMBAT_INTERVAL));
-    SetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC, fCombatIntervalSec);
+    nCombatIntervalSec = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
+    nCombatIntervalSec = NpcBehaviorNormalizeInterval(nCombatIntervalSec, NPC_DEFAULT_COMBAT_INTERVAL);
+    SetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC, nCombatIntervalSec);
 
     if (GetLocalInt(oNpc, NPC_VAR_INIT_DONE) != TRUE)
     {
