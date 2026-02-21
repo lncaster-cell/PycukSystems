@@ -7,6 +7,7 @@ const int NPC_STATE_COMBAT = 2;
 const int NPC_DEFAULT_IDLE_INTERVAL = 6;
 const int NPC_DEFAULT_COMBAT_INTERVAL = 2;
 const int NPC_TICK_PROCESS_LIMIT = 32;
+const float NPC_MIN_TICK_INTERVAL_SEC = 0.2;
 
 const int NPC_EVENT_PRIORITY_CRITICAL = 3;
 const int NPC_EVENT_PRIORITY_HIGH = 2;
@@ -55,6 +56,9 @@ string NPC_VAR_FLAG_DISABLE_OBJECT = "npc_flag_disable_object";
 string NPC_VAR_RUNTIME_HIDDEN = "npc_runtime_hidden";
 
 string NPC_VAR_DECAY_TIME_SEC = "npc_decay_time_sec";
+string NPC_VAR_TICK_INTERVAL_IDLE_SEC = "npc_tick_interval_idle_sec";
+string NPC_VAR_TICK_INTERVAL_COMBAT_SEC = "npc_tick_interval_combat_sec";
+string NPC_VAR_INIT_DONE = "npc_behavior_init_done";
 
 // [Runtime Metrics] счетчики и runtime-метрики для минимальной телеметрии.
 string NPC_VAR_METRIC_SPAWN = "npc_metric_spawn_count";
@@ -396,27 +400,56 @@ void NpcBehaviorUpdateAreaDegradedMode(object oArea)
     }
 }
 
-int NpcBehaviorGetInterval(object oNpc)
+float NpcBehaviorNormalizeInterval(float fValue, float fDefault)
 {
-    if (GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
+    if (fValue < NPC_MIN_TICK_INTERVAL_SEC)
     {
-        return NPC_DEFAULT_COMBAT_INTERVAL;
+        return fDefault;
     }
 
-    return NPC_DEFAULT_IDLE_INTERVAL;
+    return fValue;
+}
+
+void NpcBehaviorInitialize(object oNpc)
+{
+    SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
+    SetLocalInt(oNpc, NPC_VAR_LAST_TICK, 0);
+    SetLocalInt(oNpc, NPC_VAR_PROCESSED_TICK, 0);
+    SetLocalInt(oNpc, NPC_VAR_DEFERRED_EVENTS, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+    SetLocalInt(oNpc, NPC_VAR_INIT_DONE, TRUE);
+}
+
+float NpcBehaviorGetInterval(object oNpc)
+{
+    float fInterval;
+
+    if (GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
+    {
+        fInterval = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
+        return NpcBehaviorNormalizeInterval(fInterval, IntToFloat(NPC_DEFAULT_COMBAT_INTERVAL));
+    }
+
+    fInterval = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
+    return NpcBehaviorNormalizeInterval(fInterval, IntToFloat(NPC_DEFAULT_IDLE_INTERVAL));
 }
 
 int NpcBehaviorShouldProcess(object oNpc, int nNow)
 {
     int nLastTick = GetLocalInt(oNpc, NPC_VAR_LAST_TICK);
-    int nInterval = NpcBehaviorGetInterval(oNpc);
+    float fInterval = NpcBehaviorGetInterval(oNpc);
 
     if (nLastTick == 0)
     {
         return TRUE;
     }
 
-    return (NpcBehaviorElapsedSec(nNow, nLastTick) >= nInterval);
+    return (IntToFloat(NpcBehaviorElapsedSec(nNow, nLastTick)) >= fInterval);
 }
 
 int NpcBehaviorIsDisabled(object oNpc)
@@ -457,13 +490,14 @@ void NpcBehaviorOnSpawn(object oNpc)
     int nFlagDisableAiWhenHidden;
     int nFlagDialogInterruptible;
     int nDecayTimeSec;
+    float fIdleIntervalSec;
+    float fCombatIntervalSec;
 
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
-    SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
     SetLocalInt(oNpc, NPC_VAR_FLAG_PLOT, GetPlotFlag(oNpc));
 
     nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
@@ -500,6 +534,25 @@ void NpcBehaviorOnSpawn(object oNpc)
         nDecayTimeSec = NPC_DEFAULT_DECAY_TIME_SEC;
     }
     SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, nDecayTimeSec);
+
+    fIdleIntervalSec = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
+    fIdleIntervalSec = NpcBehaviorNormalizeInterval(fIdleIntervalSec, IntToFloat(NPC_DEFAULT_IDLE_INTERVAL));
+    SetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC, fIdleIntervalSec);
+
+    fCombatIntervalSec = GetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
+    fCombatIntervalSec = NpcBehaviorNormalizeInterval(fCombatIntervalSec, IntToFloat(NPC_DEFAULT_COMBAT_INTERVAL));
+    SetLocalFloat(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC, fCombatIntervalSec);
+
+    if (GetLocalInt(oNpc, NPC_VAR_INIT_DONE) != TRUE)
+    {
+        NpcBehaviorInitialize(oNpc);
+    }
+
+    if (GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_OBJECT) == TRUE)
+    {
+        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPAWN);
+        return;
+    }
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPAWN);
 }
