@@ -56,7 +56,6 @@ string NPC_VAR_METRIC_PERCEPTION = "npc_metric_perception_count";
 string NPC_VAR_METRIC_DAMAGED = "npc_metric_damaged_count";
 string NPC_VAR_METRIC_PHYSICAL_ATTACKED = "npc_metric_physical_attacked_count";
 string NPC_VAR_METRIC_SPELL_CAST_AT = "npc_metric_spell_cast_at_count";
-string NPC_VAR_METRIC_END_COMBAT_ROUND = "npc_metric_end_combat_round_count";
 string NPC_VAR_METRIC_DEATH = "npc_metric_death_count";
 string NPC_VAR_METRIC_DIALOG = "npc_metric_dialog_count";
 string NPC_VAR_METRIC_HEARTBEAT = "npc_metric_heartbeat_count";
@@ -472,13 +471,19 @@ void NpcBehaviorOnEndCombatRound(object oNpc)
         return;
     }
 
-    NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_HIGH, "combat_round");
-    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_END_COMBAT_ROUND);
+    if (!NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_HIGH, "combat_round"))
+    {
+        return;
+    }
+
+    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_COMBAT_ROUND);
 
     if (!GetIsInCombat(oNpc) && GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_ALERT);
     }
+
+    NpcBehaviorOnHeartbeat(oNpc);
 }
 
 void NpcBehaviorOnPhysicalAttacked(object oNpc)
@@ -613,13 +618,8 @@ int NpcBehaviorOnHeartbeat(object oNpc)
 
 void NpcBehaviorOnCombatRound(object oNpc)
 {
-    if (!GetIsObjectValid(oNpc))
-    {
-        return;
-    }
-
-    NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_COMBAT_ROUND);
-    NpcBehaviorOnHeartbeat(oNpc);
+    // Compatibility wrapper: canonical OnEndCombatRound path is centralized above.
+    NpcBehaviorOnEndCombatRound(oNpc);
 }
 
 void NpcBehaviorOnAreaTick(object oArea)

@@ -18,7 +18,7 @@
 | OnDeath | `NpcBehaviorOnDeath` | P0 |
 | OnDialogue | `NpcBehaviorOnDialogue` | P0 |
 | OnHeartbeat | `NpcBehaviorOnHeartbeat` | P1 |
-| OnEndCombatRound | `NpcBehaviorOnEndCombatRound` | P1 |
+| OnEndCombatRound | `NpcBehaviorOnEndCombatRound` (canonical), `NpcBehaviorOnCombatRound` (compat wrapper) | P1 |
 | area-local tick dispatcher | `NpcBehaviorOnAreaTick` | P2 |
 
 ## Поведенческие свойства (через Local Variables)
@@ -54,7 +54,7 @@
 - централизация логики хуков через единый include;
 - state transitions `IDLE/ALERT/COMBAT`;
 - tick pacing и лимит `NPC_TICK_PROCESS_LIMIT`;
-- минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/end_combat_round/death/dialogue` counters);
+- минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/combat_round/death/dialogue` counters);
 - связка `OnDeath + decays/lootable` и `OnPerception + hidden AI disable`.
 
 ## Observability contract (Phase 1)
@@ -68,7 +68,8 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `NpcBehaviorOnDeath` → `npc_metric_death_count`.
 - `NpcBehaviorOnDialogue` → `npc_metric_dialog_count`.
 - `NpcBehaviorOnHeartbeat` (P1) → `npc_metric_heartbeat_count`, при раннем выходе/skip также `npc_metric_heartbeat_skipped_count`.
-- `NpcBehaviorOnCombatRound` (P1) → `npc_metric_combat_round_count`, затем heartbeat sync.
+- `NpcBehaviorOnEndCombatRound` (P1, canonical) выполняет intake/coalesce, переход `COMBAT -> ALERT` при выходе из боя, пишет `npc_metric_combat_round_count`, затем heartbeat sync через `NpcBehaviorOnHeartbeat`.
+- `NpcBehaviorOnCombatRound` сохранен как compatibility-wrapper и делегирует в `NpcBehaviorOnEndCombatRound`, чтобы исключить конкурирующие пути.
 - `NpcBehaviorOnAreaTick` (P1, area-level) аккумулирует на area:
   - processed (`npc_area_metric_processed_count`),
   - skipped (`npc_area_metric_skipped_count`),
@@ -94,7 +95,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `npc_metric_dialog_count`
 - `npc_metric_heartbeat_count`
 - `npc_metric_heartbeat_skipped_count`
-- `npc_metric_combat_round_count`
+- `npc_metric_combat_round_count` (единый ключ для OnEndCombatRound/compat-wrapper)
 - `npc_area_metric_processed_count`
 - `npc_area_metric_skipped_count`
 - `npc_area_metric_deferred_count`
