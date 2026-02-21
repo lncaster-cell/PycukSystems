@@ -239,8 +239,6 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
             NpcBehaviorMetricInc(oNpc, NPC_VAR_DEFERRED_EVENTS);
             return FALSE;
         }
-
-        SetLocalInt(oNpc, sCoalesceVar, nNow);
     }
 
     oArea = GetArea(oNpc);
@@ -248,6 +246,11 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
     if (!bQueued)
     {
         return FALSE;
+    }
+
+    if (sCoalesceVar != "")
+    {
+        SetLocalInt(oNpc, sCoalesceVar, nNow);
     }
 
     SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL) + 1);
