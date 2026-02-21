@@ -21,7 +21,7 @@ const int NPC_AREA_DEGRADED_HIGH_WATERMARK = 72;
 const int NPC_AREA_DEGRADED_LOW_WATERMARK = 24;
 const int NPC_COALESCE_WINDOW_SEC = 2;
 const int NPC_AREA_CRITICAL_RESERVE = 8;
-const int NPC_AREA_QUEUE_STORAGE_CAPACITY = NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE;
+const int NPC_AREA_QUEUE_STORAGE_CAPACITY = 104;
 
 const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
 const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
@@ -95,6 +95,7 @@ string NPC_VAR_METRIC_AREA_OVERFLOW = "npc_area_metric_queue_overflow_count";
 
 int NpcBehaviorOnHeartbeat(object oNpc);
 int NpcBehaviorConsumePending(object oNpc, int nPriority);
+void NpcBehaviorFlushPendingQueueState(object oNpc);
 
 int NpcBehaviorTickNow()
 {
@@ -557,6 +558,21 @@ int NpcBehaviorConsumePending(object oNpc, int nPriority)
     SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, nTopPriority);
 
     return TRUE;
+}
+
+void NpcBehaviorFlushPendingQueueState(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
 }
 
 int NpcBehaviorGetTopPendingPriority(object oNpc)
