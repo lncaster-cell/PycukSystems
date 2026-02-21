@@ -21,7 +21,7 @@ const int NPC_AREA_DEGRADED_HIGH_WATERMARK = 72;
 const int NPC_AREA_DEGRADED_LOW_WATERMARK = 24;
 const int NPC_COALESCE_WINDOW_SEC = 2;
 const int NPC_AREA_CRITICAL_RESERVE = 8;
-const int NPC_AREA_QUEUE_STORAGE_CAPACITY = NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE;
+const int NPC_AREA_QUEUE_STORAGE_CAPACITY = 104; // 96 + 8; NSC requires literal for const init
 
 const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
 const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
@@ -95,6 +95,8 @@ string NPC_VAR_METRIC_AREA_OVERFLOW = "npc_area_metric_queue_overflow_count";
 
 int NpcBehaviorOnHeartbeat(object oNpc);
 int NpcBehaviorConsumePending(object oNpc, int nPriority);
+int NpcBehaviorGetTopPendingPriority(object oNpc);
+void NpcBehaviorFlushPendingQueueState(object oNpc);
 
 int NpcBehaviorTickNow()
 {
@@ -991,6 +993,63 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
     if (NpcBehaviorIsHostileForCombat(oNpc, oCaster))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
+    }
+}
+
+
+
+void NpcBehaviorFlushPendingQueueState(object oNpc)
+{
+    object oArea;
+    int nPriority;
+    int nConsumed;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    oArea = GetArea(oNpc);
+
+    // Remove all queued entries for this NPC from area queue (all priorities).
+    if (GetIsObjectValid(oArea))
+    {
+        for (nPriority = NPC_EVENT_PRIORITY_LOW; nPriority <= NPC_EVENT_PRIORITY_CRITICAL; nPriority++)
+        {
+            while (NpcBehaviorAreaQueueConsumeByOwner(oArea, oNpc, nPriority))
+            {
+                // consume until no more slots for this owner/priority
+            }
+        }
+    }
+
+    // Defensive reconciliation: if per-NPC pending counters still remain (stale state),
+    // drain them through the canonical consumer to keep pending_priority consistent.
+    nConsumed = 0;
+    while (GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL) > 0 && nConsumed < NPC_AREA_QUEUE_STORAGE_CAPACITY)
+    {
+        nPriority = NpcBehaviorGetTopPendingPriority(oNpc);
+        if (nPriority < NPC_EVENT_PRIORITY_LOW || nPriority > NPC_EVENT_PRIORITY_CRITICAL)
+        {
+            break;
+        }
+
+        if (!NpcBehaviorConsumePending(oNpc, nPriority))
+        {
+            break;
+        }
+
+        nConsumed = nConsumed + 1;
+    }
+
+    if (GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL) > 0)
+    {
+        SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
     }
 }
 
