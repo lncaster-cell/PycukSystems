@@ -985,7 +985,8 @@ void NpcBehaviorOnAreaTick(object oArea)
                 nPendingBefore = GetLocalInt(oObject, NPC_VAR_PENDING_TOTAL);
                 nPendingPriority = NpcBehaviorGetTopPendingPriority(oObject);
 
-                if (NpcBehaviorShouldProcess(oObject) && NpcBehaviorOnHeartbeat(oObject))
+                // Heartbeat dispatch is the single throttle gate: processed/skipped metrics are decided only by NpcBehaviorOnHeartbeat.
+                if (NpcBehaviorOnHeartbeat(oObject))
                 {
                     nProcessed = nProcessed + 1;
 
@@ -1040,7 +1041,7 @@ void NpcBehaviorOnAreaTick(object oArea)
                 nPendingBefore = GetLocalInt(oObject, NPC_VAR_PENDING_TOTAL);
                 nPendingPriority = NpcBehaviorGetTopPendingPriority(oObject);
 
-                if (NpcBehaviorShouldProcess(oObject) && NpcBehaviorOnHeartbeat(oObject))
+                if (NpcBehaviorOnHeartbeat(oObject))
                 {
                     nProcessed = nProcessed + 1;
 
