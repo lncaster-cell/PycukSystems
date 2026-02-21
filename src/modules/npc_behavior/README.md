@@ -60,7 +60,7 @@
 
 - централизация логики хуков через единый include;
 - state transitions `IDLE/ALERT/COMBAT`;
-- переход в `NPC_STATE_COMBAT` в `OnPerception/OnPhysicalAttacked/OnSpellCastAt` выполняется при hostile-отношении хотя бы в одну сторону между NPC и инициатором события (`npc -> target` **или** `target -> npc`) для совместимости с faction/charm асимметрией;
+- переход в `NPC_STATE_COMBAT` в `OnPerception/OnPhysicalAttacked/OnSpellCastAt` выполняется через единый контракт `GetIsReactionTypeHostile(source, target)`: в handlers `source` всегда инициатор события (`seen/attacker/caster`), `target` — NPC; для совместимости используется helper с явной двусторонней проверкой (`source -> npc` **или** `npc -> source`) при faction/charm асимметрии;
 - tick pacing и лимит `NPC_TICK_PROCESS_LIMIT`;
 - минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/combat_round/death/dialogue` counters);
 - связка `OnDeath + decays/lootable` и `OnPerception + hidden AI disable`.
@@ -71,10 +71,10 @@ Phase 1 использует единый helper записи метрик `NpcB
 
 ### Контракт по handlers
 
-- `NpcBehaviorOnPerception` → `npc_metric_perception_count`; при двустороннем hostile-check (`npc <-> seen`) переводит NPC в `NPC_STATE_COMBAT`, иначе при `IDLE` переводит в `ALERT`.
+- `NpcBehaviorOnPerception` → `npc_metric_perception_count`; если `seen` hostile к NPC по контракту `source -> target` (с compat fallback на обратное направление через helper), переводит NPC в `NPC_STATE_COMBAT`, иначе при `IDLE` переводит в `ALERT`.
 - `NpcBehaviorOnDamaged` → `npc_metric_damaged_count`.
-- `NpcBehaviorOnPhysicalAttacked` → `npc_metric_physical_attacked_count`; при двустороннем hostile-check (`npc <-> attacker`) переводит NPC в `NPC_STATE_COMBAT`.
-- `NpcBehaviorOnSpellCastAt` → `npc_metric_spell_cast_at_count`; при двустороннем hostile-check (`npc <-> caster`) переводит NPC в `NPC_STATE_COMBAT`.
+- `NpcBehaviorOnPhysicalAttacked` → `npc_metric_physical_attacked_count`; если `attacker` hostile к NPC по контракту `source -> target` (с compat fallback на обратное направление через helper), переводит NPC в `NPC_STATE_COMBAT`.
+- `NpcBehaviorOnSpellCastAt` → `npc_metric_spell_cast_at_count`; если `caster` hostile к NPC по контракту `source -> target` (с compat fallback на обратное направление через helper), переводит NPC в `NPC_STATE_COMBAT`.
 - `NpcBehaviorOnDeath` → `npc_metric_death_count`.
 - `NpcBehaviorOnDialogue` → `npc_metric_dialog_count`.
 - `NpcBehaviorOnHeartbeat` (P1) → `npc_metric_heartbeat_count`, при раннем выходе/skip также `npc_metric_heartbeat_skipped_count`.
@@ -91,7 +91,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - **Strict policy**: `NpcBehaviorOnPerception`, `NpcBehaviorOnEndCombatRound`, `NpcBehaviorOnDialogue`, `NpcBehaviorOnSpellCastAt` делают ранний `return`, если intake/coalesce вернул `FALSE`.
 - **Explicit CRITICAL bypass policy**: `NpcBehaviorOnDamaged`, `NpcBehaviorOnPhysicalAttacked` продолжают обработку даже при отказе queue/coalesce, чтобы не потерять критические side-effects (state flow).
 - Для CRITICAL bypass добавлена отдельная метрика `npc_metric_intake_bypass_critical`: инкрементируется только когда intake для CRITICAL вернул `FALSE` в `NpcBehaviorOnDamaged/OnPhysicalAttacked`, и тем самым отделяет bypass от обычного queued/deferred пути.
-- `NpcBehaviorOnDeath` работает без intake: пишет только `npc_metric_death_count` и выполняет terminal side-effects (`lootable/decay`) без постановки в queue.
+- `NpcBehaviorOnDeath` работает без intake: перед terminal side-effects (`lootable/decay`) вызывает flush pending/queue-состояния (`npc_pending_*`, `npc_pending_total`, `npc_pending_priority`) и снимает соответствующие area queue buckets, затем пишет `npc_metric_death_count`.
 
 ### Intake/coalesce/degraded mode (Phase 1+)
 

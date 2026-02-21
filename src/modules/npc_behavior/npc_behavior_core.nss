@@ -195,16 +195,21 @@ void NpcBehaviorPendingAdjust(object oNpc, int nPriority, int nDelta)
 
 int NpcBehaviorIsHostileForCombat(object oNpc, object oTarget)
 {
-    if (!GetIsObjectValid(oNpc) || !GetIsObjectValid(oTarget))
+    if (!GetIsObjectValid(oSource) || !GetIsObjectValid(oTarget))
     {
         return FALSE;
     }
 
-    // NWScript contract: GetIsReactionTypeHostile(oSource, oTarget)
-    // проверяет отношение source -> target. Для combat-enter используем
-    // двустороннюю проверку, чтобы не терять переходы при faction/charm кейсах,
-    // где hostility может быть асимметричной в конкретный тик.
-    if (GetIsReactionTypeHostile(oNpc, oTarget) || GetIsReactionTypeHostile(oTarget, oNpc))
+    // Единый контракт вызова NWScript:
+    // GetIsReactionTypeHostile(source, target) проверяет реакцию source -> target.
+    if (GetIsReactionTypeHostile(oSource, oTarget))
+    {
+        return TRUE;
+    }
+
+    // Совместимость: fallback на обратное направление target -> source,
+    // т.к. в faction/charm кейсах реакция может быть асимметричной.
+    if (GetIsReactionTypeHostile(oTarget, oSource))
     {
         return TRUE;
     }
@@ -551,6 +556,108 @@ int NpcBehaviorConsumePending(object oNpc, int nPriority)
     return TRUE;
 }
 
+void NpcBehaviorFlushPendingForNpc(object oNpc)
+{
+    object oArea;
+    int nPendingCritical;
+    int nPendingHigh;
+    int nPendingNormal;
+    int nPendingLow;
+    int nPendingTotal;
+    int nBucketTotal;
+    int nResidual;
+    int nDepth;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    oArea = GetArea(oNpc);
+    nPendingCritical = GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL);
+    nPendingHigh = GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH);
+    nPendingNormal = GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL);
+    nPendingLow = GetLocalInt(oNpc, NPC_VAR_PENDING_LOW);
+    nPendingTotal = GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL);
+
+    // Guards against broken runtime state: local counters cannot be negative.
+    if (nPendingCritical < 0)
+    {
+        nPendingCritical = 0;
+    }
+    if (nPendingHigh < 0)
+    {
+        nPendingHigh = 0;
+    }
+    if (nPendingNormal < 0)
+    {
+        nPendingNormal = 0;
+    }
+    if (nPendingLow < 0)
+    {
+        nPendingLow = 0;
+    }
+    if (nPendingTotal < 0)
+    {
+        nPendingTotal = 0;
+    }
+
+    nBucketTotal = nPendingCritical + nPendingHigh + nPendingNormal + nPendingLow;
+
+    if (nPendingTotal <= 0 && nBucketTotal <= 0)
+    {
+        SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+        SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+        return;
+    }
+
+    if (GetIsObjectValid(oArea))
+    {
+        if (nPendingCritical > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, -nPendingCritical);
+        }
+
+        if (nPendingHigh > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_HIGH, -nPendingHigh);
+        }
+
+        if (nPendingNormal > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_NORMAL, -nPendingNormal);
+        }
+
+        if (nPendingLow > 0)
+        {
+            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -nPendingLow);
+        }
+
+        // If pending_total is larger than per-priority buckets, reconcile queue depth too.
+        if (nPendingTotal > nBucketTotal)
+        {
+            nResidual = nPendingTotal - nBucketTotal;
+            nDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) - nResidual;
+            if (nDepth < 0)
+            {
+                nDepth = 0;
+            }
+            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, nDepth);
+        }
+    }
+
+    SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+}
+
 int NpcBehaviorGetTopPendingPriority(object oNpc)
 {
     int nTopPriority;
@@ -882,10 +989,9 @@ void NpcBehaviorOnPerception(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PERCEPTION);
 
-    // В COMBAT переходим, если hostility есть хотя бы в одну сторону:
-    // npc -> seen (базовый сценарий контракта NWScript) или seen -> npc
-    // для совместимости с faction/charm асимметрией.
-    if (NpcBehaviorIsHostileForCombat(oNpc, oSeen))
+    // source = seen, target = npc (единый контракт source -> target).
+    // Для совместимости helper допускает и обратное направление.
+    if (NpcBehaviorIsHostileForCombat(oSeen, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
         return;
@@ -964,9 +1070,9 @@ void NpcBehaviorOnPhysicalAttacked(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PHYSICAL_ATTACKED);
 
-    // В COMBAT переходим по двусторонней hostility-проверке, чтобы корректно
-    // отрабатывать faction/charm сценарии и порядок source/target по контракту.
-    if (NpcBehaviorIsHostileForCombat(oNpc, oAttacker))
+    // source = attacker, target = npc (контракт source -> target).
+    // Для совместимости helper также проверяет обратное направление.
+    if (NpcBehaviorIsHostileForCombat(oAttacker, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
@@ -988,9 +1094,9 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPELL_CAST_AT);
 
-    // В COMBAT переходим по двусторонней hostility-проверке, чтобы корректно
-    // отрабатывать faction/charm сценарии и порядок source/target по контракту.
-    if (NpcBehaviorIsHostileForCombat(oNpc, oCaster))
+    // source = caster, target = npc (контракт source -> target).
+    // Для совместимости helper также проверяет обратное направление.
+    if (NpcBehaviorIsHostileForCombat(oCaster, oNpc))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
@@ -1064,7 +1170,7 @@ void NpcBehaviorOnDeath(object oNpc)
 
     // Death is terminal: cleanup pending queue state before terminal side-effects
     // so per-NPC counters and area buckets cannot leak after death.
-    NpcBehaviorFlushPendingQueueState(oNpc);
+    NpcBehaviorFlushPendingForNpc(oNpc);
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 
