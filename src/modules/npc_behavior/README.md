@@ -41,7 +41,7 @@
 
 В `NpcBehaviorOnSpawn` добавлена явная инициализация контрактных переменных с fallback-валидацией:
 
-- Флаги (если переменная unset — применяется дефолт; при заданном значении допускаются только `TRUE/FALSE`, иначе также применяется дефолт):
+- Флаги (допускаются только `TRUE/FALSE`, иначе применяется дефолт):
   - `npc_flag_decays` → `TRUE`
   - `npc_flag_lootable_corpse` → `TRUE`
   - `npc_flag_disable_ai_when_hidden` → `FALSE`
