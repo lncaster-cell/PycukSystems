@@ -73,6 +73,16 @@ int NpcBehaviorTickNow()
     return GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
 }
 
+int NpcBehaviorElapsedSec(int nNow, int nLast)
+{
+    if (nNow >= nLast)
+    {
+        return nNow - nLast;
+    }
+
+    return (24 * 3600 - nLast) + nNow;
+}
+
 void NpcBehaviorMetricAdd(object oTarget, string sMetric, int nValue)
 {
     if (!GetIsObjectValid(oTarget) || nValue == 0)
@@ -206,7 +216,7 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
         sCoalesceVar = "npc_coalesce_" + sCoalesceKey;
         nLast = GetLocalInt(oNpc, sCoalesceVar);
 
-        if (nLast > 0 && (nNow - nLast) < NPC_COALESCE_WINDOW_SEC && nPriority < NPC_EVENT_PRIORITY_CRITICAL)
+        if (nLast > 0 && NpcBehaviorElapsedSec(nNow, nLast) < NPC_COALESCE_WINDOW_SEC && nPriority < NPC_EVENT_PRIORITY_CRITICAL)
         {
             NpcBehaviorMetricInc(oNpc, NPC_VAR_DEFERRED_EVENTS);
             return FALSE;
@@ -319,7 +329,7 @@ int NpcBehaviorShouldProcess(object oNpc, int nNow)
         return TRUE;
     }
 
-    return ((nNow - nLastTick) >= nInterval);
+    return (NpcBehaviorElapsedSec(nNow, nLastTick) >= nInterval);
 }
 
 int NpcBehaviorIsDisabled(object oNpc)
