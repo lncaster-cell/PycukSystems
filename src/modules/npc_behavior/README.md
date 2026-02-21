@@ -81,9 +81,9 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `NpcBehaviorOnEndCombatRound` (P1, canonical) выполняет intake/coalesce, переход `COMBAT -> ALERT` при выходе из боя, пишет `npc_metric_combat_round_count`, затем heartbeat sync через `NpcBehaviorOnHeartbeat`.
 - `NpcBehaviorOnCombatRound` сохранен как compatibility-wrapper и делегирует в `NpcBehaviorOnEndCombatRound`, чтобы исключить конкурирующие пути.
 - `NpcBehaviorOnAreaTick` (P1, area-level) аккумулирует на area:
-  - processed (`npc_area_metric_processed_count`),
-  - skipped (`npc_area_metric_skipped_count`),
-  - deferred (`npc_area_metric_deferred_count`),
+  - processed (`npc_area_metric_processed_count`) — heartbeat действительно выполнен (`NpcBehaviorOnHeartbeat == TRUE`),
+  - skipped (`npc_area_metric_skipped_count`) — heartbeat был запущен в рамках прохода, но завершился `FALSE` (invalid/dead/disabled/degraded/interval),
+  - deferred (`npc_area_metric_deferred_count`) — eligible NPC не дошли до попытки heartbeat в этом area-tick только из-за лимита budget/очереди,
   - queue overflow (`npc_area_metric_queue_overflow_count`).
 
 ### Intake policy after `NpcBehaviorTryIntakeEvent(...)`
