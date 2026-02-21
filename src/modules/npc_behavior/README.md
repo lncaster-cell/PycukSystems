@@ -17,7 +17,9 @@
 | OnSpellCastAt | `NpcBehaviorOnSpellCastAt` | P0 |
 | OnDeath | `NpcBehaviorOnDeath` | P0 |
 | OnDialogue | `NpcBehaviorOnDialogue` | P0 |
-| OnHeartbeat | `NpcBehaviorOnHeartbeat` | P1 |
+| OnHeartbeat | `NpcBehaviorOnHeartbeat` (single-step, invoked by controller) | P1 |
+| Area OnEnter | `NpcBehaviorAreaActivate` via `npc_behavior_area_enter` | P1 |
+| Area OnExit | `NpcBehaviorAreaDeactivate` via `npc_behavior_area_exit` | P1 |
 | OnEndCombatRound | `NpcBehaviorOnEndCombatRound` (canonical), `NpcBehaviorOnCombatRound` (compat wrapper) | P1 |
 | area-local tick dispatcher | `NpcBehaviorOnAreaTick` | P2 |
 
@@ -107,6 +109,18 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `npc_area_metric_deferred_count`
 - `npc_area_metric_queue_overflow_count`
 
+
+
+## Area controller runtime (performance skeleton)
+
+- Area activity lifecycle:
+  - `NpcBehaviorAreaActivate(oArea)` sets `nb_area_active=TRUE` and starts one timer loop (`nb_area_timer_running`) without duplicates.
+  - `NpcBehaviorAreaDeactivate(oArea)` sets `nb_area_active=FALSE`; loop stops on next iteration.
+- Timer loop: `NpcBehaviorAreaTickLoop(oArea)` self-schedules with 1.0 sec interval and does not use Area OnHeartbeat.
+- Dispatcher: `NpcBehaviorOnAreaTick(oArea)` processes only creatures in current area with budget (`NPC_AREA_BUDGET_PER_TICK`) and stagger offset (`nb_area_tick_seq`).
+- Filtering in dispatcher:
+  - only creatures, non-PC, `npc_behavior_init_done==TRUE`, `npc_flag_disable_object!=TRUE`.
+  - per selected NPC: `NpcBehaviorShouldProcess(oNpc)` then `NpcBehaviorOnHeartbeat(oNpc)`.
 
 ## Disable flags behavior for dialogue hook
 
