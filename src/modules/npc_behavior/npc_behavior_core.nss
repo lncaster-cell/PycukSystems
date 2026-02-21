@@ -310,6 +310,55 @@ void NpcBehaviorAreaDrainQueue(object oArea, int nCritical, int nHigh, int nNorm
     }
 }
 
+void NpcBehaviorFlushPendingQueueState(object oNpc)
+{
+    object oArea;
+    int nPendingCritical;
+    int nPendingHigh;
+    int nPendingNormal;
+    int nPendingLow;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    nPendingCritical = GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL);
+    nPendingHigh = GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH);
+    nPendingNormal = GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL);
+    nPendingLow = GetLocalInt(oNpc, NPC_VAR_PENDING_LOW);
+
+    if (nPendingCritical < 0)
+    {
+        nPendingCritical = 0;
+    }
+    if (nPendingHigh < 0)
+    {
+        nPendingHigh = 0;
+    }
+    if (nPendingNormal < 0)
+    {
+        nPendingNormal = 0;
+    }
+    if (nPendingLow < 0)
+    {
+        nPendingLow = 0;
+    }
+
+    oArea = GetArea(oNpc);
+    if (GetIsObjectValid(oArea))
+    {
+        NpcBehaviorAreaDrainQueue(oArea, nPendingCritical, nPendingHigh, nPendingNormal, nPendingLow);
+    }
+
+    SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
+    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, 0);
+}
+
 int NpcBehaviorConsumePending(object oNpc, int nPriority)
 {
     int nPendingTotal;
@@ -838,8 +887,9 @@ void NpcBehaviorOnDeath(object oNpc)
         return;
     }
 
-    // Death is terminal: we intentionally avoid intake/queue here so corpse cleanup
-    // cannot leave unconsumed pending counters or area-queue entries behind.
+    // Death is terminal: cleanup pending queue state before terminal side-effects
+    // so per-NPC counters and area buckets cannot leak after death.
+    NpcBehaviorFlushPendingQueueState(oNpc);
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 
