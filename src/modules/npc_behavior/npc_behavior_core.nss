@@ -918,6 +918,10 @@ void NpcBehaviorOnAreaTick(object oArea)
     int nConsumedLow = 0;
     int nPendingBefore;
     int nPendingPriority;
+    int nQueuedCritical;
+    int nQueuedHigh;
+    int nQueuedNormal;
+    int nQueuedLow;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -940,8 +944,20 @@ void NpcBehaviorOnAreaTick(object oArea)
 
     if (nEligibleCount <= 0)
     {
+        // В зоне не осталось eligible NPC: очищаем накопленную очередь, чтобы degraded mode мог сняться без обработки heartbeat.
+        nQueuedCritical = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_CRITICAL);
+        nQueuedHigh = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH);
+        nQueuedNormal = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL);
+        nQueuedLow = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW);
+
         SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, 0);
-        NpcBehaviorAreaDrainQueue(oArea, 0, 0, 0, 0);
+        NpcBehaviorAreaDrainQueue(oArea, nQueuedCritical, nQueuedHigh, nQueuedNormal, nQueuedLow);
+
+        if (GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) > 0)
+        {
+            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, 0);
+        }
+
         NpcBehaviorUpdateAreaDegradedMode(oArea);
         return;
     }
