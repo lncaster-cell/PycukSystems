@@ -155,6 +155,85 @@ jobs:
           name: logs-${{ matrix.mode }}
           path: ci-logs/${{ matrix.mode }}.log
 
+      - name: Write CI Summary (${{ matrix.mode }})
+        if: always()
+        shell: pwsh
+        run: |
+          $mode = '${{ matrix.mode }}'
+          $logPath = Join-Path $PWD "ci-logs/$mode.log"
+          $reportDir = Join-Path $PWD 'reports'
+          New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
+          $reportPath = Join-Path $reportDir "$mode.txt"
+
+          if (-not (Test-Path -Path $logPath -PathType Leaf)) {
+            @(
+              "MODE=$mode"
+              "SCRIPTS=0, WARNINGS=0, ERRORS=0"
+              'FIRST_ERRORS:'
+              '(log file not found)'
+              ''
+              'FIRST_WARNINGS:'
+              '(log file not found)'
+              ''
+              "FULL_LOG_ARTIFACT=logs-$mode"
+            ) | Set-Content -Path $reportPath
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### CI Summary ($mode)"
+            Get-Content -Path $reportPath | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          $lines = Get-Content -Path $logPath
+          $scriptLine = $lines | Where-Object { $_ -match '^SCRIPTS=' } | Select-Object -Last 1
+          $warningLine = $lines | Where-Object { $_ -match '^WARNINGS=' } | Select-Object -Last 1
+          $errorLine = $lines | Where-Object { $_ -match '^ERRORS=' } | Select-Object -Last 1
+
+          $scripts = if ($scriptLine) { ($scriptLine -replace '^SCRIPTS=', '') } else { '0' }
+          $warnings = if ($warningLine) { ($warningLine -replace '^WARNINGS=', '') } else { '0' }
+          $errors = if ($errorLine) { ($errorLine -replace '^ERRORS=', '') } else { '0' }
+
+          $errorMatches = $lines | Where-Object { $_ -match '(:\s+Error\b|Error:\s*NSC)' }
+          $warningMatches = $lines | Where-Object { $_ -match '(:\s+Warning\b|Warning:\s*NSC)' }
+          $firstErrors = @($errorMatches | Select-Object -Unique | Select-Object -First 20)
+          $firstWarnings = @($warningMatches | Select-Object -Unique | Select-Object -First 20)
+
+          $summaryLines = @(
+            "MODE=$mode"
+            "SCRIPTS=$scripts, WARNINGS=$warnings, ERRORS=$errors"
+            'FIRST_ERRORS:'
+          )
+
+          if ($firstErrors.Count -gt 0) {
+            $summaryLines += $firstErrors
+          } else {
+            $summaryLines += '(none)'
+          }
+
+          $summaryLines += ''
+          $summaryLines += 'FIRST_WARNINGS:'
+
+          if ($firstWarnings.Count -gt 0) {
+            $summaryLines += $firstWarnings
+          } else {
+            $summaryLines += '(none)'
+          }
+
+          $summaryLines += ''
+          $summaryLines += "FULL_LOG_ARTIFACT=logs-$mode"
+
+          $summaryLines | Set-Content -Path $reportPath
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### CI Summary ($mode)"
+          Get-Content -Path $reportPath | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload reports (${{ matrix.mode }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ matrix.mode }}
+          path: reports/${{ matrix.mode }}.txt
+          if-no-files-found: warn
+
       - name: Upload compiled scripts (optimize)
         if: ${{ matrix.mode == 'optimize' && always() }}
         uses: actions/upload-artifact@v4
@@ -289,6 +368,85 @@ jobs:
         with:
           name: logs-${{ github.event.inputs.mode }}
           path: ci-logs/${{ github.event.inputs.mode }}.log
+
+      - name: Write CI Summary (${{ github.event.inputs.mode }})
+        if: always()
+        shell: pwsh
+        run: |
+          $mode = '${{ github.event.inputs.mode }}'
+          $logPath = Join-Path $PWD "ci-logs/$mode.log"
+          $reportDir = Join-Path $PWD 'reports'
+          New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
+          $reportPath = Join-Path $reportDir "$mode.txt"
+
+          if (-not (Test-Path -Path $logPath -PathType Leaf)) {
+            @(
+              "MODE=$mode"
+              "SCRIPTS=0, WARNINGS=0, ERRORS=0"
+              'FIRST_ERRORS:'
+              '(log file not found)'
+              ''
+              'FIRST_WARNINGS:'
+              '(log file not found)'
+              ''
+              "FULL_LOG_ARTIFACT=logs-$mode"
+            ) | Set-Content -Path $reportPath
+
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### CI Summary ($mode)"
+            Get-Content -Path $reportPath | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            exit 0
+          }
+
+          $lines = Get-Content -Path $logPath
+          $scriptLine = $lines | Where-Object { $_ -match '^SCRIPTS=' } | Select-Object -Last 1
+          $warningLine = $lines | Where-Object { $_ -match '^WARNINGS=' } | Select-Object -Last 1
+          $errorLine = $lines | Where-Object { $_ -match '^ERRORS=' } | Select-Object -Last 1
+
+          $scripts = if ($scriptLine) { ($scriptLine -replace '^SCRIPTS=', '') } else { '0' }
+          $warnings = if ($warningLine) { ($warningLine -replace '^WARNINGS=', '') } else { '0' }
+          $errors = if ($errorLine) { ($errorLine -replace '^ERRORS=', '') } else { '0' }
+
+          $errorMatches = $lines | Where-Object { $_ -match '(:\s+Error\b|Error:\s*NSC)' }
+          $warningMatches = $lines | Where-Object { $_ -match '(:\s+Warning\b|Warning:\s*NSC)' }
+          $firstErrors = @($errorMatches | Select-Object -Unique | Select-Object -First 20)
+          $firstWarnings = @($warningMatches | Select-Object -Unique | Select-Object -First 20)
+
+          $summaryLines = @(
+            "MODE=$mode"
+            "SCRIPTS=$scripts, WARNINGS=$warnings, ERRORS=$errors"
+            'FIRST_ERRORS:'
+          )
+
+          if ($firstErrors.Count -gt 0) {
+            $summaryLines += $firstErrors
+          } else {
+            $summaryLines += '(none)'
+          }
+
+          $summaryLines += ''
+          $summaryLines += 'FIRST_WARNINGS:'
+
+          if ($firstWarnings.Count -gt 0) {
+            $summaryLines += $firstWarnings
+          } else {
+            $summaryLines += '(none)'
+          }
+
+          $summaryLines += ''
+          $summaryLines += "FULL_LOG_ARTIFACT=logs-$mode"
+
+          $summaryLines | Set-Content -Path $reportPath
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### CI Summary ($mode)"
+          Get-Content -Path $reportPath | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload reports (${{ github.event.inputs.mode }})
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ github.event.inputs.mode }}
+          path: reports/${{ github.event.inputs.mode }}.txt
+          if-no-files-found: warn
 
       - name: Upload compiled scripts
         if: ${{ (github.event.inputs.mode == 'build' || github.event.inputs.mode == 'optimize') && always() }}
