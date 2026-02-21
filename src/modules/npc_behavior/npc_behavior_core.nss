@@ -26,7 +26,7 @@ const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
 const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
 const int NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN = FALSE;
 const int NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE = TRUE;
-const int NPC_DEFAULT_DECAY_TIME_SEC = 5000;
+const int NPC_DEFAULT_DECAY_TIME_SEC = 5;
 
 // [Runtime Internal] служебные переменные оркестрации и state-machine.
 string NPC_VAR_STATE = "npc_state";
@@ -821,7 +821,8 @@ void NpcBehaviorOnDeath(object oNpc)
 
     if (GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS) == TRUE)
     {
-        nDecaySeconds = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC) / 1000;
+        // NPC_VAR_DECAY_TIME_SEC хранится в секундах и используется без конвертации.
+        nDecaySeconds = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC);
         if (nDecaySeconds <= 0)
         {
             nDecaySeconds = 5;
