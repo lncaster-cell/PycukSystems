@@ -32,6 +32,18 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-starvation-window", type=int, default=10)
     p.add_argument("--buckets", default="LOW,NORMAL", help="Comma-separated buckets to validate")
     p.add_argument("--enforce-pause-zero", action="store_true", help="Fail if any processed_* > 0 during PAUSED")
+    p.add_argument(
+        "--max-post-resume-drain-ticks",
+        type=int,
+        default=-1,
+        help="Fail if queue does not resume processing within N RUNNING ticks after PAUSED->RUNNING",
+    )
+    p.add_argument(
+        "--min-resume-transitions",
+        type=int,
+        default=0,
+        help="Fail if PAUSED->RUNNING transitions are fewer than this value",
+    )
     return p.parse_args()
 
 
@@ -77,9 +89,17 @@ def main() -> int:
 
     pause_violation_rows = 0
     running_ticks = 0
+    resume_transitions = 0
+    resume_window_tick = -1
+    resume_window_violations = 0
+    previous_state = "RUNNING"
 
     for row in rows:
         state = (row.get("lifecycle_state") or "RUNNING").strip().upper()
+
+        if previous_state == "PAUSED" and state == "RUNNING":
+            resume_transitions += 1
+            resume_window_tick = 0
 
         if state == "PAUSED" and args.enforce_pause_zero:
             row_has_processing = False
@@ -91,9 +111,27 @@ def main() -> int:
                 pause_violation_rows += 1
 
         if state != "RUNNING":
+            previous_state = state
             continue
 
         running_ticks += 1
+
+        if resume_window_tick >= 0 and args.max_post_resume_drain_ticks >= 0:
+            bucket_processed = False
+            for b in buckets:
+                col = BUCKET_COLUMN[b]
+                if to_int(row.get(col, "0")) > 0:
+                    bucket_processed = True
+                    break
+
+            if bucket_processed:
+                resume_window_tick = -1
+            else:
+                resume_window_tick += 1
+                if resume_window_tick > args.max_post_resume_drain_ticks:
+                    resume_window_violations += 1
+                    resume_window_tick = -1
+
         for b in buckets:
             col = BUCKET_COLUMN[b]
             if to_int(row.get(col, "0")) > 0:
@@ -102,10 +140,13 @@ def main() -> int:
             else:
                 streak[b] += 1
 
+        previous_state = state
+
     for b in buckets:
         worst[b] = max(worst[b], streak[b])
 
     print(f"[INFO] analyzed rows: {len(rows)}, running_ticks: {running_ticks}")
+    print(f"[INFO] resume_transitions: {resume_transitions}")
     for b in buckets:
         print(f"[INFO] bucket={b} worst_starvation_window={worst[b]}")
 
@@ -119,6 +160,19 @@ def main() -> int:
 
     if args.enforce_pause_zero and pause_violation_rows > 0:
         print(f"[FAIL] pause-zero invariant violated on {pause_violation_rows} rows")
+        failed = True
+
+    if resume_transitions < args.min_resume_transitions:
+        print(
+            f"[FAIL] observed resume transitions {resume_transitions} are fewer than required {args.min_resume_transitions}"
+        )
+        failed = True
+
+    if args.max_post_resume_drain_ticks >= 0 and resume_window_violations > 0:
+        print(
+            f"[FAIL] post-resume drain window violated on {resume_window_violations} transition(s); "
+            f"limit={args.max_post_resume_drain_ticks} running ticks"
+        )
         failed = True
 
     if failed:
