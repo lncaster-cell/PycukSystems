@@ -46,6 +46,12 @@
   - `npc_flag_dialog_interruptible` → `TRUE`
 - Параметры (защита от невалидных значений):
   - `npc_decay_time_sec` → если `<= 0`, то `5000`
+  - `npc_tick_interval_idle_sec` → если `< 0.2`, то `6.0`
+  - `npc_tick_interval_combat_sec` → если `< 0.2`, то `2.0`
+- Init-once:
+  - служебные runtime-local (`npc_state`, pending/deferred/last tick counters) нормализуются через `NpcBehaviorInitialize` только один раз по флагу `npc_behavior_init_done`.
+- Disable guard:
+  - при `npc_flag_disable_object = TRUE` spawn handler выполняет ранний выход после нормализации и инкремента метрики spawn.
 
 Это сохраняет `npc_behavior_spawn.nss` thin-entrypoint: вся бизнес-логика остается в `npc_behavior_core.nss`.
 
