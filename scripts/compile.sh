@@ -20,6 +20,18 @@ INCLUDE_ARGS=(
   -i "$NWNX_INCLUDE_PATH"
 )
 
+if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
+  echo "[ERROR] Local execution is disabled."
+  echo "[INFO] Run compilation only in GitHub Actions workflow: .github/workflows/compile.yml (windows-latest)."
+  exit 1
+fi
+
+if [[ "${RUNNER_OS:-}" != "Windows" ]]; then
+  echo "[ERROR] This script may run only on a GitHub Actions Windows runner."
+  echo "[INFO] Current RUNNER_OS=${RUNNER_OS:-unknown}."
+  exit 1
+fi
+
 if [[ ! -f "$COMPILER_PATH" ]]; then
   echo "[ERROR] Compiler not found: $COMPILER_REL"
   exit 1
@@ -32,19 +44,6 @@ case "$MODE" in
     exit 2
     ;;
 esac
-
-RUNNER=""
-if [[ "${OS:-}" == "Windows_NT" ]]; then
-  RUNNER="windows-native"
-elif command -v powershell.exe >/dev/null 2>&1; then
-  RUNNER="windows-bridge"
-elif command -v wine >/dev/null 2>&1; then
-  RUNNER="wine"
-else
-  echo "[ERROR] Local compilation requires Windows (native or powershell.exe bridge) or wine."
-  echo "[INFO] Preferred option: run from Windows or WSL with powershell.exe available."
-  exit 1
-fi
 
 prepare_stock_includes() {
   if [[ ! -d "$STOCK_INCLUDE_SOURCE_PATH" ]]; then
@@ -75,46 +74,11 @@ if [[ "${#FILES[@]}" -eq 0 ]]; then
   exit 0
 fi
 
-ps_escape() {
-  printf "%s" "$1" | sed "s/'/''/g"
-}
-
-to_windows_path() {
-  local p="$1"
-  if command -v wslpath >/dev/null 2>&1; then
-    wslpath -w "$p"
-  else
-    printf "%s" "$p"
-  fi
-}
 
 run_compiler() {
   local args=("$@")
 
-  case "$RUNNER" in
-    windows-native)
-      "$COMPILER_PATH" "${args[@]}"
-      ;;
-    wine)
-      wine "$COMPILER_PATH" "${args[@]}"
-      ;;
-    windows-bridge)
-      local compiler_win
-      compiler_win="$(to_windows_path "$COMPILER_PATH")"
-
-      local ps_cmd="& '$(ps_escape "$compiler_win")'"
-      local a
-      for a in "${args[@]}"; do
-        ps_cmd+=" '$(ps_escape "$(to_windows_path "$a")")'"
-      done
-
-      powershell.exe -NoProfile -Command "$ps_cmd"
-      ;;
-    *)
-      echo "[ERROR] Unsupported runner: $RUNNER"
-      exit 1
-      ;;
-  esac
+  "$COMPILER_PATH" "${args[@]}"
 }
 
 run_compile() {
@@ -193,4 +157,4 @@ for file in "${FILES[@]}"; do
   esac
 done
 
-echo "[OK] Compilation completed in mode: $MODE (runner: $RUNNER)"
+echo "[OK] Compilation completed in mode: $MODE (runner: github-actions-windows)"

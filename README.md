@@ -45,20 +45,15 @@ bash scripts/setup_env.sh
 
 ### Компиляция скриптов
 
-Локальная проверка компиляции доступна через:
+Запуск компилятора выполняется **только** в GitHub Actions на `windows-latest` через workflow `.github/workflows/compile.yml`.
 
-```bash
-bash scripts/compile.sh check
-```
+Локальный запуск `tools/NWNScriptCompiler.exe` в Linux/WSL окружении не поддерживается.
 
-Поддерживаемые режимы: `check`, `build`, `optimize`, `bugscan`.
-
-> Рекомендуется запуск через Windows (нативно или из WSL через `powershell.exe`). `wine`/`mono` оставлены как fallback-вариант.
-
-Также можно запускать сборку в GitHub Actions на `windows-latest` через workflow `.github/workflows/nwn.yml`.
+Поддерживаемые режимы workflow: `check`, `build`, `optimize`, `bugscan`.
 
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
-- После успешного запуска откройте run и скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
+- Для диагностики падений используйте артефакты **logs-${mode}** и исправляйте ошибки только по конкретным строкам (`file:line`, `NSCxxxx`) из `logs-${mode}.log`.
+- После успешного запуска `build`/`optimize` скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
 
 ### Где лежат NWNX include-файлы и зачем
 
