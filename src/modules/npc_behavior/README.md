@@ -123,6 +123,8 @@ Phase 1 использует единый helper записи метрик `NpcB
 ## Area controller runtime (performance skeleton)
 
 - Area activity lifecycle:
+  - Area OnEnter handler is resilient to area-list update timing: it activates when there is at least one PC already counted in area **or** the entering object is a PC, but only if `NpcBehaviorAreaIsActive(oArea) == FALSE`.
+  - Area OnExit handler is resilient to delayed removal from area list: it counts `nPlayers = NpcBehaviorCountPlayersInArea(oArea)` and deactivates when no PCs remain after exit (`GetIsPC(oExiting) && nPlayers <= 1`, or `!GetIsPC(oExiting) && nPlayers == 0`), with an additional guard that area must be active.
   - `NpcBehaviorAreaActivate(oArea)` sets `nb_area_active=TRUE` and starts one timer loop (`nb_area_timer_running`) without duplicates.
   - `NpcBehaviorAreaDeactivate(oArea)` sets `nb_area_active=FALSE`; loop stops on next iteration.
 - Timer loop: `NpcBehaviorAreaTickLoop(oArea)` self-schedules with 1.0 sec interval and does not use Area OnHeartbeat.
