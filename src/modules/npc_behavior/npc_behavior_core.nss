@@ -800,18 +800,14 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
 void NpcBehaviorOnDeath(object oNpc)
 {
     int nDecaySeconds;
-    int bQueued;
 
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
-    bQueued = NpcBehaviorTryIntakeEvent(oNpc, NPC_EVENT_PRIORITY_CRITICAL, "");
-    if (!bQueued)
-    {
-        NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_INTAKE_BYPASS_CRITICAL);
-    }
+    // Death is terminal: we intentionally avoid intake/queue here so corpse cleanup
+    // cannot leave unconsumed pending counters or area-queue entries behind.
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 
