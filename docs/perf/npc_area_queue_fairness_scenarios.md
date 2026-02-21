@@ -5,7 +5,7 @@
 ## Общие условия
 
 - Контрольный модуль: `src/modules/npc_behavior/*`.
-- Lifecycle area: `RUNNING/PAUSED/STOPPED` через `NpcControllerArea*` helpers.
+- Lifecycle area: `RUNNING/PAUSED/STOPPED` через module API `NpcBehaviorArea*` (backed by `NpcControllerArea*`).
 - Ключевые метрики:
   - `npc_area_metric_processed_count`
   - `npc_area_metric_skipped_count`
@@ -37,9 +37,9 @@ bash scripts/check_area_lifecycle_contract.sh
 ## Scenario B — Pause/resume без потери очереди
 
 1. Запустить area в `RUNNING` и накопить pending очередь.
-2. Перевести area в `PAUSED` (`NpcControllerAreaPause`).
+2. Перевести area в `PAUSED` через module API (`NpcBehaviorAreaPause`, внутри вызывает controller).
 3. Убедиться, что `NpcBehaviorAreaTickLoop` не обрабатывает очередь до `RUNNING`.
-4. Вернуть `RUNNING`, продолжить тики и сравнить pending до/после.
+4. Вернуть `RUNNING` через `NpcBehaviorAreaResume`, продолжить тики и сравнить pending до/после.
 
 Ожидаемый результат:
 - во время `PAUSED` нет роста `processed_count`;
@@ -49,7 +49,7 @@ bash scripts/check_area_lifecycle_contract.sh
 ## Scenario C — Stop/start с корректным таймером
 
 1. Запустить area в `RUNNING`, убедиться что таймер один (`nb_area_timer_running=TRUE`).
-2. Перевести в `STOPPED` (`NpcControllerAreaStop`) и дождаться остановки loop.
+2. Перевести в `STOPPED` (`NpcBehaviorAreaDeactivate`) и дождаться остановки loop.
 3. Повторно выполнить старт и убедиться, что не появляется duplicate loop.
 
 Ожидаемый результат:
