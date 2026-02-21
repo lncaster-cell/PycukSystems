@@ -194,8 +194,8 @@ jobs:
 
           $errorMatches = $lines | Where-Object { $_ -match '(:\s+Error\b|Error:\s*NSC)' }
           $warningMatches = $lines | Where-Object { $_ -match '(:\s+Warning\b|Warning:\s*NSC)' }
-          $firstErrors = @($errorMatches | Select-Object -First 20)
-          $firstWarnings = @($warningMatches | Select-Object -First 20)
+          $firstErrors = @($errorMatches | Select-Object -Unique | Select-Object -First 20)
+          $firstWarnings = @($warningMatches | Select-Object -Unique | Select-Object -First 20)
 
           $summaryLines = @(
             "MODE=$mode"
@@ -408,8 +408,8 @@ jobs:
 
           $errorMatches = $lines | Where-Object { $_ -match '(:\s+Error\b|Error:\s*NSC)' }
           $warningMatches = $lines | Where-Object { $_ -match '(:\s+Warning\b|Warning:\s*NSC)' }
-          $firstErrors = @($errorMatches | Select-Object -First 20)
-          $firstWarnings = @($warningMatches | Select-Object -First 20)
+          $firstErrors = @($errorMatches | Select-Object -Unique | Select-Object -First 20)
+          $firstWarnings = @($warningMatches | Select-Object -Unique | Select-Object -First 20)
 
           $summaryLines = @(
             "MODE=$mode"
