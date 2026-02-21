@@ -120,6 +120,25 @@ void NpcBehaviorMetricInc(object oTarget, string sMetric)
     NpcBehaviorMetricAdd(oTarget, sMetric, 1);
 }
 
+int NpcBehaviorIsHostileForCombat(object oNpc, object oTarget)
+{
+    if (!GetIsObjectValid(oNpc) || !GetIsObjectValid(oTarget))
+    {
+        return FALSE;
+    }
+
+    // NWScript contract: GetIsReactionTypeHostile(oSource, oTarget)
+    // проверяет отношение source -> target. Для combat-enter используем
+    // двустороннюю проверку, чтобы не терять переходы при faction/charm кейсах,
+    // где hostility может быть асимметричной в конкретный тик.
+    if (GetIsReactionTypeHostile(oNpc, oTarget) || GetIsReactionTypeHostile(oTarget, oNpc))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 void NpcBehaviorAreaQueueAdjust(object oArea, int nPriority, int nDelta)
 {
     int nDepth;
@@ -771,7 +790,10 @@ void NpcBehaviorOnPerception(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PERCEPTION);
 
-    if (GetIsReactionTypeHostile(oSeen, oNpc))
+    // В COMBAT переходим, если hostility есть хотя бы в одну сторону:
+    // npc -> seen (базовый сценарий контракта NWScript) или seen -> npc
+    // для совместимости с faction/charm асимметрией.
+    if (NpcBehaviorIsHostileForCombat(oNpc, oSeen))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
         return;
@@ -850,7 +872,9 @@ void NpcBehaviorOnPhysicalAttacked(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_PHYSICAL_ATTACKED);
 
-    if (GetIsObjectValid(oAttacker) && GetIsReactionTypeHostile(oAttacker, oNpc))
+    // В COMBAT переходим по двусторонней hostility-проверке, чтобы корректно
+    // отрабатывать faction/charm сценарии и порядок source/target по контракту.
+    if (NpcBehaviorIsHostileForCombat(oNpc, oAttacker))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
@@ -872,7 +896,9 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_SPELL_CAST_AT);
 
-    if (GetIsObjectValid(oCaster) && GetIsReactionTypeHostile(oCaster, oNpc))
+    // В COMBAT переходим по двусторонней hostility-проверке, чтобы корректно
+    // отрабатывать faction/charm сценарии и порядок source/target по контракту.
+    if (NpcBehaviorIsHostileForCombat(oNpc, oCaster))
     {
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
