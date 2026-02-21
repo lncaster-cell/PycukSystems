@@ -14,7 +14,7 @@ void main()
         return;
     }
 
-    oArea = GetArea(oEntering);
+    oArea = OBJECT_SELF;
     AL_Dbg("AreaEnter OK");
     if (NpcBehaviorCountPlayersInArea(oArea) == 1)
     {
