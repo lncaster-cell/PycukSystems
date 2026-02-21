@@ -71,3 +71,27 @@ python3 scripts/analyze_area_queue_fairness.py \
 
 Скрипт ожидает CSV с колонками `tick`, `lifecycle_state`, `processed_low`, `processed_normal` (остальные `processed_*` — опционально).
 
+### Рекомендованные профили для «следующего шага» Task 3.2
+
+Два минимальных fixture-профиля покрывают длительный burst и fault-injection на pause/resume:
+
+```bash
+# Длительный burst: проверка starvation-window при доминирующем HIGH/CRITICAL потоке
+python3 scripts/analyze_area_queue_fairness.py \
+  --input docs/perf/fixtures/area_queue_fairness_long_burst.csv \
+  --max-starvation-window 2 \
+  --buckets LOW,NORMAL
+
+# Fault-injection pause/resume: проверка pause-zero + восстановления дренажа после resume
+python3 scripts/analyze_area_queue_fairness.py \
+  --input docs/perf/fixtures/area_queue_fairness_pause_resume_fault_injection.csv \
+  --max-starvation-window 3 \
+  --buckets LOW,NORMAL \
+  --enforce-pause-zero \
+  --min-resume-transitions 3 \
+  --max-post-resume-drain-ticks 1
+```
+
+Новые CLI-флаги:
+- `--min-resume-transitions` — гарантирует, что профиль действительно содержит нужное число циклов pause/resume.
+- `--max-post-resume-drain-ticks` — ограничивает число `RUNNING` тиков после resume до первой обработки отслеживаемых bucket.
