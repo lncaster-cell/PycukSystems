@@ -135,7 +135,12 @@ int NpcBehaviorIsHostileReaction(object oSource, object oTarget)
 
     // Единый контракт вызова NWScript:
     // GetIsReactionTypeHostile(source, target) проверяет реакцию source -> target.
-    return GetIsReactionTypeHostile(oSource, oTarget);
+    if (GetIsReactionTypeHostile(oSource, oTarget))
+    {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 int NpcBehaviorIsHostileForCombat(object oSource, object oTarget)
