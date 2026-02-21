@@ -17,7 +17,6 @@
 | OnSpellCastAt | `NpcBehaviorOnSpellCastAt` | P0 |
 | OnDeath | `NpcBehaviorOnDeath` | P0 |
 | OnDialogue | `NpcBehaviorOnDialogue` | P0 |
-| OnHeartbeat | `NpcBehaviorOnHeartbeat` (single-step, invoked by controller) | P1 |
 | Area OnEnter | `NpcBehaviorAreaActivate` via `npc_behavior_area_enter` | P1 |
 | Area OnExit | `NpcBehaviorAreaDeactivate` via `npc_behavior_area_exit` | P1 |
 | OnEndCombatRound | `NpcBehaviorOnEndCombatRound` (canonical), `NpcBehaviorOnCombatRound` (compat wrapper) | P1 |
