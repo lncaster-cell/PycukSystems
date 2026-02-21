@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [check, bugscan, optimize]
+        mode: [check, bugscan, build, optimize]
     name: compile (${{ matrix.mode }})
 
     steps:
@@ -90,12 +90,11 @@ jobs:
           $logPath = Join-Path $logDir "$mode.log"
           if (Test-Path $logPath) { Remove-Item $logPath -Force }
 
-          if ($mode -eq 'optimize') {
-            if (Test-Path -Path 'output') {
-              Remove-Item -Path 'output' -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path 'output' -Force | Out-Null
+          $distDir = Join-Path $PWD 'dist/ncs'
+          if (Test-Path -Path $distDir) {
+            Remove-Item -Path $distDir -Recurse -Force
           }
+          New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
           $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
           if ($files.Count -eq 0) {
@@ -118,6 +117,7 @@ jobs:
             switch ($mode) {
               'check' { $commandArgs = @('-y') + $includeArgs + @($file.FullName) }
               'bugscan' { $commandArgs = @('-a', '-y') + $includeArgs + @($file.FullName) }
+              'build' { $commandArgs = @('-y', '-e') + $includeArgs + @($file.FullName) }
               'optimize' { $commandArgs = @('-a', '-y', '-e') + $includeArgs + @($file.FullName) }
               default { throw "Unsupported mode: $mode" }
             }
@@ -135,14 +135,6 @@ jobs:
             if ($exitCode -ne 0) {
               "Compiler exited with non-zero code $exitCode for $($file.FullName)" | Tee-Object -FilePath $logPath -Append
               $hasNonZeroExit = $true
-            } elseif ($mode -eq 'optimize') {
-              $compiledName = [System.IO.Path]::ChangeExtension($file.Name, '.ncs')
-              $compiledPath = Join-Path $file.DirectoryName $compiledName
-              if (Test-Path -Path $compiledPath -PathType Leaf) {
-                $destinationPath = Join-Path (Join-Path $PWD 'output') $compiledName
-                Move-Item -Path $compiledPath -Destination $destinationPath -Force
-                "Compiled output saved to $destinationPath" | Tee-Object -FilePath $logPath -Append
-              }
             }
           }
 
@@ -154,6 +146,41 @@ jobs:
 
           if ($errorCount -gt 0 -or $hasNonZeroExit) {
             throw "Compilation finished with ERRORS=$errorCount"
+          }
+
+      - name: Collect compiled scripts (${{ matrix.mode }})
+        if: always()
+        id: collect_ncs
+        shell: pwsh
+        run: |
+          $mode = '${{ matrix.mode }}'
+          $distDir = Join-Path $PWD 'dist/ncs'
+
+          if (Test-Path -Path $distDir) {
+            Remove-Item -Path $distDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+
+          if ($mode -notin @('build', 'optimize')) {
+            "ncs_count=0" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "Skipping required NCS collection for mode $mode"
+            exit 0
+          }
+
+          $sourceScriptsRoot = Join-Path $PWD 'src'
+          $compiledFiles = Get-ChildItem -Path $sourceScriptsRoot -Recurse -File -Filter '*.ncs' -ErrorAction SilentlyContinue
+
+          foreach ($compiledFile in $compiledFiles) {
+            $destinationPath = Join-Path $distDir $compiledFile.Name
+            Copy-Item -Path $compiledFile.FullName -Destination $destinationPath -Force
+            Write-Host "Collected $($compiledFile.FullName) -> $destinationPath"
+          }
+
+          $ncsCount = (Get-ChildItem -Path $distDir -File -Filter '*.ncs' -ErrorAction SilentlyContinue | Measure-Object).Count
+          "ncs_count=$ncsCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          if ($mode -in @('build', 'optimize') -and $ncsCount -eq 0) {
+            throw "Mode $mode requires compiled .ncs files, but none were collected into dist/ncs"
           }
 
       - name: Upload logs (${{ matrix.mode }})
@@ -242,20 +269,20 @@ jobs:
           path: reports/${{ matrix.mode }}.txt
           if-no-files-found: warn
 
-      - name: Check optimize artifacts
-        if: ${{ matrix.mode == 'optimize' && always() }}
-        id: optimize_artifacts
-        shell: pwsh
-        run: |
-          $hasNcs = (Get-ChildItem -Path 'output' -Filter '*.ncs' -File -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0
-          "has_ncs=$($hasNcs.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-      - name: Upload compiled scripts (optimize)
-        if: ${{ matrix.mode == 'optimize' && steps.optimize_artifacts.outputs.has_ncs == 'true' && always() }}
+      - name: Upload ready scripts (build)
+        if: ${{ matrix.mode == 'build' && always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: compiled-ncs-${{ matrix.mode }}
-          path: output/*.ncs
+          name: ready-ncs-build
+          path: dist/ncs/*.ncs
+          if-no-files-found: warn
+
+      - name: Upload ready scripts (optimize)
+        if: ${{ matrix.mode == 'optimize' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ready-ncs-optimize
+          path: dist/ncs/*.ncs
           if-no-files-found: warn
 
   compile-manual:
@@ -319,12 +346,11 @@ jobs:
           $logPath = Join-Path $logDir "$mode.log"
           if (Test-Path $logPath) { Remove-Item $logPath -Force }
 
-          if ($mode -eq 'optimize' -or $mode -eq 'build') {
-            if (Test-Path -Path 'output') {
-              Remove-Item -Path 'output' -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path 'output' -Force | Out-Null
+          $distDir = Join-Path $PWD 'dist/ncs'
+          if (Test-Path -Path $distDir) {
+            Remove-Item -Path $distDir -Recurse -Force
           }
+          New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
           $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
           if ($files.Count -eq 0) {
@@ -347,7 +373,7 @@ jobs:
             switch ($mode) {
               'check' { $commandArgs = @('-y') + $includeArgs + @($file.FullName) }
               'bugscan' { $commandArgs = @('-a', '-y') + $includeArgs + @($file.FullName) }
-              'build' { $commandArgs = $includeArgs + @('-o', 'output', $file.FullName) }
+              'build' { $commandArgs = @('-y', '-e') + $includeArgs + @($file.FullName) }
               'optimize' { $commandArgs = @('-a', '-y', '-e') + $includeArgs + @($file.FullName) }
               default { throw "Unsupported mode: $mode" }
             }
@@ -365,14 +391,6 @@ jobs:
             if ($exitCode -ne 0) {
               "Compiler exited with non-zero code $exitCode for $($file.FullName)" | Tee-Object -FilePath $logPath -Append
               $hasNonZeroExit = $true
-            } elseif ($mode -eq 'optimize') {
-              $compiledName = [System.IO.Path]::ChangeExtension($file.Name, '.ncs')
-              $compiledPath = Join-Path $file.DirectoryName $compiledName
-              if (Test-Path -Path $compiledPath -PathType Leaf) {
-                $destinationPath = Join-Path (Join-Path $PWD 'output') $compiledName
-                Move-Item -Path $compiledPath -Destination $destinationPath -Force
-                "Compiled output saved to $destinationPath" | Tee-Object -FilePath $logPath -Append
-              }
             }
           }
 
@@ -384,6 +402,41 @@ jobs:
 
           if ($errorCount -gt 0 -or $hasNonZeroExit) {
             throw "Compilation finished with ERRORS=$errorCount"
+          }
+
+      - name: Collect compiled scripts (${{ github.event.inputs.mode }})
+        if: always()
+        id: collect_ncs_manual
+        shell: pwsh
+        run: |
+          $mode = '${{ github.event.inputs.mode }}'
+          $distDir = Join-Path $PWD 'dist/ncs'
+
+          if (Test-Path -Path $distDir) {
+            Remove-Item -Path $distDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+
+          if ($mode -notin @('build', 'optimize')) {
+            "ncs_count=0" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "Skipping required NCS collection for mode $mode"
+            exit 0
+          }
+
+          $sourceScriptsRoot = Join-Path $PWD 'src'
+          $compiledFiles = Get-ChildItem -Path $sourceScriptsRoot -Recurse -File -Filter '*.ncs' -ErrorAction SilentlyContinue
+
+          foreach ($compiledFile in $compiledFiles) {
+            $destinationPath = Join-Path $distDir $compiledFile.Name
+            Copy-Item -Path $compiledFile.FullName -Destination $destinationPath -Force
+            Write-Host "Collected $($compiledFile.FullName) -> $destinationPath"
+          }
+
+          $ncsCount = (Get-ChildItem -Path $distDir -File -Filter '*.ncs' -ErrorAction SilentlyContinue | Measure-Object).Count
+          "ncs_count=$ncsCount" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          if ($mode -in @('build', 'optimize') -and $ncsCount -eq 0) {
+            throw "Mode $mode requires compiled .ncs files, but none were collected into dist/ncs"
           }
 
       - name: Upload logs (${{ github.event.inputs.mode }})
@@ -472,18 +525,18 @@ jobs:
           path: reports/${{ github.event.inputs.mode }}.txt
           if-no-files-found: warn
 
-      - name: Check compiled script artifacts
-        if: ${{ (github.event.inputs.mode == 'build' || github.event.inputs.mode == 'optimize') && always() }}
-        id: compiled_artifacts
-        shell: pwsh
-        run: |
-          $hasNcs = (Get-ChildItem -Path 'output' -Filter '*.ncs' -File -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0
-          "has_ncs=$($hasNcs.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-      - name: Upload compiled scripts
-        if: ${{ (github.event.inputs.mode == 'build' || github.event.inputs.mode == 'optimize') && steps.compiled_artifacts.outputs.has_ncs == 'true' && always() }}
+      - name: Upload ready scripts (build)
+        if: ${{ github.event.inputs.mode == 'build' && always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: compiled-ncs-${{ github.event.inputs.mode }}
-          path: output/*.ncs
+          name: ready-ncs-build
+          path: dist/ncs/*.ncs
+          if-no-files-found: warn
+
+      - name: Upload ready scripts (optimize)
+        if: ${{ github.event.inputs.mode == 'optimize' && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ready-ncs-optimize
+          path: dist/ncs/*.ncs
           if-no-files-found: warn
