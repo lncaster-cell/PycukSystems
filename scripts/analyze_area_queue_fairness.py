@@ -60,7 +60,7 @@ def to_int(value: str, row_index: int, column_name: str, parse_errors: list[str]
 def main() -> int:
     args = parse_args()
     path = Path(args.input)
-    if not path.exists():
+    if not path.exists() or not path.is_file():
         print(f"[FAIL] input file not found: {path}")
         return 2
 
@@ -74,9 +74,13 @@ def main() -> int:
             print(f"[FAIL] unknown bucket: {b}")
             return 2
 
-    with path.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
+    try:
+        with path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"[FAIL] failed to read csv input: {path} ({exc})")
+        return 2
 
     if not rows:
         print("[FAIL] csv is empty")

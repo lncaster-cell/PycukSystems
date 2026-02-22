@@ -38,6 +38,13 @@ expect_fail() {
     echo "$output"
     exit 1
   fi
+
+  if [[ "$output" == *"Traceback (most recent call last)"* ]]; then
+    echo "[FAIL] unexpected traceback in error output for: $description"
+    echo "[INFO] actual output:"
+    echo "$output"
+    exit 1
+  fi
 }
 
 # Self-tests cover success path + fail contracts:
@@ -93,6 +100,12 @@ expect_fail "post-resume drain latency threshold" "" -- \
 expect_fail "missing input path" "[FAIL] input file not found" -- \
   python3 "$ANALYZER" \
     --input "$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_missing.csv" \
+    --max-starvation-window 4 \
+    --buckets LOW,NORMAL
+
+expect_fail "input path is directory" "[FAIL] input file not found" -- \
+  python3 "$ANALYZER" \
+    --input "$ROOT_DIR/docs/perf/fixtures" \
     --max-starvation-window 4 \
     --buckets LOW,NORMAL
 
