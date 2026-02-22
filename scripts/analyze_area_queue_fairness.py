@@ -183,14 +183,15 @@ def main() -> int:
 
     if resume_transitions < args.min_resume_transitions:
         print(
-            f"[FAIL] observed resume transitions {resume_transitions} are fewer than required {args.min_resume_transitions}"
+            "[FAIL] resume transitions fewer than required: "
+            f"observed={resume_transitions}, required={args.min_resume_transitions}"
         )
         failed = True
 
     if args.max_post_resume_drain_ticks >= 0 and resume_window_violations > 0:
         print(
-            f"[FAIL] post-resume drain window violated on {resume_window_violations} transition(s); "
-            f"limit={args.max_post_resume_drain_ticks} running ticks"
+            "[FAIL] post-resume drain window violated: "
+            f"violations={resume_window_violations}, limit={args.max_post_resume_drain_ticks} running ticks"
         )
         failed = True
 
