@@ -47,7 +47,8 @@ expect_fail() {
   fi
 }
 
-# Self-tests cover success path + fail contracts:
+# Self-tests cover success path + fail contracts.
+# Negative tests validate both non-zero exit codes and human-readable fail output.
 # - pause-zero invariant violation
 # - minimum resume transition threshold violation
 # - post-resume drain threshold violation
@@ -59,7 +60,7 @@ python3 "$ANALYZER" \
   --buckets LOW,NORMAL \
   --enforce-pause-zero
 
-expect_fail "pause-zero violation fixture" "" -- \
+expect_fail "pause-zero violation fixture" "[FAIL] pause-zero invariant violated" -- \
   python3 "$ANALYZER" \
     --input "$PAUSE_FAIL_FIXTURE" \
     --max-starvation-window 10 \
@@ -79,7 +80,7 @@ python3 "$ANALYZER" \
   --min-resume-transitions 3 \
   --max-post-resume-drain-ticks 1
 
-expect_fail "resume transition count threshold" "" -- \
+expect_fail "resume transition count threshold" "[FAIL] resume transitions fewer than required" -- \
   python3 "$ANALYZER" \
     --input "$PAUSE_RESUME_FIXTURE" \
     --max-starvation-window 3 \
@@ -88,7 +89,7 @@ expect_fail "resume transition count threshold" "" -- \
     --min-resume-transitions 4 \
     --max-post-resume-drain-ticks 1
 
-expect_fail "post-resume drain latency threshold" "" -- \
+expect_fail "post-resume drain latency threshold" "[FAIL] post-resume drain window violated" -- \
   python3 "$ANALYZER" \
     --input "$RESUME_DRAIN_FAIL_FIXTURE" \
     --max-starvation-window 4 \
