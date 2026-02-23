@@ -95,7 +95,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - bounded area queue через `npc_area_queue_depth` + priority buckets (`critical/high/normal/low`);
 - coalesce окно `NPC_COALESCE_WINDOW_SEC` для шумных non-critical событий (`perception/dialogue/spell/combat_round`);
 - при overflow non-critical события уходят в defer (без bucket-only вытеснения), а `CRITICAL` owner-aware вытесняет конкретный pending-элемент из очереди последовательно `LOW -> NORMAL -> HIGH`;
-- для пикового боевого шторма есть emergency reserve (`NPC_AREA_CRITICAL_RESERVE`) сверх nominal `queueCapacity`; при вытеснении синхронно обновляются и area buckets/depth, и `npc_pending_*`/`npc_pending_total` владельца;
+- для пикового боевого шторма есть emergency reserve (`NPC_AREA_CRITICAL_RESERVE`): CRITICAL после overflow может занять слот сверх nominal `NPC_AREA_QUEUE_CAPACITY` (в пределах `NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE`, при этом storage-буфер задан literal `NPC_AREA_QUEUE_STORAGE_CAPACITY` из-за ограничения NSC); при вытеснении синхронно обновляются и area buckets/depth, и `npc_pending_*`/`npc_pending_total` владельца;
 - auto degraded mode (`npc_area_degraded_mode`) по high/low watermarks и selective skip idle-heartbeat при перегрузке; coalesce применяется только к non-critical событиям в окне `NPC_COALESCE_WINDOW_SEC`.
 
 ## Invariants
