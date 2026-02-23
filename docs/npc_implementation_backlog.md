@@ -7,6 +7,7 @@
 ## Текущий статус (обновление)
 
 - **Task 3.2 (частично):** в `src/modules/npc_behavior/npc_behavior_core.nss` внедрены базовые runtime guardrails (bounded queue, coalesce, degraded mode, overflow handling c CRITICAL reserve); lifecycle вынесен в `src/controllers/lifecycle_controller.nss` с состояниями `RUNNING/PAUSED/STOPPED`.
+- **Task 3.2 (продолжение):** добавлен runtime decay для боевой настороженности NPC (`ALERT -> IDLE` по `npc_alert_decay_sec`) и единая фиксация hostile-contact timestamp для `OnPerception/OnDamaged/OnPhysicalAttacked/OnSpellCastAt/OnEndCombatRound`.
 - **Следующий шаг по Task 3.2:** прогнать нагрузочные профили с длительным starvation-окном и fault-injection на pause/resume, используя `scripts/analyze_area_queue_fairness.py` для автоматической оценки starvation-window.
 
 ---
