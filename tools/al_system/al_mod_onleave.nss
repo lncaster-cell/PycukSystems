@@ -1,28 +1,34 @@
-// Area OnExit: attach to the Area OnExit event in the toolset.
+// Module OnClientLeave: attach to the Module OnClientLeave event in the toolset.
 
-#include "al_npc_reg_inc"
+#include "al_system/al_npc_reg_inc"
 
 void main()
 {
-    object oArea = OBJECT_SELF;
-    object oExiting = GetExitingObject();
+    object oLeaving = GetExitingObject();
 
-    if (!GetIsObjectValid(oExiting))
+    if (!GetIsObjectValid(oLeaving))
     {
         return;
     }
 
-    if (!GetIsPC(oExiting))
+    if (!GetIsPC(oLeaving))
     {
         return;
     }
 
-    if (GetLocalInt(oExiting, "al_exit_counted") == 1)
+    if (GetLocalInt(oLeaving, "al_exit_counted") == 1)
     {
         return;
     }
 
-    SetLocalInt(oExiting, "al_exit_counted", 1);
+    object oArea = GetArea(oLeaving);
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oLeaving, "al_exit_counted", 1);
 
     int iPlayers = GetLocalInt(oArea, "al_player_count") - 1;
     if (iPlayers < 0)

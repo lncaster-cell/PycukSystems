@@ -6,8 +6,8 @@
 //   r_slot         (int)    active slot
 //   r_idx          (int)    active index (optional)
 
-#include "al_constants_inc"
-#include "al_npc_reg_inc"
+#include "al_system/al_constants_inc"
+#include "al_system/al_npc_reg_inc"
 
 const int AL_ROUTE_MAX_POINTS = 10;
 

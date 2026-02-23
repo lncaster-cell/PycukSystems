@@ -1,8 +1,8 @@
 // NPC activity helpers: apply per-slot activity animations without tag searches.
 
-#include "al_acts_inc"
-#include "al_constants_inc"
-#include "al_npc_routes"
+#include "al_system/al_acts_inc"
+#include "al_system/al_constants_inc"
+#include "al_system/al_npc_routes"
 
 int AL_GetRoutePointActivity(object oNpc, int nSlot, int iIndex);
 
