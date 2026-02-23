@@ -895,6 +895,24 @@ void NpcBehaviorAreaResume(object oArea)
     NpcBehaviorAreaActivate(oArea);
 }
 
+void NpcBehaviorBootstrapModuleAreas()
+{
+    object oArea;
+    int nPlayers;
+
+    oArea = GetFirstArea();
+    while (GetIsObjectValid(oArea))
+    {
+        nPlayers = NpcBehaviorCountPlayersInArea(oArea);
+        if (nPlayers > 0)
+        {
+            NpcBehaviorAreaActivate(oArea);
+        }
+
+        oArea = GetNextArea();
+    }
+}
+
 int NpcBehaviorIsDisabled(object oNpc)
 {
     if (GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_OBJECT) == TRUE)
