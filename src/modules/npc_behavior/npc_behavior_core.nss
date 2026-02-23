@@ -26,11 +26,6 @@ const int NPC_COALESCE_WINDOW_SEC = 2;
 const int NPC_AREA_CRITICAL_RESERVE = 8;
 const int NPC_AREA_QUEUE_STORAGE_CAPACITY = 104; // 96 + 8; NSC requires literal for const init
 
-const int NPC_DEFAULT_FLAG_DECAYS = TRUE;
-const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
-const int NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN = FALSE;
-const int NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE = TRUE;
-const int NPC_DEFAULT_DECAY_TIME_SEC = 5;
 const int NPC_DEFAULT_ALERT_DECAY_SEC = 12;
 
 // [Runtime Internal] служебные переменные оркестрации и state-machine.
@@ -59,29 +54,13 @@ string NPC_VAR_AREA_DEGRADED = "npc_area_degraded_mode";
 string NPC_VAR_AREA_TICK_SEQ = "nb_area_tick_seq";
 
 // [Behavior Flags] минимальный runtime-контракт.
-string NPC_VAR_FLAG_DECAYS = "npc_flag_decays";
-string NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE = "npc_flag_dialog_interruptible";
-string NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN = "npc_flag_disable_ai_when_hidden";
-string NPC_VAR_FLAG_PLOT = "npc_flag_plot";
-string NPC_VAR_FLAG_LOOTABLE_CORPSE = "npc_flag_lootable_corpse";
 string NPC_VAR_FLAG_DISABLE_OBJECT = "npc_flag_disable_object";
-string NPC_VAR_RUNTIME_HIDDEN = "npc_runtime_hidden";
-string NPC_VAR_FLAG_DECAYS_SET = "npc_flag_decays_set";
-string NPC_VAR_FLAG_LOOTABLE_CORPSE_SET = "npc_flag_lootable_corpse_set";
-string NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET = "npc_flag_disable_ai_when_hidden_set";
-string NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET = "npc_flag_dialog_interruptible_set";
 
 // [Spawn Template Params] значения читаются из template-local string vars.
-string NPC_VAR_TEMPLATE_FLAG_DECAYS = "npc_tpl_flag_decays";
-string NPC_VAR_TEMPLATE_FLAG_LOOTABLE_CORPSE = "npc_tpl_flag_lootable_corpse";
-string NPC_VAR_TEMPLATE_FLAG_DISABLE_AI_WHEN_HIDDEN = "npc_tpl_flag_disable_ai_when_hidden";
-string NPC_VAR_TEMPLATE_FLAG_DIALOG_INTERRUPTIBLE = "npc_tpl_flag_dialog_interruptible";
-string NPC_VAR_TEMPLATE_DECAY_TIME_SEC = "npc_tpl_decay_time_sec";
 string NPC_VAR_TEMPLATE_TICK_INTERVAL_IDLE_SEC = "npc_tpl_tick_interval_idle_sec";
 string NPC_VAR_TEMPLATE_TICK_INTERVAL_COMBAT_SEC = "npc_tpl_tick_interval_combat_sec";
 string NPC_VAR_TEMPLATE_ALERT_DECAY_SEC = "npc_tpl_alert_decay_sec";
 
-string NPC_VAR_DECAY_TIME_SEC = "npc_decay_time_sec";
 string NPC_VAR_TICK_INTERVAL_IDLE_SEC = "npc_tick_interval_idle_sec";
 string NPC_VAR_TICK_INTERVAL_COMBAT_SEC = "npc_tick_interval_combat_sec";
 string NPC_VAR_ALERT_DECAY_SEC = "npc_alert_decay_sec";
@@ -921,11 +900,6 @@ int NpcBehaviorIsDisabled(object oNpc)
         return TRUE;
     }
 
-    if (GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN) == TRUE && GetLocalInt(oNpc, NPC_VAR_RUNTIME_HIDDEN) == TRUE)
-    {
-        return TRUE;
-    }
-
     return FALSE;
 }
 
@@ -948,15 +922,6 @@ void NpcBehaviorHandleCombat(object oNpc)
 
 void NpcBehaviorOnSpawn(object oNpc)
 {
-    int bFlagDecaysSet;
-    int bFlagLootableCorpseSet;
-    int bFlagDisableAiWhenHiddenSet;
-    int bFlagDialogInterruptibleSet;
-    int nFlagDecays;
-    int nFlagLootableCorpse;
-    int nFlagDisableAiWhenHidden;
-    int nFlagDialogInterruptible;
-    int nDecayTimeSec;
     int nIdleIntervalSec;
     int nCombatIntervalSec;
     int nAlertDecaySec;
@@ -971,71 +936,8 @@ void NpcBehaviorOnSpawn(object oNpc)
     }
 
 
-    SetLocalInt(oNpc, NPC_VAR_FLAG_PLOT, GetPlotFlag(oNpc));
-
-    bFlagDecaysSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS_SET);
-    nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
-    nTemplateFlagDecays = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_DECAYS, NPC_DEFAULT_FLAG_DECAYS);
-    if (bFlagDecaysSet != TRUE)
-    {
-        nFlagDecays = nTemplateFlagDecays;
-    }
-    else if (nFlagDecays != FALSE && nFlagDecays != TRUE)
-    {
-        nFlagDecays = nTemplateFlagDecays;
-    }
-    SetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS, nFlagDecays);
-    SetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS_SET, TRUE);
-
-    bFlagLootableCorpseSet = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE_SET);
-    nFlagLootableCorpse = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE);
-    nTemplateFlagLootableCorpse = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_LOOTABLE_CORPSE, NPC_DEFAULT_FLAG_LOOTABLE_CORPSE);
-    if (bFlagLootableCorpseSet != TRUE)
-    {
-        nFlagLootableCorpse = nTemplateFlagLootableCorpse;
-    }
-    else if (nFlagLootableCorpse != FALSE && nFlagLootableCorpse != TRUE)
-    {
-        nFlagLootableCorpse = nTemplateFlagLootableCorpse;
-    }
-    SetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE, nFlagLootableCorpse);
-    SetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE_SET, TRUE);
-
-    bFlagDisableAiWhenHiddenSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET);
-    nFlagDisableAiWhenHidden = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN);
-    nTemplateFlagDisableAiWhenHidden = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_DISABLE_AI_WHEN_HIDDEN, NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN);
-    if (bFlagDisableAiWhenHiddenSet != TRUE)
-    {
-        nFlagDisableAiWhenHidden = nTemplateFlagDisableAiWhenHidden;
-    }
-    else if (nFlagDisableAiWhenHidden != FALSE && nFlagDisableAiWhenHidden != TRUE)
-    {
-        nFlagDisableAiWhenHidden = nTemplateFlagDisableAiWhenHidden;
-    }
-    SetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN, nFlagDisableAiWhenHidden);
-    SetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET, TRUE);
-
-    bFlagDialogInterruptibleSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET);
-    nFlagDialogInterruptible = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE);
-    nTemplateFlagDialogInterruptible = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_DIALOG_INTERRUPTIBLE, NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE);
-    if (bFlagDialogInterruptibleSet != TRUE)
-    {
-        nFlagDialogInterruptible = nTemplateFlagDialogInterruptible;
-    }
-    else if (nFlagDialogInterruptible != FALSE && nFlagDialogInterruptible != TRUE)
-    {
-        nFlagDialogInterruptible = nTemplateFlagDialogInterruptible;
-    }
-    SetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE, nFlagDialogInterruptible);
-    SetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET, TRUE);
-
-    nDecayTimeSec = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC);
-    nDecayTimeSec = NpcBehaviorTryGetTemplateInt(oNpc, NPC_VAR_TEMPLATE_DECAY_TIME_SEC, nDecayTimeSec);
-    if (nDecayTimeSec <= 0)
-    {
-        nDecayTimeSec = NPC_DEFAULT_DECAY_TIME_SEC;
-    }
-    SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, nDecayTimeSec);
+    // TODO(npc-toolset-cleanup): Removed toolset-derived flag sync (Decays/Lootable/Hidden AI disable/Dialog interruptible/Plot).
+    // Verify NPC blueprint defaults manually in NWN2 Toolset for templates that depended on these locals.
 
     nIdleIntervalSec = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
     nIdleIntervalSec = NpcBehaviorTryGetTemplateInt(oNpc, NPC_VAR_TEMPLATE_TICK_INTERVAL_IDLE_SEC, nIdleIntervalSec);
@@ -1265,8 +1167,6 @@ void NpcBehaviorFlushPendingQueueState(object oNpc)
 
 void NpcBehaviorOnDeath(object oNpc)
 {
-    int nDecaySeconds;
-
     if (!GetIsObjectValid(oNpc))
     {
         return;
@@ -1278,22 +1178,8 @@ void NpcBehaviorOnDeath(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 
-    if (GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE) == FALSE)
-    {
-        SetLootable(oNpc, FALSE);
-    }
-
-    if (GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS) == TRUE)
-    {
-        // NPC_VAR_DECAY_TIME_SEC хранится в секундах и используется без конвертации.
-        nDecaySeconds = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC);
-        if (nDecaySeconds <= 0)
-        {
-            nDecaySeconds = 5;
-        }
-
-        DelayCommand(IntToFloat(nDecaySeconds), DestroyObject(oNpc));
-    }
+    // TODO(npc-toolset-cleanup): Toolset-derived corpse/decay property writes removed.
+    // Validate expected corpse decay and loot availability in module templates manually.
 }
 
 void NpcBehaviorOnDialogue(object oNpc)
@@ -1310,10 +1196,8 @@ void NpcBehaviorOnDialogue(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DIALOG);
 
-    if (GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE) == FALSE)
-    {
-        AssignCommand(oNpc, ClearAllActions());
-    }
+    // TODO(npc-toolset-cleanup): Toolset-derived dialog interruptibility check removed.
+    // Verify dialogue/action interruption rules for NPC templates manually.
 
     if (GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
     {
