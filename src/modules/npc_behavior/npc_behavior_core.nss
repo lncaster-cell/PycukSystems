@@ -1287,7 +1287,9 @@ void NpcBehaviorOnAreaTick(object oArea)
 
     if (nEligibleCount <= 0)
     {
-        // В зоне не осталось eligible NPC: очищаем накопленную очередь, чтобы degraded mode мог сняться без обработки heartbeat.
+        // В зоне не осталось eligible NPC: сначала reconcile pending-счётчиков owner-ов,
+        // затем очищаем очередь и обновляем degraded mode.
+        NpcBehaviorAreaQueueReconcileOwnerPending(oArea);
         NpcBehaviorAreaQueueReset(oArea);
         NpcBehaviorUpdateAreaDegradedMode(oArea);
         return;
