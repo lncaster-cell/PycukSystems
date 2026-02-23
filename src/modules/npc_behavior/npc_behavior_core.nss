@@ -487,6 +487,35 @@ void NpcBehaviorAreaQueueReset(object oArea)
     SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_TAIL, 0);
 }
 
+void NpcBehaviorAreaQueueReconcileOwnerPending(object oArea)
+{
+    int nSlot;
+    int nPriority;
+    object oOwner;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    for (nSlot = 0; nSlot < NPC_AREA_QUEUE_STORAGE_CAPACITY; nSlot++)
+    {
+        if (GetLocalInt(oArea, NpcBehaviorAreaQueueSlotVar(NPC_VAR_AREA_QUEUE_SLOT_ACTIVE, nSlot)) != TRUE)
+        {
+            continue;
+        }
+
+        oOwner = GetLocalObject(oArea, NpcBehaviorAreaQueueSlotVar(NPC_VAR_AREA_QUEUE_SLOT_OWNER, nSlot));
+        nPriority = GetLocalInt(oArea, NpcBehaviorAreaQueueSlotVar(NPC_VAR_AREA_QUEUE_SLOT_PRIORITY, nSlot));
+        if (!GetIsObjectValid(oOwner))
+        {
+            continue;
+        }
+
+        NpcBehaviorPendingAdjust(oOwner, nPriority, -1);
+    }
+}
+
 int NpcBehaviorAreaTryQueueEvent(object oArea, object oOwner, int nPriority)
 {
     int nQueueDepth;
@@ -876,7 +905,15 @@ void NpcBehaviorAreaDeactivate(object oArea)
         return;
     }
 
+    // STOP lifecycle contract: cleanup buffered queue entries and owner pending state
+    // before the controller transitions to STOPPED.
+    NpcBehaviorAreaQueueReconcileOwnerPending(oArea);
+    NpcBehaviorAreaQueueReset(oArea);
+
     NpcControllerAreaStop(oArea);
+
+    // Normalize degraded mode after STOPPED so next START cannot inherit stale state.
+    SetLocalInt(oArea, NPC_VAR_AREA_DEGRADED, FALSE);
 }
 
 void NpcBehaviorAreaPause(object oArea)

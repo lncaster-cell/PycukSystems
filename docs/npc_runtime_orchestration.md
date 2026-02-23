@@ -30,7 +30,9 @@
   - Триггер: область в `PAUSED` дольше `idleStopAfter` или инициирован unload/reload.
   - Инвариант runtime-деактивации: area-controller переводится в `STOPPED` только при `active_pc_count == 0` (в т.ч. при обработке area `OnExit`).
   - Действия:
-    - освобождение буферов и внутренних структур;
+    - освобождение буферов и внутренних структур (очередь area и owner-slot state);
+    - reconciliation per-owner pending перед reset очереди, чтобы не оставлять dangling pending на NPC;
+    - нормализация degraded mode флага (`npc_area_degraded_mode = FALSE`), чтобы следующий `START` не наследовал stale-state;
     - сохранение checkpoint состояния, достаточного для fast-resume;
     - отписка от area-local таймеров.
 
