@@ -6,6 +6,12 @@
 
 - `npc_behavior_core.nss` — общие константы, state machine, heartbeat/area-tick pacing, и минимальная телеметрия.
 
+## Source of truth for runtime scripts
+
+- Production runtime-скрипты NPC behavior system поддерживаются в каталоге `tools/npc_behavior_system/`.
+- Каталог `src/modules/npc_behavior/` является redirect/документационным слоем и не должен рассматриваться как источник runtime-кода.
+- При обновлении документации и ссылок используйте `tools/npc_behavior_system/*` как canonical path, чтобы избежать дрейфа путей.
+
 ## Hook-скрипты (entrypoints)
 
 Runtime entrypoints (production) не зависят от временных debug-хелперов: в модуле отсутствуют `al_dbg` и debug-варианты `*_debug.nss`, чтобы исключить случайные назначения неканоничных hook-скриптов.
