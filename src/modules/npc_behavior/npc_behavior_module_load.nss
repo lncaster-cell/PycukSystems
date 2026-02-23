@@ -1,8 +1,6 @@
 // NPC behavior module: module OnModuleLoad entrypoint.
 
-#include "al_dbg"
-
 void main()
 {
-    AL_Dbg("ModuleLoad OK");
+    // Production OnModuleLoad entrypoint intentionally has no debug logging helpers.
 }

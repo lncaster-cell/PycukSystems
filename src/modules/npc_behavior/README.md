@@ -8,6 +8,8 @@
 
 ## Hook-скрипты (entrypoints)
 
+Runtime entrypoints (production) не зависят от временных debug-хелперов: они не подключают `al_dbg` и не содержат `AL_Dbg(...)` вызовов. Для ручной диагностики используются отдельные debug-варианты `*_debug.nss`, которые не должны быть назначены в стандартные event-hook entrypoints.
+
 | Hook | Core handler | Приоритет |
 | --- | --- | --- |
 | OnSpawn | `NpcBehaviorOnSpawn` | P0 |
