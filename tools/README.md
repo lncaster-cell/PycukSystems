@@ -276,7 +276,7 @@ OnExit или OnClientLeave:
 
 ### Активности (ID → анимации)
 
-Система хранит статическое сопоставление ID → анимации в `al_acts_inc.nss`.
+Система хранит статическое сопоставление ID → анимации в `tools/al_system/al_acts_inc.nss`.
 
 > Формат анимаций:
 > - **Custom**: строки, проигрываются через `PlayCustomAnimation`.
@@ -325,7 +325,7 @@ OnExit или OnClientLeave:
 | 41 | Barmaid | Custom: gettable, lookright, openlock, yawn | требует барную пару |
 | 42 | Bartender | Custom: gettable, lookright, openlock, yawn | — |
 | 43 | Guard | Custom: bored, lookleft, lookright, sigh | — |
-| 91–98 | LocateWrapper | см. `al_acts_inc.nss` | — |
+| 91–98 | LocateWrapper | см. `tools/al_system/al_acts_inc.nss` | — |
 | 200 | reserved | — | — |
 
 ### Требования активностей
@@ -339,9 +339,10 @@ OnExit или OnClientLeave:
 
 ## Установка и подключение
 
-1. Импортируйте все `.nss` файлы из `scripts/` в модуль.
+1. Импортируйте все `.nss` файлы из `tools/al_system/` в модуль.
 2. Скомпилируйте модуль.
    - Include-файлы (`*_inc.nss`) пометьте как Include или исключите из компиляции.
+   - Если используете внешний компилятор, добавьте `tools/` в include path (`-i tools`) для `#include "al_system/..."`.
    - Resref скриптов ≤ 16 символов (ограничение NWN2).
 3. Подключите скрипты к событиям:
 
@@ -418,4 +419,4 @@ OnExit или OnClientLeave:
 - `ARCHITECTURE.md` — оригинальный дизайн-док (дублирован в README).
 - `INSTALLATION.md` — простая инструкция (дублирована в README).
 - `AUDIT.md` — аудит рисков (включён в раздел «Ограничения и риски»).
-- `scripts/` — скрипты системы.
+- `al_system/` — AL runtime-скрипты системы.

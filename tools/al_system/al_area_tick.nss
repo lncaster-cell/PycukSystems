@@ -1,4 +1,4 @@
-#include "al_area_tick_inc"
+#include "al_system/al_area_tick_inc"
 
 void main()
 {
