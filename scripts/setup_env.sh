@@ -10,6 +10,8 @@ mkdir -p \
   src/core \
   src/controllers \
   src/modules/npc_behavior \
+  tools/npc_behavior_system \
+  tools/al_system \
   src/integrations/nwnx_sqlite \
   benchmarks
 

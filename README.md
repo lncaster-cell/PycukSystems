@@ -21,9 +21,11 @@
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
 - `tools/` — вспомогательные генераторы и валидаторы для development-пайплайнов.
+  - `tools/al_system/` — документация и материалы по Ambient Life system.
+  - `tools/npc_behavior_system/` — runtime-скрипты NPC behavior system (entrypoints + core).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
-- `src/modules/npc_behavior/` — модуль поведения NPC (первая итерация, **реализовано**).
+- `src/modules/npc_behavior/` — redirect-документация для модуля NPC behavior (скрипты перенесены в `tools/npc_behavior_system/`).
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
@@ -54,7 +56,7 @@ bash scripts/setup_env.sh
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
 - Для диагностики падений используйте артефакты **logs-${mode}** и исправляйте ошибки только по конкретным строкам (`file:line`, `NSCxxxx`) из `logs-${mode}.log`.
 - После успешного запуска `build`/`optimize` скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
-- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `src/modules/npc_behavior/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
+- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `tools/npc_behavior_system/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
 
 ### Где лежат NWNX include-файлы и зачем
 
@@ -64,7 +66,7 @@ NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
 
 ## Observability contract (Phase 1)
 
-Для модуля `src/modules/npc_behavior` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
+Для модуля `tools/npc_behavior_system` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
 
 Ключи `NPC_VAR_METRIC_*` (полное соответствие `npc_behavior_core.nss`):
 

@@ -86,7 +86,7 @@ jobs:
           $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $sourceRootIncludePath = Join-Path $PWD 'src'
-          $npcBehaviorIncludePath = Join-Path $PWD 'src/modules/npc_behavior'
+          $npcBehaviorIncludePath = Join-Path $PWD 'tools/npc_behavior_system'
           $projectIncludePath = Join-Path $PWD 'tools/scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
           $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
@@ -102,9 +102,12 @@ jobs:
           }
           New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
-          $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
+          $files = @(
+            Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss'
+            Get-ChildItem -Path 'tools/npc_behavior_system' -Recurse -File -Filter '*.nss'
+          ) | Sort-Object FullName
           if ($files.Count -eq 0) {
-            "No .nss files found under src/." | Tee-Object -FilePath $logPath -Append
+            "No .nss files found under src/ or tools/npc_behavior_system/." | Tee-Object -FilePath $logPath -Append
             "MODE=$mode" | Tee-Object -FilePath $logPath -Append
             "SCRIPTS=0" | Tee-Object -FilePath $logPath -Append
             "WARNINGS=0" | Tee-Object -FilePath $logPath -Append
@@ -335,7 +338,7 @@ jobs:
           $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $sourceRootIncludePath = Join-Path $PWD 'src'
-          $npcBehaviorIncludePath = Join-Path $PWD 'src/modules/npc_behavior'
+          $npcBehaviorIncludePath = Join-Path $PWD 'tools/npc_behavior_system'
           $projectIncludePath = Join-Path $PWD 'tools/scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
           $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
@@ -351,9 +354,12 @@ jobs:
           }
           New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 
-          $files = Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss' | Sort-Object FullName
+          $files = @(
+            Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss'
+            Get-ChildItem -Path 'tools/npc_behavior_system' -Recurse -File -Filter '*.nss'
+          ) | Sort-Object FullName
           if ($files.Count -eq 0) {
-            "No .nss files found under src/." | Tee-Object -FilePath $logPath -Append
+            "No .nss files found under src/ or tools/npc_behavior_system/." | Tee-Object -FilePath $logPath -Append
             "MODE=$mode" | Tee-Object -FilePath $logPath -Append
             "SCRIPTS=0" | Tee-Object -FilePath $logPath -Append
             "WARNINGS=0" | Tee-Object -FilePath $logPath -Append
