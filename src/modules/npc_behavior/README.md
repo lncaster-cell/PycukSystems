@@ -24,48 +24,32 @@
 
 ## Поведенческие свойства (через Local Variables)
 
-`npc_behavior_core.nss` использует минимальный runtime-набор переменных для логики,
-которая реально работает в обработчиках:
+`npc_behavior_core.nss` после cleanup использует только runtime-переменные,
+не привязанные к внутренним NPC Toolset-свойствам:
 
-- `npc_flag_decays`
-- `npc_flag_dialog_interruptible`
-- `npc_flag_disable_ai_when_hidden`
-- `npc_flag_plot`
-- `npc_flag_lootable_corpse`
 - `npc_flag_disable_object`
-- `npc_decay_time_sec`
-
+- `npc_tick_interval_idle_sec`
+- `npc_tick_interval_combat_sec`
+- `npc_alert_decay_sec`
 
 ## Spawn defaults and validation
 
-В `NpcBehaviorOnSpawn` добавлена явная инициализация контрактных переменных с fallback-валидацией:
+В `NpcBehaviorOnSpawn` выполняется инициализация runtime-параметров:
 
-- Поддерживается чтение template-значений из string-local параметров (если заданы на blueprint/экземпляре):
-  - `npc_tpl_flag_decays`
-  - `npc_tpl_flag_lootable_corpse`
-  - `npc_tpl_flag_disable_ai_when_hidden`
-  - `npc_tpl_flag_dialog_interruptible`
-  - `npc_tpl_decay_time_sec`
+- template-значения из string-local:
   - `npc_tpl_tick_interval_idle_sec`
   - `npc_tpl_tick_interval_combat_sec`
-  - Для bool поддерживаются значения `1/0`, `TRUE/FALSE`, `true/false`; при невалидном значении применяется fallback.
-
-- Флаги (допускаются только `TRUE/FALSE`, иначе применяется дефолт):
-  - `npc_flag_decays` → `TRUE`
-  - `npc_flag_lootable_corpse` → `TRUE`
-  - `npc_flag_disable_ai_when_hidden` → `FALSE`
-  - `npc_flag_dialog_interruptible` → `TRUE`
-- Параметры (защита от невалидных значений):
-  - `npc_decay_time_sec` → если `<= 0`, то `5` (секунд)
+  - `npc_tpl_alert_decay_sec`
+- fallback-валидация:
   - `npc_tick_interval_idle_sec` → если `< 1`, то `6`
   - `npc_tick_interval_combat_sec` → если `< 1`, то `2`
-  - `npc_alert_decay_sec` → если `<= 0`, то `12` (секунд до возврата `ALERT -> IDLE`)
-- Init-once:
-  - служебные runtime-local (`npc_state`, pending/deferred/last tick counters) нормализуются через `NpcBehaviorInitialize` только один раз по флагу `npc_behavior_init_done`.
-- Disable guard:
-  - при `npc_flag_disable_object = TRUE` spawn handler выполняет ранний выход после нормализации и инкремента метрики spawn.
+  - `npc_alert_decay_sec` → если `<= 0`, то `12`
+- init-once:
+  - `NpcBehaviorInitialize` выполняется один раз по `npc_behavior_init_done`.
+- disable guard:
+  - при `npc_flag_disable_object = TRUE` spawn handler делает ранний выход после инкремента метрики spawn.
 
-Это сохраняет `npc_behavior_spawn.nss` thin-entrypoint: вся бизнес-логика остается в `npc_behavior_core.nss`.
+> TODO: после удаления Toolset-свойств вручную проверить NPC templates в NWN2 Toolset на ожидаемые defaults (decay/loot/dialog/hidden-ai).
 
 ## Что уже покрыто
 
@@ -74,7 +58,7 @@
 - переход в `NPC_STATE_COMBAT` в `OnPerception/OnPhysicalAttacked/OnSpellCastAt` выполняется через единый контракт `GetIsReactionTypeHostile(source, target)`: в handlers `source` всегда инициатор события (`seen/attacker/caster`), `target` — NPC; для совместимости используется helper с явной двусторонней проверкой (`source -> npc` **или** `npc -> source`) при faction/charm асимметрии;
 - tick pacing и лимит `NPC_TICK_PROCESS_LIMIT`;
 - минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/combat_round/death/dialogue` counters);
-- связка `OnDeath + decays/lootable` и `OnPerception + hidden AI disable`.
+- связка боевых переходов состояния (`OnPerception/OnDamaged/OnPhysicalAttacked/OnSpellCastAt`) и area tick pacing.
 
 ## Observability contract (Phase 1)
 
@@ -102,7 +86,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - **Strict policy**: `NpcBehaviorOnPerception`, `NpcBehaviorOnEndCombatRound`, `NpcBehaviorOnDialogue`, `NpcBehaviorOnSpellCastAt` делают ранний `return`, если intake/coalesce вернул `FALSE`.
 - **Explicit CRITICAL bypass policy**: `NpcBehaviorOnDamaged`, `NpcBehaviorOnPhysicalAttacked` продолжают обработку даже при отказе queue/coalesce, чтобы не потерять критические side-effects (state flow).
 - Для CRITICAL bypass добавлена отдельная метрика `npc_metric_intake_bypass_critical`: инкрементируется только когда intake для CRITICAL вернул `FALSE` в `NpcBehaviorOnDamaged/OnPhysicalAttacked`, и тем самым отделяет bypass от обычного queued/deferred пути.
-- `NpcBehaviorOnDeath` работает без intake: перед terminal side-effects (`lootable/decay`) вызывает flush pending/queue-состояния (`npc_pending_*`, `npc_pending_total`, `npc_pending_priority`) и снимает соответствующие area queue buckets, затем пишет `npc_metric_death_count`.
+- `NpcBehaviorOnDeath` работает без intake: выполняет flush pending/queue-состояния (`npc_pending_*`, `npc_pending_total`, `npc_pending_priority`) и снимает соответствующие area queue buckets, затем пишет `npc_metric_death_count`.
 
 ### Intake/coalesce/degraded mode (Phase 1+)
 
@@ -184,13 +168,9 @@ Phase 1 использует единый helper записи метрик `NpcB
   - dialogue hook завершает обработку сразу;
   - не выполняется intake/coalesce для `dialogue`;
   - не инкрементируется `npc_metric_dialog_count`;
-  - не применяются `dialog_interruptible`-действия и state transition `COMBAT -> ALERT`.
-- `npc_flag_disable_ai_when_hidden = TRUE`
-  - при `npc_runtime_hidden = TRUE` поведение идентично полному disable: dialogue hook выходит сразу;
-  - при `npc_runtime_hidden = FALSE` dialogue hook работает штатно.
+  - state transition `COMBAT -> ALERT` не выполняется, т.к. handler завершается ранним return.
 
 ## Следующие шаги
 
-1. Подключить реальную инициализацию флагов из template-параметров NPC на OnSpawn.
-2. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
-3. Расширить scenario/perf-проверки fairness для PAUSED/RESUME/STOPPED и добавить длительные burst-профили со starvation guard.
+1. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
+2. Расширить scenario/perf-проверки fairness для PAUSED/RESUME/STOPPED и добавить длительные burst-профили со starvation guard.
