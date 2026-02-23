@@ -155,6 +155,20 @@ rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue|On[A-Za-z]+" "$MODULE_D
 RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ```
 
+
+## Контрактные проверки lifecycle
+
+Для валидации связки `core <-> lifecycle_controller` используйте универсальный скрипт:
+
+```bash
+bash scripts/check_lifecycle_contract.sh \
+  tools/npc_behavior_system/npc_behavior_core.nss \
+  src/controllers/lifecycle_controller.nss \
+  npc_behavior
+```
+
+Подробности и примеры для Module 3: `docs/testing_contracts.md`.
+
 ## Быстрый итог перед merge
 
 - [x] **Blocking:** структура и entrypoints валидны.
