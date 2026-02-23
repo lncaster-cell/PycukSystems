@@ -895,6 +895,37 @@ void NpcBehaviorAreaResume(object oArea)
     NpcBehaviorAreaActivate(oArea);
 }
 
+int NpcBehaviorAreaShouldAutoStart(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    if (GetLocalInt(oArea, "npc_area_always_on") == TRUE)
+    {
+        return TRUE;
+    }
+
+    return NpcBehaviorCountPlayersInArea(oArea) > 0;
+}
+
+void NpcBehaviorBootstrapModuleAreas()
+{
+    object oArea;
+
+    oArea = GetFirstArea();
+    while (GetIsObjectValid(oArea))
+    {
+        if (NpcBehaviorAreaShouldAutoStart(oArea))
+        {
+            NpcBehaviorAreaActivate(oArea);
+        }
+
+        oArea = GetNextArea();
+    }
+}
+
 int NpcBehaviorIsDisabled(object oNpc)
 {
     if (GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_OBJECT) == TRUE)

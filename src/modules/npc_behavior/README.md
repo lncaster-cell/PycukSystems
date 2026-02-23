@@ -149,6 +149,9 @@ Phase 1 использует единый helper записи метрик `NpcB
 ## Area controller runtime (performance skeleton)
 
 - Area activity lifecycle:
+  - Module startup bootstrap:
+    - `npc_behavior_module_load` calls `NpcBehaviorBootstrapModuleAreas()` to recover area controllers right after restart/reload.
+    - Area auto-start policy is centralized in `NpcBehaviorAreaShouldAutoStart(oArea)`: starts when area has at least one PC or has local flag `npc_area_always_on = TRUE`.
   - Area OnEnter handler is resilient to area-list update timing: it activates when there is at least one PC already counted in area **or** the entering object is a PC, but only if `NpcBehaviorAreaIsActive(oArea) == FALSE`.
   - Area OnExit handler is resilient to delayed removal from area list: it counts `nPlayers = NpcBehaviorCountPlayersInArea(oArea)` and deactivates when no PCs remain after exit (`GetIsPC(oExiting) && nPlayers <= 1`, or `!GetIsPC(oExiting) && nPlayers == 0`), with an additional guard that area must be active.
   - `NpcBehaviorAreaActivate(oArea)` переводит lifecycle в `RUNNING` через controller, синхронизирует `nb_area_active=TRUE` (compat) и стартует ровно один timer loop (`nb_area_timer_running`).
