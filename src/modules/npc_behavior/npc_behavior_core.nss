@@ -421,6 +421,61 @@ int NpcBehaviorAreaQueueConsumeByOwner(object oArea, object oOwner, int nPriorit
     return FALSE;
 }
 
+void NpcBehaviorAreaQueueRecount(object oArea)
+{
+    int nSlot;
+    int nPriority;
+    int nDepth;
+    int nCritical;
+    int nHigh;
+    int nNormal;
+    int nLow;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    nDepth = 0;
+    nCritical = 0;
+    nHigh = 0;
+    nNormal = 0;
+    nLow = 0;
+
+    for (nSlot = 0; nSlot < NPC_AREA_QUEUE_STORAGE_CAPACITY; nSlot++)
+    {
+        if (GetLocalInt(oArea, NpcBehaviorAreaQueueSlotVar(NPC_VAR_AREA_QUEUE_SLOT_ACTIVE, nSlot)) != TRUE)
+        {
+            continue;
+        }
+
+        nDepth = nDepth + 1;
+        nPriority = GetLocalInt(oArea, NpcBehaviorAreaQueueSlotVar(NPC_VAR_AREA_QUEUE_SLOT_PRIORITY, nSlot));
+        if (nPriority == NPC_EVENT_PRIORITY_CRITICAL)
+        {
+            nCritical = nCritical + 1;
+        }
+        else if (nPriority == NPC_EVENT_PRIORITY_HIGH)
+        {
+            nHigh = nHigh + 1;
+        }
+        else if (nPriority == NPC_EVENT_PRIORITY_NORMAL)
+        {
+            nNormal = nNormal + 1;
+        }
+        else
+        {
+            nLow = nLow + 1;
+        }
+    }
+
+    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, nDepth);
+    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_CRITICAL, nCritical);
+    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_HIGH, nHigh);
+    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_NORMAL, nNormal);
+    SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_LOW, nLow);
+}
+
 void NpcBehaviorAreaQueueReset(object oArea)
 {
     int nSlot;
@@ -562,104 +617,8 @@ int NpcBehaviorConsumePending(object oNpc, int nPriority)
 
 void NpcBehaviorFlushPendingForNpc(object oNpc)
 {
-    object oArea;
-    int nPendingCritical;
-    int nPendingHigh;
-    int nPendingNormal;
-    int nPendingLow;
-    int nPendingTotal;
-    int nBucketTotal;
-    int nResidual;
-    int nDepth;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return;
-    }
-
-    oArea = GetArea(oNpc);
-    nPendingCritical = GetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL);
-    nPendingHigh = GetLocalInt(oNpc, NPC_VAR_PENDING_HIGH);
-    nPendingNormal = GetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL);
-    nPendingLow = GetLocalInt(oNpc, NPC_VAR_PENDING_LOW);
-    nPendingTotal = GetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL);
-
-    // Guards against broken runtime state: local counters cannot be negative.
-    if (nPendingCritical < 0)
-    {
-        nPendingCritical = 0;
-    }
-    if (nPendingHigh < 0)
-    {
-        nPendingHigh = 0;
-    }
-    if (nPendingNormal < 0)
-    {
-        nPendingNormal = 0;
-    }
-    if (nPendingLow < 0)
-    {
-        nPendingLow = 0;
-    }
-    if (nPendingTotal < 0)
-    {
-        nPendingTotal = 0;
-    }
-
-    nBucketTotal = nPendingCritical + nPendingHigh + nPendingNormal + nPendingLow;
-
-    if (nPendingTotal <= 0 && nBucketTotal <= 0)
-    {
-        SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
-        SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
-        SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
-        SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
-        SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
-        SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
-        return;
-    }
-
-    if (GetIsObjectValid(oArea))
-    {
-        if (nPendingCritical > 0)
-        {
-            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_CRITICAL, -nPendingCritical);
-        }
-
-        if (nPendingHigh > 0)
-        {
-            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_HIGH, -nPendingHigh);
-        }
-
-        if (nPendingNormal > 0)
-        {
-            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_NORMAL, -nPendingNormal);
-        }
-
-        if (nPendingLow > 0)
-        {
-            NpcBehaviorAreaQueueAdjust(oArea, NPC_EVENT_PRIORITY_LOW, -nPendingLow);
-        }
-
-        // If pending_total is larger than per-priority buckets, reconcile queue depth too.
-        if (nPendingTotal > nBucketTotal)
-        {
-            nResidual = nPendingTotal - nBucketTotal;
-            nDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH) - nResidual;
-            if (nDepth < 0)
-            {
-                nDepth = 0;
-            }
-            SetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH, nDepth);
-        }
-    }
-
-    SetLocalInt(oNpc, NPC_VAR_PENDING_CRITICAL, 0);
-    SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
-    SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
-    SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
-    SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
-    SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
+    // Backward-compatibility wrapper: canonical cleanup path is queue-state flush.
+    NpcBehaviorFlushPendingQueueState(oNpc);
 }
 
 int NpcBehaviorGetTopPendingPriority(object oNpc)
@@ -1201,6 +1160,9 @@ void NpcBehaviorFlushPendingQueueState(object oNpc)
                 // consume until no more slots for this owner/priority
             }
         }
+
+        // Canonicalize area queue counters against real active slots after owner cleanup.
+        NpcBehaviorAreaQueueRecount(oArea);
     }
 
     // Defensive reconciliation: if per-NPC pending counters still remain (stale state),
@@ -1244,7 +1206,7 @@ void NpcBehaviorOnDeath(object oNpc)
 
     // Death is terminal: cleanup pending queue state before terminal side-effects
     // so per-NPC counters and area buckets cannot leak after death.
-    NpcBehaviorFlushPendingForNpc(oNpc);
+    NpcBehaviorFlushPendingQueueState(oNpc);
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 

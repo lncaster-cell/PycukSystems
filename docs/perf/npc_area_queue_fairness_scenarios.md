@@ -71,6 +71,8 @@ python3 scripts/analyze_area_queue_fairness.py \
 
 Скрипт ожидает CSV с колонками `tick`, `lifecycle_state`, `processed_low`, `processed_normal` (остальные `processed_*` — опционально).
 
+Контракт CSV: все используемые числовые поля (`tick` и любые задействованные `processed_*`) должны быть валидными `int`. При нечисловом значении анализатор завершает работу fail-fast с кодом `2` и сообщением вида `[FAIL] invalid numeric value ...`.
+
 ### Рекомендованные профили для «следующего шага» Task 3.2
 
 Два минимальных fixture-профиля покрывают длительный burst и fault-injection на pause/resume:

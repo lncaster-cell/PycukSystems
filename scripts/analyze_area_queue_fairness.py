@@ -47,17 +47,20 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def to_int(value: str) -> int:
+def to_int(value: str, row_index: int, column_name: str, parse_errors: list[str]) -> int | None:
     try:
         return int(value)
     except Exception:
-        return 0
+        parse_errors.append(
+            f"[FAIL] invalid numeric value (row index={row_index}, column name={column_name}, raw value={value!r})"
+        )
+        return None
 
 
 def main() -> int:
     args = parse_args()
     path = Path(args.input)
-    if not path.exists():
+    if not path.exists() or not path.is_file():
         print(f"[FAIL] input file not found: {path}")
         return 2
 
@@ -71,15 +74,20 @@ def main() -> int:
             print(f"[FAIL] unknown bucket: {b}")
             return 2
 
-    with path.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
+    try:
+        with path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"[FAIL] failed to read csv input: {path} ({exc})")
+        return 2
 
     if not rows:
         print("[FAIL] csv is empty")
         return 2
 
-    missing = [BUCKET_COLUMN[b] for b in buckets if BUCKET_COLUMN[b] not in reader.fieldnames]
+    required_columns = ["tick", *[BUCKET_COLUMN[b] for b in buckets]]
+    missing = [column for column in required_columns if column not in reader.fieldnames]
     if missing:
         print(f"[FAIL] csv missing required columns: {', '.join(missing)}")
         return 2
@@ -93,9 +101,24 @@ def main() -> int:
     resume_window_tick = -1
     resume_window_violations = 0
     previous_state = "RUNNING"
+    parse_errors: list[str] = []
 
-    for row in rows:
+    for row_index, row in enumerate(rows, start=1):
         state = (row.get("lifecycle_state") or "RUNNING").strip().upper()
+
+        numeric_columns = {"tick", *[BUCKET_COLUMN[b] for b in buckets]}
+        if args.enforce_pause_zero:
+            numeric_columns.update({"processed_low", "processed_normal", "processed_high", "processed_critical"})
+
+        parsed_numbers: dict[str, int] = {}
+        for column in numeric_columns:
+            parsed = to_int(row.get(column, ""), row_index, column, parse_errors)
+            if parsed is not None:
+                parsed_numbers[column] = parsed
+
+        if parse_errors:
+            print(parse_errors[0])
+            return 2
 
         if previous_state == "PAUSED" and state == "RUNNING":
             resume_transitions += 1
@@ -104,7 +127,7 @@ def main() -> int:
         if state == "PAUSED" and args.enforce_pause_zero:
             row_has_processing = False
             for col in ("processed_low", "processed_normal", "processed_high", "processed_critical"):
-                if to_int(row.get(col, "0")) > 0:
+                if parsed_numbers.get(col, 0) > 0:
                     row_has_processing = True
                     break
             if row_has_processing:
@@ -120,7 +143,7 @@ def main() -> int:
             bucket_processed = False
             for b in buckets:
                 col = BUCKET_COLUMN[b]
-                if to_int(row.get(col, "0")) > 0:
+                if parsed_numbers.get(col, 0) > 0:
                     bucket_processed = True
                     break
 
@@ -134,7 +157,7 @@ def main() -> int:
 
         for b in buckets:
             col = BUCKET_COLUMN[b]
-            if to_int(row.get(col, "0")) > 0:
+            if parsed_numbers.get(col, 0) > 0:
                 worst[b] = max(worst[b], streak[b])
                 streak[b] = 0
             else:
@@ -164,14 +187,15 @@ def main() -> int:
 
     if resume_transitions < args.min_resume_transitions:
         print(
-            f"[FAIL] observed resume transitions {resume_transitions} are fewer than required {args.min_resume_transitions}"
+            "[FAIL] resume transitions fewer than required: "
+            f"observed={resume_transitions}, required={args.min_resume_transitions}"
         )
         failed = True
 
     if args.max_post_resume_drain_ticks >= 0 and resume_window_violations > 0:
         print(
-            f"[FAIL] post-resume drain window violated on {resume_window_violations} transition(s); "
-            f"limit={args.max_post_resume_drain_ticks} running ticks"
+            "[FAIL] post-resume drain window violated: "
+            f"violations={resume_window_violations}, limit={args.max_post_resume_drain_ticks} running ticks"
         )
         failed = True
 
