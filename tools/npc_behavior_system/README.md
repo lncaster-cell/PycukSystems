@@ -8,7 +8,7 @@
 
 ## Hook-скрипты (entrypoints)
 
-Runtime entrypoints (production) не зависят от временных debug-хелперов: они не подключают `al_dbg` и не содержат `AL_Dbg(...)` вызовов. Для ручной диагностики используются отдельные debug-варианты `*_debug.nss`, которые не должны быть назначены в стандартные event-hook entrypoints.
+Runtime entrypoints (production) не зависят от временных debug-хелперов: в модуле отсутствуют `al_dbg` и debug-варианты `*_debug.nss`, чтобы исключить случайные назначения неканоничных hook-скриптов.
 
 | Hook | Core handler | Приоритет |
 | --- | --- | --- |

@@ -23,9 +23,9 @@
 
 Файлы:
 
-- `src/modules/npc_behavior/npc_behavior_area_enter_debug.nss`
-- `src/modules/npc_behavior/npc_behavior_area_exit_debug.nss`
-- `src/modules/npc_behavior/npc_behavior_module_load_debug.nss`
+- `tools/npc_behavior_system/npc_behavior_area_enter_debug.nss`
+- `tools/npc_behavior_system/npc_behavior_area_exit_debug.nss`
+- `tools/npc_behavior_system/npc_behavior_module_load_debug.nss`
 
 Наблюдение:
 
@@ -39,13 +39,13 @@
 
 Рекомендация:
 
-- вынести debug entrypoints в отдельный каталог (`src/modules/npc_behavior/debug/`) или удалить из ветки runtime-скриптов, оставив только при необходимости локальной диагностики.
+- вынести debug entrypoints в отдельный каталог (`tools/npc_behavior_system/debug/`) или удалить из ветки runtime-скриптов, оставив только при необходимости локальной диагностики.
 
 ### 2) Временный debug helper `al_dbg.nss`
 
 Файл:
 
-- `src/modules/npc_behavior/al_dbg.nss`
+- `tools/npc_behavior_system/al_dbg.nss`
 
 Наблюдение:
 
@@ -64,7 +64,7 @@
 
 Файл:
 
-- `src/modules/npc_behavior/npc_behavior_core.nss`
+- `tools/npc_behavior_system/npc_behavior_core.nss`
 
 Наблюдение:
 
@@ -87,6 +87,13 @@
 
 ```bash
 rg --files --glob '!third_party/**' --glob '!**/compiler/**'
-rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|compat" src/modules/npc_behavior --glob '!third_party/**'
-for f in src/modules/npc_behavior/*.nss; do b=$(basename "$f" .nss); c=$(rg -n "\\b${b}\\b" src --glob '!third_party/**' | wc -l); echo "$b $c"; done | sort
+rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|compat" tools/npc_behavior_system --glob '!third_party/**'
+for f in tools/npc_behavior_system/*.nss; do b=$(basename "$f" .nss); c=$(rg -n "\b${b}\b" tools src --glob '!third_party/**' | wc -l); echo "$b $c"; done | sort
 ```
+
+
+## Статус cleanup
+
+- Debug entrypoints `npc_behavior_area_enter_debug.nss`, `npc_behavior_area_exit_debug.nss`, `npc_behavior_module_load_debug.nss` удалены из `tools/npc_behavior_system/`.
+- Временный debug helper `al_dbg.nss` удалён из `tools/npc_behavior_system/`.
+- README модуля обновлён: зафиксировано отсутствие debug-ветки в runtime-дереве.
