@@ -634,12 +634,6 @@ int NpcBehaviorConsumePending(object oNpc, int nPriority)
     return TRUE;
 }
 
-void NpcBehaviorFlushPendingForNpc(object oNpc)
-{
-    // Backward-compatibility wrapper: canonical cleanup path is queue-state flush.
-    NpcBehaviorFlushPendingQueueState(oNpc);
-}
-
 int NpcBehaviorGetTopPendingPriority(object oNpc)
 {
     int nTopPriority;
