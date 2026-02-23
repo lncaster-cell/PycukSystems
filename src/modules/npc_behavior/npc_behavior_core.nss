@@ -31,7 +31,6 @@ const int NPC_DEFAULT_ALERT_DECAY_SEC = 12;
 // [Runtime Internal] служебные переменные оркестрации и state-machine.
 string NPC_VAR_STATE = "npc_state";
 string NPC_VAR_LAST_TICK = "npc_last_tick";
-string NPC_VAR_PROCESSED_TICK = "npc_processed_in_tick";
 string NPC_VAR_DEFERRED_EVENTS = "npc_deferred_events";
 string NPC_VAR_PENDING_TOTAL = "npc_pending_total";
 string NPC_VAR_PENDING_PRIORITY = "npc_pending_priority";
@@ -727,7 +726,6 @@ void NpcBehaviorInitialize(object oNpc)
 {
     SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
     SetLocalInt(oNpc, NPC_VAR_LAST_TICK, 0);
-    SetLocalInt(oNpc, NPC_VAR_PROCESSED_TICK, 0);
     SetLocalInt(oNpc, NPC_VAR_DEFERRED_EVENTS, 0);
     SetLocalInt(oNpc, NPC_VAR_PENDING_TOTAL, 0);
     SetLocalInt(oNpc, NPC_VAR_PENDING_PRIORITY, NPC_EVENT_PRIORITY_LOW);
@@ -1290,7 +1288,6 @@ void NpcBehaviorOnAreaTick(object oArea)
     if (nEligibleCount <= 0)
     {
         // В зоне не осталось eligible NPC: очищаем накопленную очередь, чтобы degraded mode мог сняться без обработки heartbeat.
-        SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, 0);
         NpcBehaviorAreaQueueReset(oArea);
         NpcBehaviorUpdateAreaDegradedMode(oArea);
         return;
@@ -1394,7 +1391,6 @@ void NpcBehaviorOnAreaTick(object oArea)
         }
     }
 
-    SetLocalInt(oArea, NPC_VAR_PROCESSED_TICK, nProcessed);
     NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_PROCESSED, nProcessed);
     NpcBehaviorMetricAdd(oArea, NPC_VAR_METRIC_AREA_SKIPPED, nSkipped);
     if (nDeferredByBudget > 0)
