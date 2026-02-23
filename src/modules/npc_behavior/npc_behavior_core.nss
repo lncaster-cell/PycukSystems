@@ -70,6 +70,15 @@ string NPC_VAR_FLAG_LOOTABLE_CORPSE_SET = "npc_flag_lootable_corpse_set";
 string NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET = "npc_flag_disable_ai_when_hidden_set";
 string NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET = "npc_flag_dialog_interruptible_set";
 
+// [Spawn Template Params] значения читаются из template-local string vars.
+string NPC_VAR_TEMPLATE_FLAG_DECAYS = "npc_tpl_flag_decays";
+string NPC_VAR_TEMPLATE_FLAG_LOOTABLE_CORPSE = "npc_tpl_flag_lootable_corpse";
+string NPC_VAR_TEMPLATE_FLAG_DISABLE_AI_WHEN_HIDDEN = "npc_tpl_flag_disable_ai_when_hidden";
+string NPC_VAR_TEMPLATE_FLAG_DIALOG_INTERRUPTIBLE = "npc_tpl_flag_dialog_interruptible";
+string NPC_VAR_TEMPLATE_DECAY_TIME_SEC = "npc_tpl_decay_time_sec";
+string NPC_VAR_TEMPLATE_TICK_INTERVAL_IDLE_SEC = "npc_tpl_tick_interval_idle_sec";
+string NPC_VAR_TEMPLATE_TICK_INTERVAL_COMBAT_SEC = "npc_tpl_tick_interval_combat_sec";
+
 string NPC_VAR_DECAY_TIME_SEC = "npc_decay_time_sec";
 string NPC_VAR_TICK_INTERVAL_IDLE_SEC = "npc_tick_interval_idle_sec";
 string NPC_VAR_TICK_INTERVAL_COMBAT_SEC = "npc_tick_interval_combat_sec";
@@ -689,6 +698,52 @@ int NpcBehaviorNormalizeInterval(int nValue, int nDefault)
     return nValue;
 }
 
+int NpcBehaviorTryGetTemplateBool(object oNpc, string sTemplateVar, int nFallback)
+{
+    string sRawValue;
+
+    if (!GetIsObjectValid(oNpc) || sTemplateVar == "")
+    {
+        return nFallback;
+    }
+
+    sRawValue = GetLocalString(oNpc, sTemplateVar);
+    if (sRawValue == "")
+    {
+        return nFallback;
+    }
+
+    if (sRawValue == "1" || sRawValue == "TRUE" || sRawValue == "true")
+    {
+        return TRUE;
+    }
+
+    if (sRawValue == "0" || sRawValue == "FALSE" || sRawValue == "false")
+    {
+        return FALSE;
+    }
+
+    return nFallback;
+}
+
+int NpcBehaviorTryGetTemplateInt(object oNpc, string sTemplateVar, int nFallback)
+{
+    string sRawValue;
+
+    if (!GetIsObjectValid(oNpc) || sTemplateVar == "")
+    {
+        return nFallback;
+    }
+
+    sRawValue = GetLocalString(oNpc, sTemplateVar);
+    if (sRawValue == "")
+    {
+        return nFallback;
+    }
+
+    return StringToInt(sRawValue);
+}
+
 void NpcBehaviorInitialize(object oNpc)
 {
     SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
@@ -869,6 +924,7 @@ void NpcBehaviorOnSpawn(object oNpc)
 
     bFlagDecaysSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS_SET);
     nFlagDecays = GetLocalInt(oNpc, NPC_VAR_FLAG_DECAYS);
+    nFlagDecays = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_DECAYS, nFlagDecays);
     if (bFlagDecaysSet != TRUE)
     {
         nFlagDecays = NPC_DEFAULT_FLAG_DECAYS;
@@ -882,6 +938,7 @@ void NpcBehaviorOnSpawn(object oNpc)
 
     bFlagLootableCorpseSet = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE_SET);
     nFlagLootableCorpse = GetLocalInt(oNpc, NPC_VAR_FLAG_LOOTABLE_CORPSE);
+    nFlagLootableCorpse = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_LOOTABLE_CORPSE, nFlagLootableCorpse);
     if (bFlagLootableCorpseSet != TRUE)
     {
         nFlagLootableCorpse = NPC_DEFAULT_FLAG_LOOTABLE_CORPSE;
@@ -895,6 +952,7 @@ void NpcBehaviorOnSpawn(object oNpc)
 
     bFlagDisableAiWhenHiddenSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN_SET);
     nFlagDisableAiWhenHidden = GetLocalInt(oNpc, NPC_VAR_FLAG_DISABLE_AI_WHEN_HIDDEN);
+    nFlagDisableAiWhenHidden = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_DISABLE_AI_WHEN_HIDDEN, nFlagDisableAiWhenHidden);
     if (bFlagDisableAiWhenHiddenSet != TRUE)
     {
         nFlagDisableAiWhenHidden = NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN;
@@ -908,6 +966,7 @@ void NpcBehaviorOnSpawn(object oNpc)
 
     bFlagDialogInterruptibleSet = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET);
     nFlagDialogInterruptible = GetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE);
+    nFlagDialogInterruptible = NpcBehaviorTryGetTemplateBool(oNpc, NPC_VAR_TEMPLATE_FLAG_DIALOG_INTERRUPTIBLE, nFlagDialogInterruptible);
     if (bFlagDialogInterruptibleSet != TRUE)
     {
         nFlagDialogInterruptible = NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE;
@@ -920,6 +979,7 @@ void NpcBehaviorOnSpawn(object oNpc)
     SetLocalInt(oNpc, NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET, TRUE);
 
     nDecayTimeSec = GetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC);
+    nDecayTimeSec = NpcBehaviorTryGetTemplateInt(oNpc, NPC_VAR_TEMPLATE_DECAY_TIME_SEC, nDecayTimeSec);
     if (nDecayTimeSec <= 0)
     {
         nDecayTimeSec = NPC_DEFAULT_DECAY_TIME_SEC;
@@ -927,10 +987,12 @@ void NpcBehaviorOnSpawn(object oNpc)
     SetLocalInt(oNpc, NPC_VAR_DECAY_TIME_SEC, nDecayTimeSec);
 
     nIdleIntervalSec = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
+    nIdleIntervalSec = NpcBehaviorTryGetTemplateInt(oNpc, NPC_VAR_TEMPLATE_TICK_INTERVAL_IDLE_SEC, nIdleIntervalSec);
     nIdleIntervalSec = NpcBehaviorNormalizeInterval(nIdleIntervalSec, NPC_DEFAULT_IDLE_INTERVAL);
     SetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC, nIdleIntervalSec);
 
     nCombatIntervalSec = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC);
+    nCombatIntervalSec = NpcBehaviorTryGetTemplateInt(oNpc, NPC_VAR_TEMPLATE_TICK_INTERVAL_COMBAT_SEC, nCombatIntervalSec);
     nCombatIntervalSec = NpcBehaviorNormalizeInterval(nCombatIntervalSec, NPC_DEFAULT_COMBAT_INTERVAL);
     SetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC, nCombatIntervalSec);
 

@@ -40,6 +40,16 @@
 
 В `NpcBehaviorOnSpawn` добавлена явная инициализация контрактных переменных с fallback-валидацией:
 
+- Поддерживается чтение template-значений из string-local параметров (если заданы на blueprint/экземпляре):
+  - `npc_tpl_flag_decays`
+  - `npc_tpl_flag_lootable_corpse`
+  - `npc_tpl_flag_disable_ai_when_hidden`
+  - `npc_tpl_flag_dialog_interruptible`
+  - `npc_tpl_decay_time_sec`
+  - `npc_tpl_tick_interval_idle_sec`
+  - `npc_tpl_tick_interval_combat_sec`
+  - Для bool поддерживаются значения `1/0`, `TRUE/FALSE`, `true/false`; при невалидном значении применяется fallback.
+
 - Флаги (допускаются только `TRUE/FALSE`, иначе применяется дефолт):
   - `npc_flag_decays` → `TRUE`
   - `npc_flag_lootable_corpse` → `TRUE`
