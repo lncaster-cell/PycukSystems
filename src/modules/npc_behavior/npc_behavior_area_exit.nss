@@ -6,10 +6,12 @@
 void main()
 {
     object oArea;
+    object oExiting;
     int nPlayers;
 
 
     oArea = OBJECT_SELF;
+    oExiting = GetExitingObject();
     nPlayers = NpcBehaviorCountPlayersInArea(oArea);
 
     if (!NpcBehaviorAreaIsActive(oArea))
@@ -17,8 +19,8 @@ void main()
         return;
     }
 
-    // Invariant: area-controller переходит в STOPPED только при нуле активных PC.
-    if (nPlayers == 0)
+    // Invariant: деактивация устойчива к delayed area-list update после выхода.
+    if ((GetIsPC(oExiting) && nPlayers <= 1) || (!GetIsPC(oExiting) && nPlayers == 0))
     {
         NpcBehaviorAreaDeactivate(oArea);
     }
