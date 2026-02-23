@@ -4,9 +4,16 @@
 
 ---
 
+## Source of truth
+
+- Runtime-скрипты: `tools/npc_behavior_system/`.
+- `src/modules/npc_behavior/` — redirect/документационный слой.
+
+---
+
 ## Текущий статус (обновление)
 
-- **Task 3.2 (частично):** в `src/modules/npc_behavior/npc_behavior_core.nss` внедрены базовые runtime guardrails (bounded queue, coalesce, degraded mode, overflow handling c CRITICAL reserve); lifecycle вынесен в `src/controllers/lifecycle_controller.nss` с состояниями `RUNNING/PAUSED/STOPPED`.
+- **Task 3.2 (частично):** в `tools/npc_behavior_system/npc_behavior_core.nss` внедрены базовые runtime guardrails (bounded queue, coalesce, degraded mode, overflow handling c CRITICAL reserve); lifecycle вынесен в `src/controllers/lifecycle_controller.nss` с состояниями `RUNNING/PAUSED/STOPPED`.
 - **Task 3.2 (продолжение):** добавлен runtime decay для боевой настороженности NPC (`ALERT -> IDLE` по `npc_alert_decay_sec`) и единая фиксация hostile-contact timestamp для `OnPerception/OnDamaged/OnPhysicalAttacked/OnSpellCastAt/OnEndCombatRound`.
 - **Следующий шаг по Task 3.2:** прогнать нагрузочные профили с длительным starvation-окном и fault-injection на pause/resume, используя `scripts/analyze_area_queue_fairness.py` для автоматической оценки starvation-window.
 
@@ -86,10 +93,11 @@
 
 ### Task 3.0 — Наполнение `src/core` базовыми runtime-контрактами
 - **Артефакты:**
-  - `src/core/event_router.nss`
-  - `src/core/module_lifecycle.nss`
-  - `src/core/runtime_contracts.nss`
-  - `src/core/README.md`
+  - `src/core/README.md` (exists, текущий документированный контракт)
+  - `src/core/event_router.nss` (planned)
+  - `src/core/module_lifecycle.nss` (planned)
+  - `src/core/runtime_contracts.nss` (planned)
+  - `tools/npc_behavior_system/npc_behavior_core.nss` (used runtime)
 - **Definition of Done:**
   - В `src/core` зафиксирован минимальный контракт event routing и lifecycle (`init/start/stop/reload`) для модулей.
   - Общие runtime guardrails/метрики вынесены в core и переиспользуются модулем `npc_behavior`.
@@ -132,10 +140,10 @@
 
 ### Task 3.3 — Наполнение `src/controllers` area-controller реализацией
 - **Артефакты:**
-  - `src/controllers/area_tick_controller.nss`
-  - `src/controllers/area_scheduler.nss`
-  - `src/controllers/lifecycle_controller.nss`
-  - `src/controllers/README.md`
+  - `src/controllers/lifecycle_controller.nss` (exists, used)
+  - `src/controllers/README.md` (exists)
+  - `src/controllers/area_tick_controller.nss` (planned)
+  - `src/controllers/area_scheduler.nss` (planned)
 - **Definition of Done:**
   - В `src/controllers` реализован рабочий area-tick контроллер с bucket/jitter и step-based обработчиками.
   - Реализованы и проверены переходы lifecycle `RUNNING/PAUSED/STOPPED` для area-контекстов.
