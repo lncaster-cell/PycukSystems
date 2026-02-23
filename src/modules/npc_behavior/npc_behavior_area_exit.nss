@@ -14,13 +14,9 @@ void main()
     oExiting = GetExitingObject();
     nPlayers = NpcBehaviorCountPlayersInArea(oArea);
 
-    if (!NpcBehaviorAreaIsActive(oArea))
-    {
-        return;
-    }
-
-    // Invariant: деактивация устойчива к delayed area-list update после выхода.
-    if ((GetIsPC(oExiting) && nPlayers <= 1) || (!GetIsPC(oExiting) && nPlayers == 0))
+    // Invariant: area-controller переходит в STOPPED только при фактическом нуле активных PC.
+    // Для PC OnExit учитываем возможную задержку обновления area-list в движке.
+    if (NpcBehaviorShouldDeactivateAreaOnExit(oArea, oExiting, nPlayers))
     {
         NpcBehaviorAreaDeactivate(oArea);
     }
