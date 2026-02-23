@@ -26,6 +26,46 @@
 | **Маршруты/активности и контентные паттерны** | Богатый слой активностей NPC (slot activity, route-point activity, custom/numeric animations, training/bar pair constraints). | Сильный runtime-контур, но контентный слой (анимационные ambient-паттерны) менее развит. | Перенести AL activity primitives как библиотеку контентной оркестрации поверх нового runtime. | **B (AL с адаптацией)** |
 | **Безопасное выключение и cleanup** | Есть hide/unhide + resync подходы на area events. | Формальные cleanup-инварианты для pending/queue, death cleanup и lifecycle stop/pause semantics. | Для критичных инвариантов брать `npc_behavior`; AL hide/unhide применять как дополнительный UX-инструмент. | **A (npc_behavior)** |
 
+## Operational guardrails from AL audit
+
+Ниже зафиксированы конкретные ограничения из `tools/AUDIT.md` в формате «правило + контроль», с трассировкой по слоям Module 3.
+
+### 1) Guardrail: лимит area-registry и поведение при overflow
+
+- **Правило:** плотный area-registry имеет явный верхний предел (`MAX_NPCS_PER_AREA`), при переполнении новые NPC не записываются в реестр и не ломают tick-loop.
+- **Контроль:**
+  - в коде выполняется `if (count >= MAX_NPCS_PER_AREA) return REGISTRY_OVERFLOW;` без записи в `slot[count]`;
+  - фиксируется событие overflow и причина отказа регистрации;
+  - при overflow сохраняется инвариант: старые записи остаются валидными, swap/prune не повреждаются.
+- **Где реализуется:**
+  - код: `module3_core.nss` (реестр и register/unregister), `module3_activity_inc.nss` (fallback активности для NPC вне реестра);
+  - метрика: `module3_metrics_inc.nss` (`registry_overflow_total`, `registry_reject_total`);
+  - perf-сценарий: `docs/perf/module3_perf_gate.md` (stress с переполнением реестра).
+
+### 2) Guardrail: политика route cache warmup
+
+- **Правило:** route cache прогревается контролируемо (однократно на область или prewarm до входа игрока), чтобы не допускать повторного полного сканирования объектов в рантайме.
+- **Контроль:**
+  - warmup отмечается area-флагом `routes_cached`/`routes_cache_version`;
+  - повторный вызов warmup идемпотентен (не инициирует полный re-scan без invalidate);
+  - для крупных областей допускается prewarm на старте модуля, чтобы убрать пик на первом OnEnter.
+- **Где реализуется:**
+  - код: `module3_core.nss` (cache lifecycle + invalidate), `module3_activity_inc.nss` (использование route cache без прямого обхода area);
+  - метрика: `module3_metrics_inc.nss` (`route_cache_warmup_total`, `route_cache_rescan_total`, `route_cache_hit_ratio`);
+  - perf-сценарий: `docs/perf/module3_perf_gate.md` (warmup spike и повторный OnEnter без re-scan).
+
+### 3) Guardrail: диагностика silent degradation
+
+- **Правило:** «тихая деградация» запрещена: любой отказ управления NPC (overflow/deferred/skip) обязан оставлять диагностический след в метрике и в debug-событии.
+- **Контроль:**
+  - все деградационные ветки имеют структурированный reason-code (`OVERFLOW`, `QUEUE_PRESSURE`, `ROUTE_MISS`, `DISABLED`);
+  - есть минимальный audit-log (rate-limited), включаемый debug-флагом;
+  - release-gate проверяет, что при fault-injection срабатывают счётчики и алармы.
+- **Где реализуется:**
+  - код: `module3_core.nss` (reason-code и rate-limited diagnostics), `module3_activity_inc.nss` (проброс reason-code на уровне активностей);
+  - метрика: `module3_metrics_inc.nss` (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`);
+  - perf-сценарий: `docs/perf/module3_perf_gate.md` (fault-injection профили silent degradation).
+
 ## Норматив для подготовки Module 3
 
 Отдельный документ с performance gate для гибридного модуля: `docs/perf/module3_perf_gate.md` (применяется отдельно от Phase 1 NPC).
@@ -43,10 +83,18 @@
    - entrypoint-скрипты с бизнес-логикой (вместо thin-wrapper + core);
    - разрозненная метрика через прямые `SetLocalInt` в hooks.
 
+## Release criteria for Module 3
+
+### Audit-derived checks
+
+- [ ] **Registry overflow check:** при нагрузке выше лимита реестра модуль не падает, overflow учитывается в метриках, а незарегистрированные NPC получают предсказуемый fallback.
+- [ ] **Route warmup check:** первый warmup допускает единичный пик, повторные входы в область не вызывают полный re-scan без explicit invalidate.
+- [ ] **Silent degradation diagnostics check:** каждый сценарий деградации генерирует reason-code в коде, счётчик в метрике и наблюдаемое событие в perf-отчёте.
+- [ ] **Perf gate linkage check:** `docs/perf/module3_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails.
+
 ## Минимальный backlog на внедрение матрицы
 
 - [ ] Создать `module3_core.nss` с заимствованием lifecycle/queue паттернов `npc_behavior`.
 - [ ] Выделить `module3_activity_inc.nss` и портировать туда AL activity primitives через новый namespace.
 - [ ] Ввести `module3_metrics_inc.nss` с единым API инкремента метрик.
 - [ ] Подготовить perf-сценарии Module 3 по аналогии с fairness/overflow проверками `npc_behavior`.
-

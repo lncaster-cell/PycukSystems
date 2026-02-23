@@ -58,3 +58,7 @@ python3 scripts/analyze_module3_fairness.py \
 ```
 
 Для регрессии удобно прогонять все три fixture-файла и сверять итоговый pass/fail по gate-метрикам.
+
+## Audit-derived guardrails
+
+Детальные сценарии по ограничениям из AL-аудита вынесены в `docs/perf/module3_perf_gate.md` и входят в release-gate Module 3.
