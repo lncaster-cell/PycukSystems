@@ -28,6 +28,7 @@
 
 - **Остановка (`STOP`)**
   - Триггер: область в `PAUSED` дольше `idleStopAfter` или инициирован unload/reload.
+  - Инвариант runtime-деактивации: area-controller переводится в `STOPPED` только при `active_pc_count == 0` (в т.ч. при обработке area `OnExit`).
   - Действия:
     - освобождение буферов и внутренних структур;
     - сохранение checkpoint состояния, достаточного для fast-resume;
