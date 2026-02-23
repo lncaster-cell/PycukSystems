@@ -51,7 +51,7 @@ Runtime entrypoints (production) не зависят от временных deb
 - disable guard:
   - при `npc_flag_disable_object = TRUE` spawn handler делает ранний выход после инкремента метрики spawn.
 
-> TODO: после удаления Toolset-свойств вручную проверить NPC templates в NWN2 Toolset на ожидаемые defaults (decay/loot/dialog/hidden-ai).
+> Ручная пост-cleanup валидация (spawn defaults / death side-effects / dialogue interruption) зафиксирована в `docs/npc_toolset_post_cleanup_validation.md`.
 
 ## Что уже покрыто
 
