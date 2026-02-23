@@ -925,6 +925,10 @@ void NpcBehaviorOnSpawn(object oNpc)
     int nIdleIntervalSec;
     int nCombatIntervalSec;
     int nAlertDecaySec;
+    int nTemplateFlagDecays;
+    int nTemplateFlagLootableCorpse;
+    int nTemplateFlagDisableAiWhenHidden;
+    int nTemplateFlagDialogInterruptible;
 
     if (!GetIsObjectValid(oNpc))
     {
