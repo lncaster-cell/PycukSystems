@@ -13,21 +13,21 @@
 ### Переходы состояний
 
 - **Старт (`START`)**
-  - Триггер: в область входит первый игрок, либо область помечена как always-on.
+  - Триггер: в область входит первый игрок, либо область помечена как always-on (`npc_area_always_on = TRUE`).
   - Действия:
     - инициализация очередей и бакетов;
     - восстановление минимального runtime-состояния NPC;
     - запуск тикового цикла с warmup-ограничением.
 
 - **Пауза (`PAUSE`)**
-  - Триггер: в области нет игроков дольше `idlePauseAfter`.
+  - Триггер: в области нет игроков дольше `idlePauseAfter` (local `npc_area_idle_pause_after_sec`, default 30s).
   - Действия:
     - остановка heavy/non-critical dispatch;
     - сохранение агрегированных метрик;
     - перевод не-критичных входящих событий в defer-режим.
 
 - **Остановка (`STOP`)**
-  - Триггер: область в `PAUSED` дольше `idleStopAfter` или инициирован unload/reload.
+  - Триггер: область в `PAUSED` дольше `idleStopAfter` (local `npc_area_idle_stop_after_sec`, default 180s) или инициирован unload/reload.
   - Инвариант runtime-деактивации: area-controller переводится в `STOPPED` только при `active_pc_count == 0` (в т.ч. при обработке area `OnExit`).
   - Действия:
     - освобождение буферов и внутренних структур (очередь area и owner-slot state);
