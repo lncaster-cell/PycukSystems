@@ -68,6 +68,8 @@
 
 ## Норматив для подготовки Module 3
 
+Отдельный документ с performance gate для гибридного модуля: `docs/perf/module3_perf_gate.md` (применяется отдельно от Phase 1 NPC).
+
 1. **Runtime-контракт (обязательный):**
    - lifecycle, queue guardrails, intake-policy, observability — наследуются из `npc_behavior` без упрощений;
    - любые отклонения фиксируются отдельным ADR/диздоком до начала реализации.
