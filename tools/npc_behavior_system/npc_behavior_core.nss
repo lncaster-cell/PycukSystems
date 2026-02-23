@@ -1086,8 +1086,8 @@ void NpcBehaviorOnSpawn(object oNpc)
     }
 
 
-    // TODO(npc-toolset-cleanup): Removed toolset-derived flag sync (Decays/Lootable/Hidden AI disable/Dialog interruptible/Plot).
-    // Verify NPC blueprint defaults manually in NWN2 Toolset for templates that depended on these locals.
+    // Toolset-derived flag sync (Decays/Lootable/Hidden AI disable/Dialog interruptible/Plot) intentionally removed.
+    // Manual spawn-defaults validation is tracked in docs/npc_toolset_post_cleanup_validation.md.
 
     nIdleIntervalSec = GetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_IDLE_SEC);
     nIdleIntervalSec = NpcBehaviorTryGetTemplateInt(oNpc, NPC_VAR_TEMPLATE_TICK_INTERVAL_IDLE_SEC, nIdleIntervalSec);
@@ -1328,8 +1328,8 @@ void NpcBehaviorOnDeath(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DEATH);
 
-    // TODO(npc-toolset-cleanup): Toolset-derived corpse/decay property writes removed.
-    // Validate expected corpse decay and loot availability in module templates manually.
+    // Toolset-derived corpse/decay property writes intentionally removed.
+    // Manual death side-effects validation is tracked in docs/npc_toolset_post_cleanup_validation.md.
 }
 
 void NpcBehaviorOnDialogue(object oNpc)
@@ -1346,8 +1346,8 @@ void NpcBehaviorOnDialogue(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_DIALOG);
 
-    // TODO(npc-toolset-cleanup): Toolset-derived dialog interruptibility check removed.
-    // Verify dialogue/action interruption rules for NPC templates manually.
+    // Toolset-derived dialog interruptibility check intentionally removed.
+    // Manual dialogue interruption validation is tracked in docs/npc_toolset_post_cleanup_validation.md.
 
     if (GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
     {
