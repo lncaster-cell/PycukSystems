@@ -70,4 +70,25 @@
 - [ ] Overflow сценарий добавлен в perf-прогон Module 3.
 - [ ] Warmup/rescan сценарий добавлен в perf-прогон Module 3.
 - [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон Module 3.
+- [ ] Automated fairness checks добавлены в perf-прогон Module 3.
 - [ ] Итоговый отчёт содержит явный pass/fail по каждому guardrail.
+
+## 5) Automated fairness checks
+
+**Цель:** формализовать обязательный запуск fairness-анализатора очереди area-loop для Module 3 перед merge.
+
+### Обязательный запуск
+
+Для всех fixture-прогонов Module 3 fairness-анализатор `scripts/analyze_area_queue_fairness.py` должен вызываться со следующими параметрами:
+
+- `--max-starvation-window <N>`
+- `--enforce-pause-zero`
+- `--max-post-resume-drain-ticks <N>`
+- `--min-resume-transitions <N>`
+
+Базовый smoke-прогон выполняется через `scripts/test_module3_fairness.sh` и использует фиксированный набор флагов выше.
+
+### Gate
+
+- **PASS:** все Module 3 fairness fixtures проходят/падают строго согласно ожидаемому сценарию, а обязательные флаги присутствуют во всех запусках.
+- **FAIL:** отсутствует хотя бы один обязательный флаг, либо ожидаемое поведение fixture не подтверждается в CI-скрипте.
