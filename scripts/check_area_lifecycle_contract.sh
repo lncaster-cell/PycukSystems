@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CORE_FILE="$ROOT_DIR/src/modules/npc_behavior/npc_behavior_core.nss"
+CORE_FILE="$ROOT_DIR/tools/npc_behavior_system/npc_behavior_core.nss"
 CTRL_FILE="$ROOT_DIR/src/controllers/lifecycle_controller.nss"
 
 assert_has() {

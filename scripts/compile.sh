@@ -9,7 +9,7 @@ COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
 INCLUDE_PATH="$ROOT_DIR/scripts"
 NWNX_INCLUDE_PATH="$ROOT_DIR/third_party/nwnx_includes"
 SOURCE_ROOT_INCLUDE_PATH="$ROOT_DIR/src"
-NPC_BEHAVIOR_INCLUDE_PATH="$ROOT_DIR/src/modules/npc_behavior"
+NPC_BEHAVIOR_INCLUDE_PATH="$ROOT_DIR/tools/npc_behavior_system"
 STOCK_INCLUDE_SOURCE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
 STOCK_INCLUDE_PATH="$ROOT_DIR/.ci/nwn2_stock_scripts"
 OUTPUT_DIR="$ROOT_DIR/output"
@@ -75,10 +75,15 @@ for include_dir in "${INCLUDE_CANDIDATES[@]}"; do
   fi
 done
 
-mapfile -t FILES < <(find "$ROOT_DIR/src" -type f -name '*.nss' | LC_ALL=C sort)
+mapfile -t FILES < <(
+  {
+    find "$ROOT_DIR/src" -type f -name '*.nss'
+    find "$ROOT_DIR/tools/npc_behavior_system" -type f -name '*.nss'
+  } | LC_ALL=C sort
+)
 
 if [[ "${#FILES[@]}" -eq 0 ]]; then
-  echo "[INFO] No .nss files found under src/; nothing to compile."
+  echo "[INFO] No .nss files found under src/ or tools/npc_behavior_system/; nothing to compile."
   exit 0
 fi
 
