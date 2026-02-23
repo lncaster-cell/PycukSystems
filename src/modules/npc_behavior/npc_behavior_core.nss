@@ -711,34 +711,6 @@ int NpcBehaviorNormalizeInterval(int nValue, int nDefault)
     return nValue;
 }
 
-int NpcBehaviorTryGetTemplateBool(object oNpc, string sTemplateVar, int nFallback)
-{
-    string sRawValue;
-
-    if (!GetIsObjectValid(oNpc) || sTemplateVar == "")
-    {
-        return nFallback;
-    }
-
-    sRawValue = GetLocalString(oNpc, sTemplateVar);
-    if (sRawValue == "")
-    {
-        return nFallback;
-    }
-
-    if (sRawValue == "1" || sRawValue == "TRUE" || sRawValue == "true")
-    {
-        return TRUE;
-    }
-
-    if (sRawValue == "0" || sRawValue == "FALSE" || sRawValue == "false")
-    {
-        return FALSE;
-    }
-
-    return nFallback;
-}
-
 int NpcBehaviorTryGetTemplateInt(object oNpc, string sTemplateVar, int nFallback)
 {
     string sRawValue;
