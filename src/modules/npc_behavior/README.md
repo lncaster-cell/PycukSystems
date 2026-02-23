@@ -156,7 +156,7 @@ Phase 1 использует единый helper записи метрик `NpcB
 - Dispatcher: `NpcBehaviorOnAreaTick(oArea)` processes only creatures in current area with budget (`NPC_AREA_BUDGET_PER_TICK`) and stagger offset (`nb_area_tick_seq`).
 - Filtering in dispatcher:
   - only creatures, non-PC, `npc_behavior_init_done==TRUE`, `npc_flag_disable_object!=TRUE`.
-  - per selected NPC: `NpcBehaviorShouldProcess(oNpc)` then `NpcBehaviorOnHeartbeat(oNpc)`.
+  - per selected NPC: `NpcBehaviorOnHeartbeat(oNpc)`; internal throttle gate uses `NpcBehaviorShouldProcess(oNpc)`.
 
 ## Disable flags behavior for dialogue hook
 

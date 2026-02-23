@@ -1225,12 +1225,13 @@ int NpcBehaviorOnHeartbeat(object oNpc)
 
     NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT);
 
-    nNow = NpcBehaviorTickNow();
-    if (!NpcBehaviorShouldProcessAtTime(oNpc, nNow))
+    if (!NpcBehaviorShouldProcess(oNpc))
     {
         NpcBehaviorMetricInc(oNpc, NPC_VAR_METRIC_HEARTBEAT_SKIPPED);
         return FALSE;
     }
+
+    nNow = NpcBehaviorTickNow();
 
     if (GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
     {
