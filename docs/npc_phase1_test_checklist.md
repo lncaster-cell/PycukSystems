@@ -20,7 +20,7 @@
 ```bash
 rg --files tools/npc_behavior_system
 rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|EndCombatRound|CombatRound|AreaTick|Heartbeat)|NpcBehaviorArea(Activate|Pause|Resume)|NpcBehaviorBootstrapModuleAreas" tools/npc_behavior_system
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" tools/npc_behavior_system
 ```
 
 **Тип проверки:** **Blocking (merge gate)**.
@@ -39,7 +39,7 @@ rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|Sp
 **Минимальные команды:**
 ```bash
 rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
-rg -n "npc_behavior_core|NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|EndCombatRound|AreaTick)|NpcBehavior(AreaActivate|AreaPause|BootstrapModuleAreas)" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "npc_behavior_core|NpcBehaviorOn" tools/npc_behavior_system/npc_behavior_*.nss
 rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" docs/design.md docs/npc_runtime_orchestration.md
 ```
 
@@ -79,8 +79,8 @@ rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" 
 **Минимальные команды (репрезентативный набор):**
 ```bash
 # 1) статическая проверка наличия On* и маршрутизации
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|EndCombatRound|AreaTick)|NpcBehaviorArea(Activate|Pause|Resume)|NpcBehaviorBootstrapModuleAreas" tools/npc_behavior_system
-rg -n "#include \"npc_behavior_core\"|NpcBehaviorOn|NpcBehaviorArea(Activate|Pause|Resume)|NpcBehaviorBootstrapModuleAreas" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" tools/npc_behavior_system
+rg -n "core|Dispatch|Route|Handle" tools/npc_behavior_system/npc_behavior_*.nss
 
 # 2) логовый smoke в рантайме сервера (пример)
 # tail -f /path/to/server.log | rg "npc_behavior|spawn|perception|damaged|death|dialogue|defer|dropped"
@@ -172,7 +172,7 @@ RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ```bash
 rg --files tools/npc_behavior_system
 rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|EndCombatRound|CombatRound|AreaTick|Heartbeat)|NpcBehaviorArea(Activate|Pause|Resume)|NpcBehaviorBootstrapModuleAreas" tools/npc_behavior_system
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" tools/npc_behavior_system
 # RUNS должен быть целым числом >= 1 (например, RUNS=3).
 RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ```

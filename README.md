@@ -18,7 +18,8 @@
 Чеклист приёмки и минимальных проверок для Phase 1: `docs/npc_phase1_test_checklist.md`.
 
 Матрица для подготовки третьего модуля («лучшее из AL» vs «лучшее из npc_behavior»): `docs/module3_al_vs_npc_behavior_matrix.md`.
-Бэклог исполнения Module 3 (эпики, DoD, проверки, риски): `docs/module3_implementation_backlog.md`.
+
+Исполняемый бэклог старта Module 3: `docs/module3_implementation_backlog.md`.
 Отдельный perf-gate для Module 3 (гибрид AL/NPC): `docs/perf/module3_perf_gate.md`.
 
 ## Структура репозитория
