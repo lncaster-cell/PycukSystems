@@ -106,6 +106,22 @@ RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 
 Ограничение: переменная `RUNS` должна быть целым числом `>= 1`.
 
+### Как запускать baseline для Module 3
+
+```bash
+RUNS=3 bash scripts/run_module3_bench.sh steady
+python3 scripts/analyze_module3_fairness.py --input docs/perf/fixtures/module3/steady.csv
+```
+
+Критерии pass/fail (gate):
+- area-tick latency: `p95 <= 20 ms`, `p99 <= 25 ms`;
+- queue depth: `p95 <= 64`, `p99 <= 80`;
+- deferred rate: `<= 0.35`;
+- overflow rate: `<= 0.02`;
+- budget overrun rate: `<= 0.10`.
+
+Для стресс-проверки используйте сценарии `burst` и `starvation-risk` через `scripts/run_module3_bench.sh` и проверяйте результаты тем же analyzer-скриптом.
+
 ## Принцип принятия архитектурных решений
 Перед принятием любого архитектурного решения выполняется короткий performance-research цикл:
 1. Сформулировать гипотезу.

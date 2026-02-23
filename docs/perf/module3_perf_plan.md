@@ -1,0 +1,60 @@
+# Module 3 perf plan: gate-метрики baseline
+
+Документ описывает минимальный baseline-gate для Module 3 и формат измерений перед интеграцией в CI.
+
+## Scope
+
+- Контур: area-tick loop Module 3 под нагрузкой (steady, burst, starvation-risk).
+- Окно baseline: минимум 3 запуска на каждый сценарий.
+- Источник данных: CSV telemetry с tick-уровнем.
+
+## Gate-метрики
+
+### 1) Area-tick latency p95/p99
+
+- Что меряем: `area_tick_latency_ms` по тикам в состоянии `RUNNING`.
+- Почему важно: напрямую отражает headroom относительно tick-budget.
+- Gate:
+  - `p95 <= 20 ms`
+  - `p99 <= 25 ms`
+
+### 2) Queue depth p95/p99
+
+- Что меряем: `queue_depth` (pending queue size) по тикам `RUNNING`.
+- Почему важно: ранний индикатор деградации fairness и риска starvation.
+- Gate:
+  - `p95 <= 64`
+  - `p99 <= 80`
+
+### 3) Deferred / overflow rate
+
+- Что меряем:
+  - `deferred_rate = sum(deferred_events > 0) / running_ticks`
+  - `overflow_rate = sum(overflow_events > 0) / running_ticks`
+- Почему важно: deferred допустим при burst, overflow должен оставаться редким.
+- Gate:
+  - `deferred_rate <= 0.35`
+  - `overflow_rate <= 0.02`
+
+### 4) Budget overrun rate
+
+- Что меряем: `budget_overrun_rate = sum(budget_overrun > 0) / running_ticks`.
+- Почему важно: показывает долю тиков, где loop выходит за целевой budget.
+- Gate:
+  - `budget_overrun_rate <= 0.10`
+
+## Fixture-профили
+
+- `docs/perf/fixtures/module3/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
+- `docs/perf/fixtures/module3/burst.csv` — кратковременные всплески очереди и латентности.
+- `docs/perf/fixtures/module3/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
+
+## Локальный запуск
+
+```bash
+bash scripts/run_module3_bench.sh steady
+python3 scripts/analyze_module3_fairness.py \
+  --input docs/perf/fixtures/module3/steady.csv
+```
+
+Для регрессии удобно прогонять все три fixture-файла и сверять итоговый pass/fail по gate-метрикам.
