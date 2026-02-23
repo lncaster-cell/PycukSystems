@@ -28,6 +28,7 @@
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - `src/modules/npc_behavior/` — redirect-документация для модуля NPC behavior (скрипты перенесены в `tools/npc_behavior_system/`).
+- Source of truth для runtime-скриптов NPC behavior: `tools/npc_behavior_system/` (путь `src/modules/npc_behavior/` не используется как production runtime).
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 

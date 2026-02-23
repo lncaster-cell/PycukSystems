@@ -1,11 +1,13 @@
 # NPC Toolset Properties Cleanup Report
 
 ## Scope
-Удалены переменные и код, связанные с внутренними NPC Toolset-свойствами (Decays/Lootable/DialogInterruptible/Hidden AI disable/Plot) из модуля поведения NPC.
+Удалены переменные и код, связанные с внутренними NPC Toolset-свойствами (Decays/Lootable/DialogInterruptible/Hidden AI disable/Plot) из runtime-модуля поведения NPC.
+
+> Примечание по структуре: `src/modules/npc_behavior/` является redirect/документационным слоем. Production runtime-скрипты находятся в `tools/npc_behavior_system/`.
 
 ## Files changed
 
-### 1) `src/modules/npc_behavior/npc_behavior_core.nss`
+### 1) `tools/npc_behavior_system/npc_behavior_core.nss`
 
 Удалённые символы/идентификаторы:
 - `NPC_DEFAULT_FLAG_DECAYS`
@@ -47,7 +49,7 @@
 - в `NpcBehaviorOnDeath` — проверить decay/loot поведение вручную;
 - в `NpcBehaviorOnDialogue` — проверить правила interruption вручную.
 
-### 2) `src/modules/npc_behavior/README.md`
+### 2) `tools/npc_behavior_system/README.md`
 
 Удалены упоминания и контракты по удалённым toolset-переменным:
 - `npc_flag_decays`
@@ -64,5 +66,5 @@
 Документация обновлена под runtime-only параметры (`npc_flag_disable_object`, `npc_tpl_tick_interval_*`, `npc_tpl_alert_decay_sec`).
 
 ## Removed symbol volume (approx)
-- `src/modules/npc_behavior/npc_behavior_core.nss`: ~5663 удалённых символов (по diff, сумма длины удалённых строк).
-- `src/modules/npc_behavior/README.md`: ~2352 удалённых символов (по diff, сумма длины удалённых строк).
+- `tools/npc_behavior_system/npc_behavior_core.nss`: ~5663 удалённых символов (по diff, сумма длины удалённых строк).
+- `tools/npc_behavior_system/README.md`: ~2352 удалённых символов (по diff, сумма длины удалённых строк).
