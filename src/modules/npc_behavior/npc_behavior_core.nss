@@ -13,6 +13,8 @@ const int NPC_TICK_PROCESS_LIMIT = 32;
 const int NPC_MIN_TICK_INTERVAL_SEC = 1;
 const float NPC_AREA_TICK_INTERVAL_SEC = 1.0;
 const int NPC_AREA_BUDGET_PER_TICK = 20;
+const int NPC_DEFAULT_AREA_IDLE_PAUSE_AFTER_SEC = 30;
+const int NPC_DEFAULT_AREA_IDLE_STOP_AFTER_SEC = 180;
 
 const int NPC_EVENT_PRIORITY_CRITICAL = 3;
 const int NPC_EVENT_PRIORITY_HIGH = 2;
@@ -51,6 +53,9 @@ string NPC_VAR_AREA_QUEUE_SLOT_PRIORITY = "npc_area_queue_slot_priority_";
 string NPC_VAR_AREA_QUEUE_SLOT_OWNER = "npc_area_queue_slot_owner_";
 string NPC_VAR_AREA_DEGRADED = "npc_area_degraded_mode";
 string NPC_VAR_AREA_TICK_SEQ = "nb_area_tick_seq";
+string NPC_VAR_AREA_IDLE_SINCE_TICK = "npc_area_idle_since_tick";
+string NPC_VAR_AREA_IDLE_PAUSE_AFTER_SEC = "npc_area_idle_pause_after_sec";
+string NPC_VAR_AREA_IDLE_STOP_AFTER_SEC = "npc_area_idle_stop_after_sec";
 
 // [Behavior Flags] минимальный runtime-контракт.
 string NPC_VAR_FLAG_DISABLE_OBJECT = "npc_flag_disable_object";
@@ -843,7 +848,7 @@ int NpcBehaviorAreaIsActive(object oArea)
     return NpcControllerAreaIsRunning(oArea);
 }
 
-int NpcBehaviorShouldDeactivateAreaOnExit(object oArea, object oExiting, int nPlayers)
+int NpcBehaviorShouldPauseAreaOnExit(object oArea, object oExiting, int nPlayers)
 {
     if (!GetIsObjectValid(oArea) || !NpcBehaviorAreaIsActive(oArea))
     {
@@ -869,6 +874,7 @@ void NpcBehaviorAreaActivate(object oArea)
     }
 
     NpcControllerAreaStart(oArea);
+    SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, 0);
     if (NpcControllerAreaIsTimerRunning(oArea))
     {
         return;
@@ -894,6 +900,7 @@ void NpcBehaviorAreaDeactivate(object oArea)
 
     // Normalize degraded mode after STOPPED so next START cannot inherit stale state.
     SetLocalInt(oArea, NPC_VAR_AREA_DEGRADED, FALSE);
+    SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, 0);
 }
 
 void NpcBehaviorAreaPause(object oArea)
@@ -901,6 +908,11 @@ void NpcBehaviorAreaPause(object oArea)
     if (!GetIsObjectValid(oArea))
     {
         return;
+    }
+
+    if (GetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK) <= 0)
+    {
+        SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, NpcBehaviorTickNow());
     }
 
     NpcControllerAreaPause(oArea);
@@ -940,6 +952,99 @@ void NpcBehaviorBootstrapModuleAreas()
 
         oArea = GetNextArea();
     }
+}
+
+int NpcBehaviorGetAreaIdlePauseAfterSec(object oArea)
+{
+    int nValue;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return NPC_DEFAULT_AREA_IDLE_PAUSE_AFTER_SEC;
+    }
+
+    nValue = GetLocalInt(oArea, NPC_VAR_AREA_IDLE_PAUSE_AFTER_SEC);
+    if (nValue < NPC_MIN_TICK_INTERVAL_SEC)
+    {
+        return NPC_DEFAULT_AREA_IDLE_PAUSE_AFTER_SEC;
+    }
+
+    return nValue;
+}
+
+int NpcBehaviorGetAreaIdleStopAfterSec(object oArea)
+{
+    int nValue;
+    int nPauseAfter;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return NPC_DEFAULT_AREA_IDLE_STOP_AFTER_SEC;
+    }
+
+    nPauseAfter = NpcBehaviorGetAreaIdlePauseAfterSec(oArea);
+    nValue = GetLocalInt(oArea, NPC_VAR_AREA_IDLE_STOP_AFTER_SEC);
+    if (nValue < nPauseAfter)
+    {
+        nValue = NPC_DEFAULT_AREA_IDLE_STOP_AFTER_SEC;
+    }
+
+    if (nValue < nPauseAfter)
+    {
+        return nPauseAfter;
+    }
+
+    return nValue;
+}
+
+int NpcBehaviorAreaShouldPauseByIdle(object oArea, int nNow)
+{
+    int nIdleSince;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    if (NpcBehaviorAreaShouldAutoStart(oArea))
+    {
+        SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, 0);
+        return FALSE;
+    }
+
+    nIdleSince = GetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK);
+    if (nIdleSince <= 0)
+    {
+        SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, nNow);
+        return FALSE;
+    }
+
+    return NpcBehaviorElapsedSec(nNow, nIdleSince) >= NpcBehaviorGetAreaIdlePauseAfterSec(oArea);
+}
+
+int NpcBehaviorAreaShouldStopFromPaused(object oArea, int nNow)
+{
+    int nIdleSince;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    if (NpcBehaviorAreaShouldAutoStart(oArea))
+    {
+        SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, 0);
+        return FALSE;
+    }
+
+    nIdleSince = GetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK);
+    if (nIdleSince <= 0)
+    {
+        SetLocalInt(oArea, NPC_VAR_AREA_IDLE_SINCE_TICK, nNow);
+        return FALSE;
+    }
+
+    return NpcBehaviorElapsedSec(nNow, nIdleSince) >= NpcBehaviorGetAreaIdleStopAfterSec(oArea);
 }
 
 int NpcBehaviorIsDisabled(object oNpc)
@@ -1452,8 +1557,47 @@ void NpcBehaviorOnAreaTick(object oArea)
 
 void NpcBehaviorAreaTickLoop(object oArea)
 {
+    int nLifecycleState;
+    int nNow;
+
     if (!GetIsObjectValid(oArea))
     {
+        return;
+    }
+
+    nLifecycleState = NpcControllerAreaGetLifecycleState(oArea);
+    nNow = NpcBehaviorTickNow();
+
+    if (nLifecycleState == NPC_AREA_LIFECYCLE_STOPPED)
+    {
+        NpcControllerAreaSetTimerRunning(oArea, FALSE);
+        return;
+    }
+
+    if (nLifecycleState == NPC_AREA_LIFECYCLE_PAUSED)
+    {
+        if (NpcBehaviorAreaShouldAutoStart(oArea))
+        {
+            NpcBehaviorAreaResume(oArea);
+            DelayCommand(NPC_AREA_TICK_INTERVAL_SEC, NpcBehaviorAreaTickLoop(oArea));
+            return;
+        }
+
+        if (NpcBehaviorAreaShouldStopFromPaused(oArea, nNow))
+        {
+            NpcBehaviorAreaDeactivate(oArea);
+            NpcControllerAreaSetTimerRunning(oArea, FALSE);
+            return;
+        }
+
+        DelayCommand(NPC_AREA_TICK_INTERVAL_SEC, NpcBehaviorAreaTickLoop(oArea));
+        return;
+    }
+
+    if (NpcBehaviorAreaShouldPauseByIdle(oArea, nNow))
+    {
+        NpcBehaviorAreaPause(oArea);
+        DelayCommand(NPC_AREA_TICK_INTERVAL_SEC, NpcBehaviorAreaTickLoop(oArea));
         return;
     }
 

@@ -16,8 +16,8 @@ void main()
 
     // Invariant: area-controller переходит в STOPPED только при фактическом нуле активных PC.
     // Для PC OnExit учитываем возможную задержку обновления area-list в движке.
-    if (NpcBehaviorShouldDeactivateAreaOnExit(oArea, oExiting, nPlayers))
+    if (NpcBehaviorShouldPauseAreaOnExit(oArea, oExiting, nPlayers))
     {
-        NpcBehaviorAreaDeactivate(oArea);
+        NpcBehaviorAreaPause(oArea);
     }
 }
