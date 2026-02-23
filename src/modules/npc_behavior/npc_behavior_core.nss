@@ -494,7 +494,7 @@ int NpcBehaviorAreaTryQueueEvent(object oArea, object oOwner, int nPriority)
 
     if (!GetIsObjectValid(oArea))
     {
-        return TRUE;
+        return FALSE;
     }
 
     nQueueDepth = GetLocalInt(oArea, NPC_VAR_AREA_QUEUE_DEPTH);
@@ -559,6 +559,7 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
     bQueued = NpcBehaviorAreaTryQueueEvent(oArea, oNpc, nPriority);
     if (!bQueued)
     {
+        // Pending-счетчики должны обновляться только после реального enqueue в area queue.
         return FALSE;
     }
 
