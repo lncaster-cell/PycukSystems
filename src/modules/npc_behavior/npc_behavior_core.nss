@@ -843,6 +843,22 @@ int NpcBehaviorAreaIsActive(object oArea)
     return NpcControllerAreaIsRunning(oArea);
 }
 
+int NpcBehaviorShouldDeactivateAreaOnExit(object oArea, object oExiting, int nPlayers)
+{
+    if (!GetIsObjectValid(oArea) || !NpcBehaviorAreaIsActive(oArea))
+    {
+        return FALSE;
+    }
+
+    if (GetIsObjectValid(oExiting) && GetIsPC(oExiting))
+    {
+        // Engine can still report exiting PC in area list during OnExit dispatch.
+        return nPlayers <= 1;
+    }
+
+    return nPlayers == 0;
+}
+
 void NpcBehaviorAreaTickLoop(object oArea);
 
 void NpcBehaviorAreaActivate(object oArea)
@@ -893,6 +909,37 @@ void NpcBehaviorAreaPause(object oArea)
 void NpcBehaviorAreaResume(object oArea)
 {
     NpcBehaviorAreaActivate(oArea);
+}
+
+int NpcBehaviorAreaShouldAutoStart(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    if (GetLocalInt(oArea, "npc_area_always_on") == TRUE)
+    {
+        return TRUE;
+    }
+
+    return NpcBehaviorCountPlayersInArea(oArea) > 0;
+}
+
+void NpcBehaviorBootstrapModuleAreas()
+{
+    object oArea;
+
+    oArea = GetFirstArea();
+    while (GetIsObjectValid(oArea))
+    {
+        if (NpcBehaviorAreaShouldAutoStart(oArea))
+        {
+            NpcBehaviorAreaActivate(oArea);
+        }
+
+        oArea = GetNextArea();
+    }
 }
 
 int NpcBehaviorIsDisabled(object oNpc)
