@@ -895,16 +895,29 @@ void NpcBehaviorAreaResume(object oArea)
     NpcBehaviorAreaActivate(oArea);
 }
 
+int NpcBehaviorAreaShouldAutoStart(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    if (GetLocalInt(oArea, "npc_area_always_on") == TRUE)
+    {
+        return TRUE;
+    }
+
+    return NpcBehaviorCountPlayersInArea(oArea) > 0;
+}
+
 void NpcBehaviorBootstrapModuleAreas()
 {
     object oArea;
-    int nPlayers;
 
     oArea = GetFirstArea();
     while (GetIsObjectValid(oArea))
     {
-        nPlayers = NpcBehaviorCountPlayersInArea(oArea);
-        if (nPlayers > 0)
+        if (NpcBehaviorAreaShouldAutoStart(oArea))
         {
             NpcBehaviorAreaActivate(oArea);
         }
