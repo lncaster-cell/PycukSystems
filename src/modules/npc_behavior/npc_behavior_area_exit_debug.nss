@@ -1,7 +1,8 @@
-// NPC behavior module: area OnExit entrypoint.
+// NPC behavior module: area OnExit DEBUG entrypoint.
 // Contract: OnExit пересчитывает число активных PC в OBJECT_SELF (area, поднявшая событие).
 
 #include "npc_behavior_core"
+#include "al_dbg"
 
 void main()
 {
@@ -11,6 +12,7 @@ void main()
 
     oArea = OBJECT_SELF;
     nPlayers = NpcBehaviorCountPlayersInArea(oArea);
+    AL_Dbg("AreaExit OK");
 
     if (!NpcBehaviorAreaIsActive(oArea))
     {
