@@ -87,14 +87,16 @@
 
 ### Audit-derived checks
 
-- [ ] **Registry overflow check:** при нагрузке выше лимита реестра модуль не падает, overflow учитывается в метриках, а незарегистрированные NPC получают предсказуемый fallback.
-- [ ] **Route warmup check:** первый warmup допускает единичный пик, повторные входы в область не вызывают полный re-scan без explicit invalidate.
-- [ ] **Silent degradation diagnostics check:** каждый сценарий деградации генерирует reason-code в коде, счётчик в метрике и наблюдаемое событие в perf-отчёте.
-- [ ] **Perf gate linkage check:** `docs/perf/module3_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails.
+- [ ] **M3-CHECK-01 · Registry overflow check:** при нагрузке выше лимита реестра модуль не падает, overflow учитывается в метриках, а незарегистрированные NPC получают предсказуемый fallback.
+- [ ] **M3-CHECK-02 · Route warmup check:** первый warmup допускает единичный пик, повторные входы в область не вызывают полный re-scan без explicit invalidate.
+- [ ] **M3-CHECK-03 · Silent degradation diagnostics check:** каждый сценарий деградации генерирует reason-code в коде, счётчик в метрике и наблюдаемое событие в perf-отчёте.
+- [ ] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/module3_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails.
+
+Статус исполнения и декомпозиция задач ведутся в `docs/module3_implementation_backlog.md` (матрица = стратегия, backlog = исполнение).
 
 ## Минимальный backlog на внедрение матрицы
 
-- [ ] Создать `module3_core.nss` с заимствованием lifecycle/queue паттернов `npc_behavior`.
-- [ ] Выделить `module3_activity_inc.nss` и портировать туда AL activity primitives через новый namespace.
-- [ ] Ввести `module3_metrics_inc.nss` с единым API инкремента метрик.
-- [ ] Подготовить perf-сценарии Module 3 по аналогии с fairness/overflow проверками `npc_behavior`.
+- [ ] **RC-1/RC-2:** Runtime Core (lifecycle/queue/priority) — см. `docs/module3_implementation_backlog.md`.
+- [ ] **AL-1/AL-2/AL-3:** Activity Layer (порт AL primitives) — см. `docs/module3_implementation_backlog.md`.
+- [ ] **MP-1/MP-2:** Metrics/Persistence contract — см. `docs/module3_implementation_backlog.md`.
+- [ ] **PG-1/PG-2:** Perf Validation & Gate — см. `docs/module3_implementation_backlog.md`.
