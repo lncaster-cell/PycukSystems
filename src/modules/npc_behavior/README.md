@@ -49,6 +49,7 @@
   - `npc_decay_time_sec` → если `<= 0`, то `5` (секунд)
   - `npc_tick_interval_idle_sec` → если `< 1`, то `6`
   - `npc_tick_interval_combat_sec` → если `< 1`, то `2`
+  - `npc_alert_decay_sec` → если `<= 0`, то `12` (секунд до возврата `ALERT -> IDLE`)
 - Init-once:
   - служебные runtime-local (`npc_state`, pending/deferred/last tick counters) нормализуются через `NpcBehaviorInitialize` только один раз по флагу `npc_behavior_init_done`.
 - Disable guard:
@@ -59,7 +60,7 @@
 ## Что уже покрыто
 
 - централизация логики хуков через единый include;
-- state transitions `IDLE/ALERT/COMBAT`;
+- state transitions `IDLE/ALERT/COMBAT` + time-based decay `ALERT -> IDLE`;
 - переход в `NPC_STATE_COMBAT` в `OnPerception/OnPhysicalAttacked/OnSpellCastAt` выполняется через единый контракт `GetIsReactionTypeHostile(source, target)`: в handlers `source` всегда инициатор события (`seen/attacker/caster`), `target` — NPC; для совместимости используется helper с явной двусторонней проверкой (`source -> npc` **или** `npc -> source`) при faction/charm асимметрии;
 - tick pacing и лимит `NPC_TICK_PROCESS_LIMIT`;
 - минимальная телеметрия (`spawn/perception/damaged/physical_attacked/spell_cast_at/combat_round/death/dialogue` counters);

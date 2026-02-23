@@ -31,6 +31,7 @@ const int NPC_DEFAULT_FLAG_LOOTABLE_CORPSE = TRUE;
 const int NPC_DEFAULT_FLAG_DISABLE_AI_WHEN_HIDDEN = FALSE;
 const int NPC_DEFAULT_FLAG_DIALOG_INTERRUPTIBLE = TRUE;
 const int NPC_DEFAULT_DECAY_TIME_SEC = 5;
+const int NPC_DEFAULT_ALERT_DECAY_SEC = 12;
 
 // [Runtime Internal] служебные переменные оркестрации и state-machine.
 string NPC_VAR_STATE = "npc_state";
@@ -73,6 +74,8 @@ string NPC_VAR_FLAG_DIALOG_INTERRUPTIBLE_SET = "npc_flag_dialog_interruptible_se
 string NPC_VAR_DECAY_TIME_SEC = "npc_decay_time_sec";
 string NPC_VAR_TICK_INTERVAL_IDLE_SEC = "npc_tick_interval_idle_sec";
 string NPC_VAR_TICK_INTERVAL_COMBAT_SEC = "npc_tick_interval_combat_sec";
+string NPC_VAR_ALERT_DECAY_SEC = "npc_alert_decay_sec";
+string NPC_VAR_ALERT_LAST_HOSTILE_TICK = "npc_alert_last_hostile_tick";
 string NPC_VAR_INIT_DONE = "npc_behavior_init_done";
 
 // [Runtime Metrics] счетчики и runtime-метрики для минимальной телеметрии.
@@ -701,7 +704,48 @@ void NpcBehaviorInitialize(object oNpc)
     SetLocalInt(oNpc, NPC_VAR_PENDING_HIGH, 0);
     SetLocalInt(oNpc, NPC_VAR_PENDING_NORMAL, 0);
     SetLocalInt(oNpc, NPC_VAR_PENDING_LOW, 0);
+    SetLocalInt(oNpc, NPC_VAR_ALERT_LAST_HOSTILE_TICK, 0);
     SetLocalInt(oNpc, NPC_VAR_INIT_DONE, TRUE);
+}
+
+void NpcBehaviorMarkHostileContact(object oNpc)
+{
+    SetLocalInt(oNpc, NPC_VAR_ALERT_LAST_HOSTILE_TICK, NpcBehaviorTickNow());
+}
+
+int NpcBehaviorGetAlertDecaySec(object oNpc)
+{
+    int nAlertDecaySec = GetLocalInt(oNpc, NPC_VAR_ALERT_DECAY_SEC);
+    if (nAlertDecaySec <= 0)
+    {
+        return NPC_DEFAULT_ALERT_DECAY_SEC;
+    }
+
+    return nAlertDecaySec;
+}
+
+void NpcBehaviorTryDecayAlertState(object oNpc)
+{
+    int nLastHostileTick;
+    int nNow;
+
+    if (!GetIsObjectValid(oNpc) || GetLocalInt(oNpc, NPC_VAR_STATE) != NPC_STATE_ALERT)
+    {
+        return;
+    }
+
+    nLastHostileTick = GetLocalInt(oNpc, NPC_VAR_ALERT_LAST_HOSTILE_TICK);
+    if (nLastHostileTick <= 0)
+    {
+        SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
+        return;
+    }
+
+    nNow = NpcBehaviorTickNow();
+    if (NpcBehaviorElapsedSec(nNow, nLastHostileTick) >= NpcBehaviorGetAlertDecaySec(oNpc))
+    {
+        SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_IDLE);
+    }
 }
 
 int NpcBehaviorGetInterval(object oNpc)
@@ -841,6 +885,7 @@ void NpcBehaviorHandleCombat(object oNpc)
 {
     if (GetIsInCombat(oNpc) == FALSE)
     {
+        NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_ALERT);
     }
 }
@@ -858,6 +903,7 @@ void NpcBehaviorOnSpawn(object oNpc)
     int nDecayTimeSec;
     int nIdleIntervalSec;
     int nCombatIntervalSec;
+    int nAlertDecaySec;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -934,6 +980,13 @@ void NpcBehaviorOnSpawn(object oNpc)
     nCombatIntervalSec = NpcBehaviorNormalizeInterval(nCombatIntervalSec, NPC_DEFAULT_COMBAT_INTERVAL);
     SetLocalInt(oNpc, NPC_VAR_TICK_INTERVAL_COMBAT_SEC, nCombatIntervalSec);
 
+    nAlertDecaySec = GetLocalInt(oNpc, NPC_VAR_ALERT_DECAY_SEC);
+    if (nAlertDecaySec <= 0)
+    {
+        nAlertDecaySec = NPC_DEFAULT_ALERT_DECAY_SEC;
+    }
+    SetLocalInt(oNpc, NPC_VAR_ALERT_DECAY_SEC, nAlertDecaySec);
+
     if (GetLocalInt(oNpc, NPC_VAR_INIT_DONE) != TRUE)
     {
         NpcBehaviorInitialize(oNpc);
@@ -968,6 +1021,7 @@ void NpcBehaviorOnPerception(object oNpc)
     // Для совместимости helper допускает и обратное направление.
     if (NpcBehaviorIsHostileForCombat(oSeen, oNpc))
     {
+        NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
         return;
     }
@@ -1001,6 +1055,7 @@ void NpcBehaviorOnDamaged(object oNpc)
 
     if (GetCurrentHitPoints(oNpc) > 0)
     {
+        NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
 }
@@ -1021,6 +1076,7 @@ void NpcBehaviorOnEndCombatRound(object oNpc)
 
     if (!GetIsInCombat(oNpc) && GetLocalInt(oNpc, NPC_VAR_STATE) == NPC_STATE_COMBAT)
     {
+        NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_ALERT);
     }
 
@@ -1049,6 +1105,7 @@ void NpcBehaviorOnPhysicalAttacked(object oNpc)
     // Для совместимости helper также проверяет обратное направление.
     if (NpcBehaviorIsHostileForCombat(oAttacker, oNpc))
     {
+        NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
 }
@@ -1073,6 +1130,7 @@ void NpcBehaviorOnSpellCastAt(object oNpc)
     // Для совместимости helper также проверяет обратное направление.
     if (NpcBehaviorIsHostileForCombat(oCaster, oNpc))
     {
+        NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_COMBAT);
     }
 }
@@ -1228,6 +1286,7 @@ int NpcBehaviorOnHeartbeat(object oNpc)
     }
     else
     {
+        NpcBehaviorTryDecayAlertState(oNpc);
         NpcBehaviorHandleIdle(oNpc);
     }
 
