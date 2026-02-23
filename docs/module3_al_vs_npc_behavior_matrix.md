@@ -6,6 +6,8 @@
 
 Источники: `tools/al_system/*`, `tools/npc_behavior_system/*`, а также проектные ограничения из `docs/design.md`.
 
+Reference-point для perf-сравнений: актуальный NPC baseline в `docs/perf/npc_baseline_report.md` (архив прошлых baseline: `docs/perf/reports/`).
+
 ## Легенда оценки
 
 - **A (готово к прямому переносу)** — зрелый паттерн, подходит без серьёзной переработки.
@@ -90,7 +92,7 @@
 - [ ] **M3-CHECK-01 · Registry overflow check:** при нагрузке выше лимита реестра модуль не падает, overflow учитывается в метриках, а незарегистрированные NPC получают предсказуемый fallback.
 - [ ] **M3-CHECK-02 · Route warmup check:** первый warmup допускает единичный пик, повторные входы в область не вызывают полный re-scan без explicit invalidate.
 - [ ] **M3-CHECK-03 · Silent degradation diagnostics check:** каждый сценарий деградации генерирует reason-code в коде, счётчик в метрике и наблюдаемое событие в perf-отчёте.
-- [ ] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/module3_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails.
+- [ ] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/module3_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails и явную привязку к `docs/perf/npc_baseline_report.md` как reference-point.
 
 Статус исполнения и декомпозиция задач ведутся в `docs/module3_implementation_backlog.md` (матрица = стратегия, backlog = исполнение).
 

@@ -2,6 +2,13 @@
 
 Документ фиксирует perf/fault-injection проверки, напрямую выведенные из AL-аудита (`tools/AUDIT.md`), и критерии pass/fail для release-gate Module 3.
 
+## Baseline reference-point
+
+Для всех сравнений perf-gate Module 3 reference-point задаётся текущим NPC baseline: `docs/perf/npc_baseline_report.md`.
+
+- Если baseline отсутствует или старше 14 дней, результаты сравнения считаются `BLOCKED` до обновления baseline.
+- Исторические baseline-версии берутся из `docs/perf/reports/` и используются только для ретроспективного анализа трендов.
+
 ## 1) Registry overflow guardrail
 
 **Цель:** подтвердить, что лимит area-registry не приводит к silent failure.
