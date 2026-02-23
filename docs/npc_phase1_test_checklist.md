@@ -103,6 +103,58 @@ rg -n "core|Dispatch|Route|Handle" tools/npc_behavior_system/npc_behavior_*.nss
 
 Если изменение ухудшает perf-gate относительно baseline (старше 14 дней недопустим), merge должен быть заблокирован до rollback/tuning.
 
+## Template for Module 3
+
+Ниже шаблон для старта следующего модуля с той же структурой этапов и canonical-path подходом.
+
+### Stage 1 — files
+
+**Goal:** подтвердить, что файлы нового модуля размещены в `tools/npc_behavior_system/` (для Module 3 замените на `tools/<module_name>/`) и не указывают на legacy-пути.
+
+```bash
+MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for Module 3
+rg --files "$MODULE_DIR"
+```
+
+### Stage 2 — entrypoints
+
+**Goal:** подтвердить, что все event entrypoints объявлены отдельными thin-hook скриптами и содержат `void main()`.
+
+```bash
+MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for Module 3
+rg -n "void main\(" "$MODULE_DIR"/*.nss
+rg -n "On[A-Za-z]+|Area(Enter|Exit)|ModuleLoad|Tick" "$MODULE_DIR"
+```
+
+### Stage 3 — routing
+
+**Goal:** убедиться, что entrypoints маршрутизируют вызовы через единый core include/handler слой.
+
+```bash
+MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for Module 3
+rg -n "#include \".*core\"|#include \"<module_name>_core\"" "$MODULE_DIR"/*.nss
+rg -n "(NpcBehavior|<ModuleName>)On|(NpcBehavior|<ModuleName>)Area(Activate|Pause|Resume)|(NpcBehavior|<ModuleName>)Bootstrap" "$MODULE_DIR"/*.nss
+```
+
+### Stage 4 — smoke
+
+**Goal:** выполнить базовый статический smoke по ключевым событиям и, при наличии стенда, логовый smoke.
+
+```bash
+MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for Module 3
+rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue|On[A-Za-z]+" "$MODULE_DIR"
+# tail -f /path/to/server.log | rg "<module_name>|spawn|perception|damaged|death|dialogue|defer|dropped"
+```
+
+### Stage 5 — perf-gate
+
+**Goal:** проверить, что изменение не ухудшает SLO/perf-gate относительно актуального baseline.
+
+```bash
+# RUNS должен быть целым числом >= 1 (например, RUNS=3).
+RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
+```
+
 ## Быстрый итог перед merge
 
 - [x] **Blocking:** структура и entrypoints валидны.
