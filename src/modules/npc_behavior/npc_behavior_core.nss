@@ -24,7 +24,7 @@ const int NPC_AREA_DEGRADED_HIGH_WATERMARK = 72;
 const int NPC_AREA_DEGRADED_LOW_WATERMARK = 24;
 const int NPC_COALESCE_WINDOW_SEC = 2;
 const int NPC_AREA_CRITICAL_RESERVE = 8;
-const int NPC_AREA_QUEUE_STORAGE_CAPACITY = 104; // 96 + 8; NSC requires literal for const init
+const int NPC_AREA_QUEUE_STORAGE_CAPACITY = 104; // NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE; NSC requires literal for const init
 
 const int NPC_DEFAULT_ALERT_DECAY_SEC = 12;
 
@@ -548,7 +548,7 @@ int NpcBehaviorAreaTryQueueEvent(object oArea, object oOwner, int nPriority)
         }
 
         // Emergency reserve: CRITICAL может превысить nominal capacity.
-        if (nQueueDepth < NPC_AREA_QUEUE_STORAGE_CAPACITY)
+        if (nQueueDepth < NPC_AREA_QUEUE_CAPACITY + NPC_AREA_CRITICAL_RESERVE)
         {
             return NpcBehaviorAreaQueuePush(oArea, oOwner, nPriority);
         }
