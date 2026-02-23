@@ -18,9 +18,9 @@
 
 **Минимальные команды:**
 ```bash
-rg --files src/modules/npc_behavior
-rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnTick" src/modules/npc_behavior
+rg --files tools/npc_behavior_system
+rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" tools/npc_behavior_system
 ```
 
 **Тип проверки:** **Blocking (merge gate)**.
@@ -38,8 +38,8 @@ rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|Sp
 
 **Минимальные команды:**
 ```bash
-rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
-rg -n "npc_behavior_core|NpcBehaviorOn" src/modules/npc_behavior/npc_behavior_*.nss
+rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "npc_behavior_core|NpcBehaviorOn" tools/npc_behavior_system/npc_behavior_*.nss
 rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" docs/design.md docs/npc_runtime_orchestration.md
 ```
 
@@ -79,8 +79,8 @@ rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" 
 **Минимальные команды (репрезентативный набор):**
 ```bash
 # 1) статическая проверка наличия On* и маршрутизации
-rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" src/modules/npc_behavior
-rg -n "core|Dispatch|Route|Handle" src/modules/npc_behavior/npc_behavior_*.nss
+rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" tools/npc_behavior_system
+rg -n "core|Dispatch|Route|Handle" tools/npc_behavior_system/npc_behavior_*.nss
 
 # 2) логовый smoke в рантайме сервера (пример)
 # tail -f /path/to/server.log | rg "npc_behavior|spawn|perception|damaged|death|dialogue|defer|dropped"
@@ -118,9 +118,9 @@ rg -n "core|Dispatch|Route|Handle" src/modules/npc_behavior/npc_behavior_*.nss
 - **Результат:** статические merge-gate проверки пройдены; runtime/perf-пункты остаются в статусе pending до прогона на стенде.
 
 ```bash
-rg --files src/modules/npc_behavior
-rg -n "void main\(" src/modules/npc_behavior/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnTick" src/modules/npc_behavior
+rg --files tools/npc_behavior_system
+rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" tools/npc_behavior_system
 # RUNS должен быть целым числом >= 1 (например, RUNS=3).
 RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ```
