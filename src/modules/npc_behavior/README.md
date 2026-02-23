@@ -48,6 +48,7 @@
   - `npc_tpl_decay_time_sec`
   - `npc_tpl_tick_interval_idle_sec`
   - `npc_tpl_tick_interval_combat_sec`
+  - `npc_tpl_alert_decay_sec`
   - Для bool поддерживаются значения `1/0`, `TRUE/FALSE`, `true/false`; при невалидном значении применяется fallback.
 
 - Флаги (допускаются только `TRUE/FALSE`, иначе применяется дефолт):
@@ -59,7 +60,7 @@
   - `npc_decay_time_sec` → если `<= 0`, то `5` (секунд)
   - `npc_tick_interval_idle_sec` → если `< 1`, то `6`
   - `npc_tick_interval_combat_sec` → если `< 1`, то `2`
-  - `npc_alert_decay_sec` → если `<= 0`, то `12` (секунд до возврата `ALERT -> IDLE`)
+  - `npc_alert_decay_sec` (с поддержкой template-override через `npc_tpl_alert_decay_sec`) → если `<= 0`, то `12` (секунд до возврата `ALERT -> IDLE`)
 - Init-once:
   - служебные runtime-local (`npc_state`, pending/deferred/last tick counters) нормализуются через `NpcBehaviorInitialize` только один раз по флагу `npc_behavior_init_done`.
 - Disable guard:
@@ -191,6 +192,5 @@ Phase 1 использует единый helper записи метрик `NpcB
 
 ## Следующие шаги
 
-1. Подключить реальную инициализацию флагов из template-параметров NPC на OnSpawn.
-2. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
-3. Расширить scenario/perf-проверки fairness для PAUSED/RESUME/STOPPED и добавить длительные burst-профили со starvation guard.
+1. Подключить write-behind persistence (NWNX SQLite) и вынести метрики в отдельный sink.
+2. Расширить scenario/perf-проверки fairness для PAUSED/RESUME/STOPPED и добавить длительные burst-профили со starvation guard.
