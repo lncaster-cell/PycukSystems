@@ -63,24 +63,3 @@ string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurren
 
     return NPC_BHVR_ACTIVITY_SLOT_DEFAULT;
 }
-
-string NpcBhvrActivityResolveScheduledSlot(object oNpc, string sCurrentSlot)
-{
-    object oArea;
-    int nHour;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return sCurrentSlot;
-    }
-
-    oArea = GetArea(oNpc);
-    nHour = GetTimeHour();
-    return NpcBhvrActivityResolveScheduledSlotForContext(
-        oNpc,
-        sCurrentSlot,
-        NpcBhvrActivityIsScheduleEnabled(oNpc, oArea),
-        nHour
-    );
-}
-
