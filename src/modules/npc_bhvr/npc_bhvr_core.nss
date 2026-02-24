@@ -20,11 +20,11 @@ const int NPC_BHVR_REASON_UNSPECIFIED = 0;
 const int NPC_BHVR_REASON_PERCEPTION = 1;
 const int NPC_BHVR_REASON_DAMAGE = 2;
 
-const string NPC_BHVR_PENDING_STATUS_QUEUED = "queued";
-const string NPC_BHVR_PENDING_STATUS_RUNNING = "running";
-const string NPC_BHVR_PENDING_STATUS_PROCESSED = "processed";
-const string NPC_BHVR_PENDING_STATUS_DEFERRED = "deferred";
-const string NPC_BHVR_PENDING_STATUS_DROPPED = "dropped";
+const string NPC_BHVR_PENDING_STATUS_STR_QUEUED = "queued";
+const string NPC_BHVR_PENDING_STATUS_STR_RUNNING = "running";
+const string NPC_BHVR_PENDING_STATUS_STR_PROCESSED = "processed";
+const string NPC_BHVR_PENDING_STATUS_STR_DEFERRED = "deferred";
+const string NPC_BHVR_PENDING_STATUS_STR_DROPPED = "dropped";
 
 
 const int NPC_BHVR_QUEUE_MAX = 64;
@@ -469,7 +469,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                 NpcBhvrQueueSyncTotals(oArea);
             }
 
-            NpcBhvrPendingTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+            NpcBhvrPendingTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_STR_QUEUED);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
             return TRUE;
         }
@@ -498,7 +498,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                     NpcBhvrQueueSyncTotals(oArea);
                 }
 
-                NpcBhvrPendingTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+                NpcBhvrPendingTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_STR_QUEUED);
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
                 return TRUE;
             }
@@ -513,7 +513,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_OVERFLOW_COUNT);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
-        NpcBhvrPendingTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_STR_DROPPED);
         NpcBhvrPendingClear(oArea, oSubject);
         return FALSE;
     }
@@ -526,7 +526,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     }
 
     NpcBhvrQueueSyncTotals(oArea);
-    NpcBhvrPendingTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+    NpcBhvrPendingTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_STR_QUEUED);
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
 }
@@ -583,7 +583,7 @@ void NpcBhvrQueueMarkDeferredHead(object oArea)
         oSubject = NpcBhvrQueuePeekFromPriority(oArea, nPriority);
         if (GetIsObjectValid(oSubject))
         {
-            NpcBhvrPendingTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED);
+            NpcBhvrPendingTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_STR_DEFERRED);
             return;
         }
 
@@ -778,7 +778,7 @@ int NpcBhvrQueueProcessOne(object oArea)
         return TRUE;
     }
 
-    NpcBhvrPendingTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_RUNNING);
+    NpcBhvrPendingTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_STR_RUNNING);
     NpcBhvrActivityOnIdleTick(oSubject);
     if (GetIsObjectValid(oSubject))
     {
