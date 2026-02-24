@@ -16,6 +16,7 @@
 3. Для приёмки запустите smoke/contract проверки:
    - `bash scripts/test_npc_smoke.sh`
    - `bash scripts/check_npc_lifecycle_contract.sh`
+   - `bash scripts/check_npc_legacy_compat_contract.sh`
    - `bash scripts/test_npc_fairness.sh`
 
 После этих шагов модуль считается готовым к интеграции в модуль NWN2 (при корректной привязке hook-скриптов).
@@ -46,13 +47,8 @@
 ### Deprecated/compat API
 
 - `npc_legacy_compat_inc.nss` — **external-only** legacy include (не подключается `npc_core` и не участвует в основном runtime).
-  Поддерживаемые legacy-обёртки:
-  - `NpcBhvrAreaSetState`
-  - `NpcBhvrCountPlayersInArea`
-  - `NpcBhvrCountPlayersInAreaExcluding`
-  - `NpcBhvrGetCachedPlayerCount`
-  - `NpcBhvrRegistryBroadcastIdleTick`
-  - `NpcBhvrQueuePackLocation`
+  Контракт поддерживаемых legacy entrypoints:
+  - _список пуст_ (legacy-функции удалены как неиспользуемые внутри репозитория; include сохранён только как marker include-level ABI/compat).
 - `npc_compat_inc.nss` оставлен как runtime-empty заглушка для обратной совместимости по имени include.
 - В текущем runtime-контуре (`npc_tick_inc`, `npc_lifecycle_inc`, `npc_registry_inc`, `npc_queue_index_inc`) используются только внутренние версии API:
   - `NpcBhvrAreaSetStateInternal`
