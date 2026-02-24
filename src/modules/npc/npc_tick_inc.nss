@@ -41,7 +41,7 @@ int NpcBhvrQueuePickPriority(object oArea)
     if (nCriticalDepth > 0)
     {
         // CRITICAL bypasses fairness budget.
-        SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
         return NPC_BHVR_PRIORITY_CRITICAL;
     }
 
@@ -70,8 +70,8 @@ int NpcBhvrQueuePickPriority(object oArea)
     {
         if (NpcBhvrQueueGetDepthForPriority(oArea, nPriority) > 0)
         {
-            SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_CURSOR, nPriority);
-            SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, nStreak + 1);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_CURSOR, nPriority);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, nStreak + 1);
             return nPriority;
         }
 
@@ -205,7 +205,7 @@ int NpcBhvrQueueProcessOne(object oArea, int nNow)
     nTotalDepth = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
     if (nTotalDepth <= 0)
     {
-        SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
         return FALSE;
     }
 
@@ -329,7 +329,7 @@ int NpcBhvrTickApplyDegradationAndCarryover(object oArea, int nTickState)
 
     SetLocalInt(oArea, NPC_BHVR_VAR_TICK_PROCESSED, nProcessedThisTick);
     NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PROCESSED_TOTAL, nProcessedThisTick);
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
 
     nCarryoverEvents = 0;
 
@@ -365,14 +365,14 @@ int NpcBhvrTickApplyDegradationAndCarryover(object oArea, int nTickState)
         nBudgetExceededTotal = nBudgetExceededTotal + 1;
         nDegradedTotal = nDegradedTotal + 1;
 
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, nDegradedStreak);
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL, nBudgetExceededTotal);
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL, nDegradedTotal);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, nDegradedStreak);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL, nBudgetExceededTotal);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL, nDegradedTotal);
     }
     else
     {
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, 0);
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, NPC_BHVR_DEGRADATION_REASON_NONE);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, 0);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, NPC_BHVR_DEGRADATION_REASON_NONE);
     }
 
     return nCarryoverEvents;

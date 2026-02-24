@@ -5,6 +5,7 @@
 // 3) единый вход в метрики через helper API.
 
 #include "npc_metrics_inc"
+#include "npc_local_write_inc"
 #include "npc_activity_inc"
 #include "npc_sql_api_inc"
 #include "npc_wb_inc"

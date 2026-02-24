@@ -228,7 +228,7 @@ int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority)
 
 void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth)
 {
-    SetLocalInt(oArea, NpcBhvrQueueDepthKey(nPriority), nDepth);
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueDepthKey(nPriority), nDepth);
 }
 
 void NpcBhvrQueueSyncTotals(object oArea)
@@ -240,8 +240,8 @@ void NpcBhvrQueueSyncTotals(object oArea)
         + NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_NORMAL)
         + NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_LOW);
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
 }
 
 void NpcBhvrQueueClear(object oArea)
@@ -286,7 +286,7 @@ void NpcBhvrQueueClear(object oArea)
         nIndex = nIndex + 1;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_CURSOR, NPC_BHVR_PRIORITY_HIGH);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_CURSOR, NPC_BHVR_PRIORITY_HIGH);
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, 0);
     SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
