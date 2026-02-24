@@ -21,6 +21,7 @@ INCLUDE_CANDIDATES=(
   "$NWNX_INCLUDE_PATH"
 )
 INCLUDE_ARGS=()
+declare -A SEEN_INCLUDE_DIRS=()
 
 if [[ "${GITHUB_ACTIONS:-}" != "true" ]]; then
   echo "[ERROR] Local execution is disabled."
@@ -69,26 +70,31 @@ prepare_stock_includes() {
 
 prepare_stock_includes
 
-for include_dir in "${INCLUDE_CANDIDATES[@]}"; do
-  if [[ -d "$include_dir" ]]; then
-    INCLUDE_ARGS+=( -i "$include_dir" )
-  fi
-done
+append_include_dir() {
+  local include_dir="$1"
 
-mapfile -t MODULE_INCLUDE_DIRS < <(
-  find "$ROOT_DIR/src/modules" -type f -name "*.nss" -printf "%h\n" | LC_ALL=C sort -u
-)
+  if [[ ! -d "$include_dir" ]]; then
+    return
+  fi
+
+  if [[ -n "${SEEN_INCLUDE_DIRS[$include_dir]:-}" ]]; then
+    return
+  fi
+
+  SEEN_INCLUDE_DIRS["$include_dir"]=1
+  INCLUDE_ARGS+=( -i "$include_dir" )
+}
+
+for include_dir in "${INCLUDE_CANDIDATES[@]}"; do
+  append_include_dir "$include_dir"
+done
 
 mapfile -t SRC_INCLUDE_DIRS < <(
   find "$ROOT_DIR/src" -type f -name "*.nss" -printf "%h\n" | LC_ALL=C sort -u
 )
 
-for include_dir in "${MODULE_INCLUDE_DIRS[@]}"; do
-  INCLUDE_ARGS+=( -i "$include_dir" )
-done
-
 for include_dir in "${SRC_INCLUDE_DIRS[@]}"; do
-  INCLUDE_ARGS+=( -i "$include_dir" )
+  append_include_dir "$include_dir"
 done
 
 mapfile -t FILES < <(
