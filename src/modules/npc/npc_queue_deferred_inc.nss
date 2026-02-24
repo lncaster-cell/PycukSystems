@@ -23,28 +23,40 @@ void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal)
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, nDeferredTotal);
 }
 
+// Hot-path-safe linear walk: read head/depth once per priority, then advance
+// by ring-next slot while counting valid deferred subjects.
 int NpcBhvrQueueCountDeferred(object oArea)
 {
     int nCount;
     int nPriority;
+    int nHead;
     int nDepth;
     int nIndex;
+    int nSlot;
     object oSubject;
 
     nCount = 0;
     nPriority = NPC_BHVR_PRIORITY_CRITICAL;
     while (nPriority <= NPC_BHVR_PRIORITY_LOW)
     {
+        nHead = GetLocalInt(oArea, NpcBhvrQueueHeadKey(nPriority));
+        if (nHead < 1 || nHead > NPC_BHVR_QUEUE_MAX)
+        {
+            nHead = 1;
+        }
+
         nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
+        nSlot = nHead;
         nIndex = 1;
         while (nIndex <= nDepth)
         {
-            oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nPriority, nIndex)));
+            oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nSlot));
             if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
             {
                 nCount = nCount + 1;
             }
 
+            nSlot = NpcBhvrQueueRingNextSlot(nSlot);
             nIndex = nIndex + 1;
         }
 
@@ -165,4 +177,3 @@ void NpcBhvrQueueMarkDeferredHead(object oArea)
         nPriority = nPriority + 1;
     }
 }
-
