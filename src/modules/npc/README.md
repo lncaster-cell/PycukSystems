@@ -30,6 +30,7 @@
 - Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
 - CRITICAL события обрабатываются через bypass fairness-бюджета.
 - `npc_pending_updated_at` хранится как `int`-timestamp с секундной точностью (на базе календарного дня и `HH:MM:SS`) и при частых обновлениях монотонно увеличивается минимум на 1.
+- Tick perf-budget runtime API (боевой путь): `NpcBhvrSetTickMaxEvents` и `NpcBhvrSetTickSoftBudgetMs` применяются через `NpcBhvrApplyTickRuntimeConfig` в bootstrap (`NpcBhvrBootstrapModuleAreas`) и при активации area (`NpcBhvrAreaActivate`), с override-цепочкой `area cfg -> module cfg -> defaults` по ключам `npc_cfg_tick_max_events` и `npc_cfg_tick_soft_budget_ms`.
 
 ## Базовые include-файлы
 
@@ -44,6 +45,12 @@ Tick/degraded telemetry в runtime включает:
 - `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `EVENT_BUDGET|SOFT_BUDGET|OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
 
 - Tick budget-параметры (`npc_tick_max_events`, `npc_tick_soft_budget_ms`) нормализуются и фиксируются при `NpcBhvrAreaActivate` через `NpcBhvrSetTickMaxEvents/NpcBhvrSetTickSoftBudgetMs` (с hard-cap), после чего используются в `NpcBhvrOnAreaTick`.
+
+### Perf-budget runtime application
+
+- Runtime-пределы тика (`max events` и `soft budget ms`) применяются через `NpcBhvrApplyTickRuntimeConfig`.
+- Источники конфигурации (по приоритету): area-local (`npc_cfg_tick_max_events`, `npc_cfg_tick_soft_budget_ms`) -> module-local (те же ключи на `GetModule()`) -> встроенные defaults (`NPC_BHVR_TICK_MAX_EVENTS_DEFAULT`, `NPC_BHVR_TICK_SOFT_BUDGET_MS_DEFAULT`).
+- Точка применения в lifecycle: bootstrap всех областей на module-load и каждое `NpcBhvrAreaActivate`, чтобы настройки оставались консистентными после pause/resume.
 
 
 ## Activity primitives runtime-контракт
