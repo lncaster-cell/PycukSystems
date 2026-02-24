@@ -1,7 +1,7 @@
 # NPC Baseline Report (Phase 1)
 
-> Current baseline (reference-point) для всех сравнений perf-gate: этот документ.
-> Архив исторических baseline-отчётов: `docs/perf/reports/`.
+> Этот файл (`docs/perf/npc_baseline_report.md`) используется perf-gate как current reference-point.
+> `docs/perf/reports/` используется только как historical archive baseline-отчётов.
 
 ## 1. Контекст последнего валидного прогона
 - Дата: **N/A** (в репозитории отсутствует подтверждённый валидный baseline-run с телеметрией).

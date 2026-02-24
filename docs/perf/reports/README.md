@@ -4,6 +4,7 @@
 
 - `YYYY-MM-DD_*`
 
-Правило ведения:
-- `docs/perf/npc_baseline_report.md` содержит только **current baseline** (reference-point для perf-gate).
-- При обновлении current baseline предыдущая версия переносится в этот архив с датой.
+Модель current vs archive:
+- **Current baseline**: только `docs/perf/npc_baseline_report.md` (reference-point для perf-gate).
+- **Archive baseline**: `docs/perf/reports/*` (исторические отчёты только для трендов).
+- При обновлении current baseline предыдущая версия переносится в архив с датой.

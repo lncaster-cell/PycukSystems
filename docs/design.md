@@ -123,7 +123,7 @@
 
 #### Checklist: Перед merge
 - [ ] Бенчмарк первой фазы пройден (≥ 3 прогона), отчёт приложен.
-  - **BLOCKED**: в репозитории нет валидного benchmark-отчёта с telemetry за ≥3 прогона; текущий baseline помечен как blocked. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/2026-02-23_npc_baseline_report.md`.
+  - **BLOCKED**: в репозитории нет валидного benchmark-отчёта с telemetry за ≥3 прогона; current baseline (`docs/perf/npc_baseline_report.md`) остаётся в статусе `BLOCKED`, а `docs/perf/reports/*` используется только как historical archive. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/`.
 - [ ] Perf-gate пороги не нарушены относительно baseline.
   - **BLOCKED**: сравнение невозможно без актуального (≤14 дней) валидного baseline; текущий current baseline содержит `N/A` и статус `BLOCKED`. Owner: NPC runtime/perf owner. Артефакт: `docs/perf/npc_baseline_report.md`.
 - [ ] Проверены SLO по p95 area-tick, queue depth и dropped/deferred events.

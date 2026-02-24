@@ -4,10 +4,10 @@
 
 ## Baseline reference-point
 
-Для всех сравнений perf-gate NPC Bhvr reference-point задаётся текущим baseline-отчётом в `docs/perf/reports/` (например, `docs/perf/reports/2026-02-23_npc_baseline_report.md`).
+Для всех сравнений perf-gate NPC Bhvr reference-point задаётся **только** current baseline-файлом `docs/perf/npc_baseline_report.md`.
 
 - Если baseline отсутствует или старше 14 дней, результаты сравнения считаются `BLOCKED` до обновления baseline.
-- Исторические baseline-версии берутся из `docs/perf/reports/` и используются только для ретроспективного анализа трендов.
+- `docs/perf/reports/*` используется только как historical archive для ретроспективного анализа трендов и не является current baseline для gate-сравнений.
 
 ## 1) Registry overflow guardrail
 
