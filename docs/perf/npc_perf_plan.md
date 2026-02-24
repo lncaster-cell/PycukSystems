@@ -45,21 +45,21 @@
 
 ## Fixture-профили
 
-- `docs/perf/fixtures/npc_bhvr/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
-- `docs/perf/fixtures/npc_bhvr/steady_decimal_latency.csv` — стабильная нагрузка с дробным latency/queue_depth; ожидаемый результат анализатора: `[OK]`.
-- `docs/perf/fixtures/npc_bhvr/burst.csv` — кратковременные всплески очереди и латентности.
-- `docs/perf/fixtures/npc_bhvr/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
+- `docs/perf/fixtures/npc/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
+- `docs/perf/fixtures/npc/steady_decimal_latency.csv` — стабильная нагрузка с дробным latency/queue_depth; ожидаемый результат анализатора: `[OK]`.
+- `docs/perf/fixtures/npc/burst.csv` — кратковременные всплески очереди и латентности.
+- `docs/perf/fixtures/npc/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
 
 ## Локальный запуск
 
 ```bash
-bash scripts/run_npc_bhvr_bench.sh steady
-python3 scripts/analyze_npc_bhvr_fairness.py \
-  --input docs/perf/fixtures/npc_bhvr/steady.csv
+bash scripts/run_npc_bench.sh steady
+python3 scripts/analyze_npc_fairness.py \
+  --input docs/perf/fixtures/npc/steady.csv
 ```
 
 Для регрессии удобно прогонять все три fixture-файла и сверять итоговый pass/fail по gate-метрикам.
 
 ## Audit-derived guardrails
 
-Детальные сценарии по ограничениям из AL-аудита вынесены в `docs/perf/npc_bhvr_perf_gate.md` и входят в release-gate NPC Bhvr.
+Детальные сценарии по ограничениям из AL-аудита вынесены в `docs/perf/npc_perf_gate.md` и входят в release-gate NPC Bhvr.

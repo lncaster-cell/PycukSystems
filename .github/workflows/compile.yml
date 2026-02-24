@@ -87,9 +87,17 @@ jobs:
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $sourceRootIncludePath = Join-Path $PWD 'src'
           $npcBehaviorIncludePath = Join-Path $PWD 'tools/npc_behavior_system'
-          $projectIncludePath = Join-Path $PWD 'tools/scripts'
+          $npcIncludePath = Join-Path $PWD 'src/modules/npc'
+          $projectIncludePath = Join-Path $PWD 'scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
-          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          $moduleIncludeDirs = Get-ChildItem -Path (Join-Path $PWD 'src/modules') -Recurse -File -Filter '*.nss' |
+            Select-Object -ExpandProperty DirectoryName -Unique |
+            Sort-Object
+
+          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          foreach ($moduleIncludeDir in $moduleIncludeDirs) {
+            $includeArgs += @('-i', $moduleIncludeDir)
+          }
 
           $logDir = Join-Path $PWD 'ci-logs'
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null
@@ -339,9 +347,17 @@ jobs:
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $sourceRootIncludePath = Join-Path $PWD 'src'
           $npcBehaviorIncludePath = Join-Path $PWD 'tools/npc_behavior_system'
-          $projectIncludePath = Join-Path $PWD 'tools/scripts'
+          $npcIncludePath = Join-Path $PWD 'src/modules/npc'
+          $projectIncludePath = Join-Path $PWD 'scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
-          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          $moduleIncludeDirs = Get-ChildItem -Path (Join-Path $PWD 'src/modules') -Recurse -File -Filter '*.nss' |
+            Select-Object -ExpandProperty DirectoryName -Unique |
+            Sort-Object
+
+          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          foreach ($moduleIncludeDir in $moduleIncludeDirs) {
+            $includeArgs += @('-i', $moduleIncludeDir)
+          }
 
           $logDir = Join-Path $PWD 'ci-logs'
           New-Item -ItemType Directory -Path $logDir -Force | Out-Null

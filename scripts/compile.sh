@@ -10,12 +10,14 @@ INCLUDE_PATH="$ROOT_DIR/scripts"
 NWNX_INCLUDE_PATH="$ROOT_DIR/third_party/nwnx_includes"
 SOURCE_ROOT_INCLUDE_PATH="$ROOT_DIR/src"
 NPC_BEHAVIOR_INCLUDE_PATH="$ROOT_DIR/tools/npc_behavior_system"
+NPC_INCLUDE_PATH="$ROOT_DIR/src/modules/npc"
 STOCK_INCLUDE_SOURCE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
 STOCK_INCLUDE_PATH="$ROOT_DIR/.ci/nwn2_stock_scripts"
 OUTPUT_DIR="$ROOT_DIR/output"
 INCLUDE_CANDIDATES=(
   "$STOCK_INCLUDE_PATH"
   "$SOURCE_ROOT_INCLUDE_PATH"
+  "$NPC_INCLUDE_PATH"
   "$NPC_BEHAVIOR_INCLUDE_PATH"
   "$INCLUDE_PATH"
   "$NWNX_INCLUDE_PATH"
@@ -73,6 +75,14 @@ for include_dir in "${INCLUDE_CANDIDATES[@]}"; do
   if [[ -d "$include_dir" ]]; then
     INCLUDE_ARGS+=( -i "$include_dir" )
   fi
+done
+
+mapfile -t MODULE_INCLUDE_DIRS < <(
+  find "$ROOT_DIR/src/modules" -type f -name "*.nss" -printf "%h\n" | LC_ALL=C sort -u
+)
+
+for include_dir in "${MODULE_INCLUDE_DIRS[@]}"; do
+  INCLUDE_ARGS+=( -i "$include_dir" )
 done
 
 mapfile -t FILES < <(

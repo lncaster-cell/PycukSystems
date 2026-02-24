@@ -94,7 +94,7 @@
 - `--max-post-resume-drain-ticks <N>`
 - `--min-resume-transitions <N>`
 
-Базовый smoke-прогон выполняется через `scripts/test_npc_bhvr_fairness.sh` и использует фиксированный набор флагов выше.
+Базовый smoke-прогон выполняется через `scripts/test_npc_fairness.sh` и использует фиксированный набор флагов выше.
 
 ### Gate
 
@@ -107,14 +107,14 @@
 
 ### Сценарий
 
-- Установить runtime-конфиги области: `npc_bhvr_tick_max_events` и `npc_bhvr_tick_soft_budget_ms` в заведомо малые значения (например, `2` и `8`).
+- Установить runtime-конфиги области: `npc_tick_max_events` и `npc_tick_soft_budget_ms` в заведомо малые значения (например, `2` и `8`).
 - Сформировать burst, превышающий бюджет тика (очередь HIGH/NORMAL + CRITICAL).
 - Запустить 5–10 последовательных тиков и снять метрики по области.
 
 ### Проверки
 
-- за тик обрабатывается не более `npc_bhvr_tick_max_events` событий (`processed_total` растёт bounded-инкрементом);
-- tick-loop прекращает обработку при достижении soft-бюджета `npc_bhvr_tick_soft_budget_ms` **или** event budget;
+- за тик обрабатывается не более `npc_tick_max_events` событий (`processed_total` растёт bounded-инкрементом);
+- tick-loop прекращает обработку при достижении soft-бюджета `npc_tick_soft_budget_ms` **или** event budget;
 - при наличии хвоста после budget cutoff включается degraded-mode и растут `tick_budget_exceeded_total` и `degraded_mode_total`;
 - `tick_budget_exceeded_total` и `degraded_mode_total` синхронно увеличиваются только при budget cutoff с ненулевым хвостом pending;
 - `queue_deferred_count` растёт только когда есть хвост после budget cutoff;

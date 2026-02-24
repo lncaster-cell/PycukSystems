@@ -40,9 +40,9 @@ Reference-point для perf-сравнений: актуальный NPC baselin
   - фиксируется событие overflow и причина отказа регистрации;
   - при overflow сохраняется инвариант: старые записи остаются валидными, swap/prune не повреждаются.
 - **Где реализуется:**
-  - код: `npc_bhvr_core.nss` (реестр и register/unregister), `npc_bhvr_activity_inc.nss` (fallback активности для NPC вне реестра);
-  - метрика: `npc_bhvr_metrics_inc.nss` (`registry_overflow_total`, `registry_reject_total`);
-  - perf-сценарий: `docs/perf/npc_bhvr_perf_gate.md` (stress с переполнением реестра).
+  - код: `npc_core.nss` (реестр и register/unregister), `npc_activity_inc.nss` (fallback активности для NPC вне реестра);
+  - метрика: `npc_metrics_inc.nss` (`registry_overflow_total`, `registry_reject_total`);
+  - perf-сценарий: `docs/perf/npc_perf_gate.md` (stress с переполнением реестра).
 
 ### 2) Guardrail: политика route cache warmup
 
@@ -52,9 +52,9 @@ Reference-point для perf-сравнений: актуальный NPC baselin
   - повторный вызов warmup идемпотентен (не инициирует полный re-scan без invalidate);
   - для крупных областей допускается prewarm на старте модуля, чтобы убрать пик на первом OnEnter.
 - **Где реализуется:**
-  - код: `npc_bhvr_core.nss` (cache lifecycle + invalidate), `npc_bhvr_activity_inc.nss` (использование route cache без прямого обхода area);
-  - метрика: `npc_bhvr_metrics_inc.nss` (`route_cache_warmup_total`, `route_cache_rescan_total`, `route_cache_hit_ratio`);
-  - perf-сценарий: `docs/perf/npc_bhvr_perf_gate.md` (warmup spike и повторный OnEnter без re-scan).
+  - код: `npc_core.nss` (cache lifecycle + invalidate), `npc_activity_inc.nss` (использование route cache без прямого обхода area);
+  - метрика: `npc_metrics_inc.nss` (`route_cache_warmup_total`, `route_cache_rescan_total`, `route_cache_hit_ratio`);
+  - perf-сценарий: `docs/perf/npc_perf_gate.md` (warmup spike и повторный OnEnter без re-scan).
 
 ### 3) Guardrail: диагностика silent degradation
 
@@ -64,13 +64,13 @@ Reference-point для perf-сравнений: актуальный NPC baselin
   - есть минимальный audit-log (rate-limited), включаемый debug-флагом;
   - release-gate проверяет, что при fault-injection срабатывают счётчики и алармы.
 - **Где реализуется:**
-  - код: `npc_bhvr_core.nss` (reason-code и rate-limited diagnostics), `npc_bhvr_activity_inc.nss` (проброс reason-code на уровне активностей);
-  - метрика: `npc_bhvr_metrics_inc.nss` (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`);
-  - perf-сценарий: `docs/perf/npc_bhvr_perf_gate.md` (fault-injection профили silent degradation).
+  - код: `npc_core.nss` (reason-code и rate-limited diagnostics), `npc_activity_inc.nss` (проброс reason-code на уровне активностей);
+  - метрика: `npc_metrics_inc.nss` (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`);
+  - perf-сценарий: `docs/perf/npc_perf_gate.md` (fault-injection профили silent degradation).
 
 ## Норматив для подготовки NPC Bhvr
 
-Отдельный документ с performance gate для гибридного модуля: `docs/perf/npc_bhvr_perf_gate.md` (применяется отдельно от Phase 1 NPC).
+Отдельный документ с performance gate для гибридного модуля: `docs/perf/npc_perf_gate.md` (применяется отдельно от Phase 1 NPC).
 
 1. **Runtime-контракт (обязательный):**
    - lifecycle, queue guardrails, intake-policy, observability — наследуются из `npc_behavior` без упрощений;
@@ -92,13 +92,13 @@ Reference-point для perf-сравнений: актуальный NPC baselin
 - [ ] **M3-CHECK-01 · Registry overflow check:** при нагрузке выше лимита реестра модуль не падает, overflow учитывается в метриках, а незарегистрированные NPC получают предсказуемый fallback.
 - [ ] **M3-CHECK-02 · Route warmup check:** первый warmup допускает единичный пик, повторные входы в область не вызывают полный re-scan без explicit invalidate.
 - [ ] **M3-CHECK-03 · Silent degradation diagnostics check:** каждый сценарий деградации генерирует reason-code в коде, счётчик в метрике и наблюдаемое событие в perf-отчёте.
-- [ ] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/npc_bhvr_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails и явную привязку к `docs/perf/npc_baseline_report.md` как reference-point.
+- [ ] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/npc_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails и явную привязку к `docs/perf/npc_baseline_report.md` как reference-point.
 
-Статус исполнения и декомпозиция задач ведутся в `docs/npc_bhvr_implementation_backlog.md` (матрица = стратегия, backlog = исполнение).
+Статус исполнения и декомпозиция задач ведутся в `docs/npc_implementation_backlog.md` (матрица = стратегия, backlog = исполнение).
 
 ## Минимальный backlog на внедрение матрицы
 
-- [ ] **RC-1/RC-2:** Runtime Core (lifecycle/queue/priority) — см. `docs/npc_bhvr_implementation_backlog.md`.
-- [ ] **AL-1/AL-2/AL-3:** Activity Layer (порт AL primitives) — см. `docs/npc_bhvr_implementation_backlog.md`.
-- [ ] **MP-1/MP-2:** Metrics/Persistence contract — см. `docs/npc_bhvr_implementation_backlog.md`.
-- [ ] **PG-1/PG-2:** Perf Validation & Gate — см. `docs/npc_bhvr_implementation_backlog.md`.
+- [ ] **RC-1/RC-2:** Runtime Core (lifecycle/queue/priority) — см. `docs/npc_implementation_backlog.md`.
+- [ ] **AL-1/AL-2/AL-3:** Activity Layer (порт AL primitives) — см. `docs/npc_implementation_backlog.md`.
+- [ ] **MP-1/MP-2:** Metrics/Persistence contract — см. `docs/npc_implementation_backlog.md`.
+- [ ] **PG-1/PG-2:** Perf Validation & Gate — см. `docs/npc_implementation_backlog.md`.
