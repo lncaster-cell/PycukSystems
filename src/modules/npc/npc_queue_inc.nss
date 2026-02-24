@@ -12,6 +12,7 @@ void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta);
 
 #include "npc_queue_pending_inc"
 #include "npc_queue_index_inc"
+#include "npc_queue_ring_inc"
 #include "npc_queue_deferred_inc"
 #include "npc_queue_legacy_inc"
 void NpcBhvrPendingAreaTouchAt(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus, int nNow);
@@ -86,24 +87,44 @@ void NpcBhvrPendingNpcClear(object oNpc)
 object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
 {
     int nDepth;
+    int nTail;
     object oRemoved;
     object oTail;
 
     nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
-    if (nIndex < 1 || nIndex > nDepth)
+    if (nDepth <= 0 || nIndex < 1 || nIndex > NPC_BHVR_QUEUE_MAX)
     {
         return OBJECT_INVALID;
     }
 
     oRemoved = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
-    if (nIndex != nDepth)
+    nTail = GetLocalInt(oArea, NpcBhvrQueueTailKey(nPriority));
+    if (nTail < 1 || nTail > NPC_BHVR_QUEUE_MAX)
     {
-        oTail = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
-        SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oTail);
+        nTail = 1;
     }
 
-    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
-    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+    if (nIndex != nTail)
+    {
+        oTail = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nTail));
+        SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oTail);
+        if (GetIsObjectValid(oTail))
+        {
+            NpcBhvrQueueIndexSet(oArea, oTail, nPriority, nIndex);
+        }
+    }
+
+    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nTail));
+    if (nDepth == 1)
+    {
+        NpcBhvrQueueSetDepthForPriority(oArea, nPriority, 0);
+    }
+    else
+    {
+        NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueTailKey(nPriority), NpcBhvrQueueRingPrevSlot(nTail));
+        NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+    }
+
     NpcBhvrQueueApplyTotalsDelta(oArea, -1);
 
     return oRemoved;
@@ -113,6 +134,8 @@ object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
 int NpcBhvrQueueEnqueueRaw(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
+    int nHead;
+    int nTail;
     int nTotal;
 
     nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
@@ -122,10 +145,22 @@ int NpcBhvrQueueEnqueueRaw(object oArea, object oSubject, int nPriority)
         return FALSE;
     }
 
-    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority) + 1;
-    SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth), oSubject);
-    NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nDepth);
-    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth);
+    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
+    if (nDepth <= 0)
+    {
+        nHead = 1;
+        nTail = 1;
+        NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueHeadKey(nPriority), nHead);
+    }
+    else
+    {
+        nTail = NpcBhvrQueueRingNextSlot(GetLocalInt(oArea, NpcBhvrQueueTailKey(nPriority)));
+    }
+
+    SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nTail), oSubject);
+    NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nTail);
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueTailKey(nPriority), nTail);
+    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth + 1);
     NpcBhvrQueueApplyTotalsDelta(oArea, 1);
     return TRUE;
 }
@@ -139,6 +174,10 @@ string NpcBhvrQueueSubjectKey(int nPriority, int nIndex)
 {
     return "npc_queue_subject_" + IntToString(nPriority) + "_" + IntToString(nIndex);
 }
+
+string NpcBhvrQueueHeadKey(int nPriority);
+string NpcBhvrQueueTailKey(int nPriority);
+string NpcBhvrQueueCountKey(int nPriority);
 
 
 void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus)
@@ -224,12 +263,42 @@ int NpcBhvrPriorityEscalate(int nCurrentPriority, int nIncomingPriority, int nRe
 
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority)
 {
-    return GetLocalInt(oArea, NpcBhvrQueueDepthKey(nPriority));
+    int nDepth;
+
+    nDepth = GetLocalInt(oArea, NpcBhvrQueueCountKey(nPriority));
+    if (nDepth <= 0)
+    {
+        nDepth = GetLocalInt(oArea, NpcBhvrQueueDepthKey(nPriority));
+        if (nDepth > 0)
+        {
+            if (nDepth > NPC_BHVR_QUEUE_MAX)
+            {
+                nDepth = NPC_BHVR_QUEUE_MAX;
+            }
+
+            NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueCountKey(nPriority), nDepth);
+            NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueHeadKey(nPriority), 1);
+            NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueTailKey(nPriority), nDepth);
+        }
+    }
+
+    return nDepth;
 }
 
 void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth)
 {
+    if (nDepth < 0)
+    {
+        nDepth = 0;
+    }
+
     NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueDepthKey(nPriority), nDepth);
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueCountKey(nPriority), nDepth);
+    if (nDepth == 0)
+    {
+        NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueHeadKey(nPriority), 1);
+        NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueTailKey(nPriority), 1);
+    }
 }
 
 void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta)
@@ -273,17 +342,20 @@ void NpcBhvrQueueClear(object oArea)
         nIndex = 1;
         while (nIndex <= nDepth)
         {
-            oRegistered = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
+            oRegistered = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nPriority, nIndex)));
             if (GetIsObjectValid(oRegistered))
             {
                 NpcBhvrQueueIndexClear(oArea, oRegistered);
             }
 
-            DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
+            DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nPriority, nIndex)));
             nIndex = nIndex + 1;
         }
 
         NpcBhvrQueueSetDepthForPriority(oArea, nPriority, 0);
+        DeleteLocalInt(oArea, NpcBhvrQueueHeadKey(nPriority));
+        DeleteLocalInt(oArea, NpcBhvrQueueTailKey(nPriority));
+        DeleteLocalInt(oArea, NpcBhvrQueueCountKey(nPriority));
         nPriority = nPriority + 1;
     }
 
@@ -321,76 +393,68 @@ void NpcBhvrQueueApplyDepthAndTotalsDelta(object oArea, int nPriority, int nDept
 int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
+    int nTail;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
         return FALSE;
     }
 
-    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority) + 1;
-    SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth), oSubject);
-    NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nDepth);
-    NpcBhvrQueueApplyDepthAndTotalsDelta(oArea, nPriority, nDepth, 1);
+    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
+    if (nDepth <= 0)
+    {
+        NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueHeadKey(nPriority), 1);
+        nTail = 1;
+    }
+    else
+    {
+        nTail = NpcBhvrQueueRingNextSlot(GetLocalInt(oArea, NpcBhvrQueueTailKey(nPriority)));
+    }
+
+    SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nTail), oSubject);
+    NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nTail);
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueTailKey(nPriority), nTail);
+    NpcBhvrQueueApplyDepthAndTotalsDelta(oArea, nPriority, nDepth + 1, 1);
     return TRUE;
 }
 
 object NpcBhvrQueueSwapTailSubject(object oArea, int nPriority, int nIndex, int bClearRemovedIndex)
 {
-    int nDepth;
     object oRemoved;
-    object oTail;
 
-    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
-    if (nIndex < 1 || nIndex > nDepth)
-    {
-        return OBJECT_INVALID;
-    }
-
-    oRemoved = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
-
-    if (nIndex != nDepth)
-    {
-        oTail = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
-        SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oTail);
-        if (GetIsObjectValid(oTail))
-        {
-            NpcBhvrQueueIndexSet(oArea, oTail, nPriority, nIndex);
-        }
-    }
-
-    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
+    oRemoved = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nIndex);
     if (bClearRemovedIndex && GetIsObjectValid(oRemoved))
     {
         NpcBhvrQueueIndexClear(oArea, oRemoved);
     }
-
-    NpcBhvrQueueApplyDepthAndTotalsDelta(oArea, nPriority, nDepth - 1, -1);
     return oRemoved;
 }
 
 int NpcBhvrQueueFindSubjectByPointChecks(object oArea, object oSubject, int nPriorityHint, int nPositionHint)
 {
     int nDepth;
+    int nSlot;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
         return 0;
     }
 
-    if (nPriorityHint < NPC_BHVR_PRIORITY_CRITICAL || nPriorityHint > NPC_BHVR_PRIORITY_LOW || nPositionHint <= 0)
+    if (nPriorityHint < NPC_BHVR_PRIORITY_CRITICAL || nPriorityHint > NPC_BHVR_PRIORITY_LOW || nPositionHint <= 0 || nPositionHint > NPC_BHVR_QUEUE_MAX)
     {
         return 0;
     }
 
     nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriorityHint);
-    if (nPositionHint > nDepth)
+    if (nDepth <= 0)
     {
         return 0;
     }
 
-    if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriorityHint, nPositionHint)) == oSubject)
+    nSlot = nPositionHint;
+    if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriorityHint, nSlot)) == oSubject)
     {
-        return nPriorityHint * 1000 + nPositionHint;
+        return nPriorityHint * 1000 + nSlot;
     }
 
     return 0;
@@ -440,9 +504,9 @@ int NpcBhvrQueueFindSubjectSlowPath(object oArea, object oSubject)
         nIndex = 1;
         while (nIndex <= nDepth)
         {
-            if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nExistingPriority, nIndex)) == oSubject)
+            if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nExistingPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nExistingPriority, nIndex))) == oSubject)
             {
-                return nExistingPriority * 1000 + nIndex;
+                return nExistingPriority * 1000 + NpcBhvrQueueRingLogicalToSlot(oArea, nExistingPriority, nIndex);
             }
 
             nIndex = nIndex + 1;
@@ -567,9 +631,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
 object NpcBhvrQueueDequeueFromPriority(object oArea, int nPriority)
 {
     int nDepth;
-    int nIndex;
+    int nHead;
     object oSubject;
-    object oShifted;
 
     nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
     if (nDepth <= 0)
@@ -577,30 +640,29 @@ object NpcBhvrQueueDequeueFromPriority(object oArea, int nPriority)
         return OBJECT_INVALID;
     }
 
-    oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, 1));
-
-    nIndex = 1;
-    while (nIndex < nDepth)
+    nHead = GetLocalInt(oArea, NpcBhvrQueueHeadKey(nPriority));
+    if (nHead < 1 || nHead > NPC_BHVR_QUEUE_MAX)
     {
-        oShifted = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex + 1));
-        SetLocalObject(
-            oArea,
-            NpcBhvrQueueSubjectKey(nPriority, nIndex),
-            oShifted
-        );
-        if (GetIsObjectValid(oShifted))
-        {
-            NpcBhvrQueueIndexSet(oArea, oShifted, nPriority, nIndex);
-        }
-        nIndex = nIndex + 1;
+        nHead = 1;
     }
 
-    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
+    oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nHead));
+    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nHead));
     if (GetIsObjectValid(oSubject))
     {
         NpcBhvrQueueIndexClear(oArea, oSubject);
     }
-    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+
+    if (nDepth == 1)
+    {
+        NpcBhvrQueueSetDepthForPriority(oArea, nPriority, 0);
+    }
+    else
+    {
+        NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueHeadKey(nPriority), NpcBhvrQueueRingNextSlot(nHead));
+        NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+    }
+
     NpcBhvrQueueApplyTotalsDelta(oArea, -1);
     return oSubject;
 }
@@ -612,7 +674,7 @@ object NpcBhvrQueuePeekFromPriority(object oArea, int nPriority)
         return OBJECT_INVALID;
     }
 
-    return GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, 1));
+    return GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nPriority, 1)));
 }
 
 int NpcBhvrQueueDropTailFromPriorityAt(object oArea, int nPriority, int nNow)
@@ -626,7 +688,7 @@ int NpcBhvrQueueDropTailFromPriorityAt(object oArea, int nPriority, int nNow)
         return FALSE;
     }
 
-    oDropped = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nDepth);
+    oDropped = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, GetLocalInt(oArea, NpcBhvrQueueTailKey(nPriority)));
 
     if (GetIsObjectValid(oDropped))
     {
