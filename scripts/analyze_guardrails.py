@@ -6,33 +6,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from pathlib import Path
 
-PASS_TOKENS = {"1", "true", "pass"}
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-
-def parse_int(raw: str | None, row_index: int, column_name: str) -> int:
-    if raw is None:
-        raise ValueError(
-            f"invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
-        )
-
-    value = raw.strip()
-    if not value:
-        raise ValueError(
-            f"invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
-        )
-
-    try:
-        return int(value)
-    except ValueError as exc:
-        raise ValueError(
-            f"invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
-        ) from exc
-
-
-def _pass_bool(raw: str | None) -> bool:
-    return (raw or "").strip().lower() in PASS_TOKENS
+from lib.guardrail_metrics import aggregate_guardrail_metrics
 
 
 def fail_payload(reason: str) -> dict[str, str]:
@@ -48,67 +29,22 @@ def analyze(path: Path) -> dict[str, str]:
 
     with path.open(encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
-        fields = set(reader.fieldnames or [])
+        metrics = aggregate_guardrail_metrics(reader, reader.fieldnames)
 
-        has_overflow = "overflow_events" in fields
-        has_budget = {"budget_overrun", "deferred_events"}.issubset(fields)
-        has_warmup = {
-            "route_cache_warmup_ok",
-            "route_cache_rescan_ok",
-            "route_cache_guardrail_status",
-        }.issubset(fields)
+    if metrics.has_overflow:
+        result["overflow"] = "PASS" if metrics.running_rows > 0 and metrics.overflow_hits > 0 else "FAIL"
 
-        running_rows = 0
-        overflow_hits = 0
-        budget_hits = 0
-        deferred_hits = 0
-        warmup_rows = 0
-        warmup_all_ok = True
-        rescan_all_ok = True
-        guardrail_all_ok = True
+    if metrics.has_budget:
+        result["budget"] = (
+            "PASS" if metrics.running_rows > 0 and metrics.budget_hits > 0 and metrics.deferred_hits > 0 else "FAIL"
+        )
 
-        for row_index, row in enumerate(reader, start=1):
-            is_running = (row.get("lifecycle_state") or "").strip().upper() == "RUNNING"
-            if is_running and (has_overflow or has_budget):
-                running_rows += 1
-
-            overflow_events = None
-            budget_overrun = None
-            deferred_events = None
-            if is_running:
-                # Intentionally skip non-RUNNING rows to reduce single-pass cost on large CSV files.
-                if has_overflow:
-                    overflow_events = parse_int(row.get("overflow_events"), row_index, "overflow_events")
-                if has_budget:
-                    budget_overrun = parse_int(row.get("budget_overrun"), row_index, "budget_overrun")
-                    deferred_events = parse_int(row.get("deferred_events"), row_index, "deferred_events")
-
-            if has_overflow and is_running and overflow_events is not None and overflow_events > 0:
-                overflow_hits += 1
-
-            if has_budget and is_running and budget_overrun is not None and deferred_events is not None:
-                if budget_overrun > 0:
-                    budget_hits += 1
-                if deferred_events > 0:
-                    deferred_hits += 1
-
-            if has_warmup:
-                warmup_rows += 1
-                warmup_all_ok = warmup_all_ok and _pass_bool(row.get("route_cache_warmup_ok"))
-                rescan_all_ok = rescan_all_ok and _pass_bool(row.get("route_cache_rescan_ok"))
-                guardrail_all_ok = (
-                    guardrail_all_ok
-                    and (row.get("route_cache_guardrail_status") or "").strip().upper() == "PASS"
-                )
-
-    if has_overflow:
-        result["overflow"] = "PASS" if running_rows > 0 and overflow_hits > 0 else "FAIL"
-
-    if has_budget:
-        result["budget"] = "PASS" if running_rows > 0 and budget_hits > 0 and deferred_hits > 0 else "FAIL"
-
-    if has_warmup:
-        result["warmup"] = "PASS" if warmup_rows > 0 and warmup_all_ok and rescan_all_ok and guardrail_all_ok else "FAIL"
+    if metrics.has_warmup:
+        result["warmup"] = (
+            "PASS"
+            if metrics.warmup_rows > 0 and metrics.warmup_all_ok and metrics.rescan_all_ok and metrics.guardrail_all_ok
+            else "FAIL"
+        )
 
     return result
 

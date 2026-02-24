@@ -4,7 +4,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import sys
 from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parents[1]
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
+from lib.guardrail_metrics import aggregate_guardrail_metrics, parse_int
 
 BUCKET_COLUMN = {
     "LOW": "processed_low",
@@ -12,15 +19,6 @@ BUCKET_COLUMN = {
     "HIGH": "processed_high",
     "CRITICAL": "processed_critical",
 }
-PASS_TOKENS = {"1", "true", "pass"}
-
-
-def safe_int(value: str | None) -> int:
-    return int((value or "").strip())
-
-
-def pass_bool(raw: str | None) -> bool:
-    return (raw or "").strip().lower() in PASS_TOKENS
 
 
 def fail_payload(reason: str) -> dict:
@@ -73,14 +71,6 @@ def main() -> int:
 
             fields = set(fieldnames)
             has_fairness = {"tick", *[BUCKET_COLUMN[b] for b in buckets]}.issubset(fields)
-            has_overflow = "overflow_events" in fields
-            has_budget = {"budget_overrun", "deferred_events"}.issubset(fields)
-            has_warmup = {
-                "route_cache_warmup_ok",
-                "route_cache_rescan_ok",
-                "route_cache_guardrail_status",
-            }.issubset(fields)
-
             total_rows = 0
             running_rows = 0
 
@@ -94,16 +84,6 @@ def main() -> int:
             resume_window_violations = 0
             previous_state = "RUNNING"
 
-            # overflow/budget
-            overflow_hits = 0
-            budget_hits = 0
-            deferred_hits = 0
-
-            # warmup
-            warmup_rows = 0
-            warmup_all_ok = True
-            rescan_all_ok = True
-            guardrail_all_ok = True
 
             for row_index, row in enumerate(reader, start=1):
                 total_rows += 1
@@ -119,16 +99,9 @@ def main() -> int:
                         numeric_columns.update(pause_zero_columns)
                     for column in numeric_columns:
                         try:
-                            parsed_numbers[column] = safe_int(row.get(column))
-                        except Exception:
-                            print(
-                                json.dumps(
-                                    fail_payload(
-                                        f"invalid numeric value (row index={row_index}, column name={column}, raw value={row.get(column)!r})"
-                                    ),
-                                    ensure_ascii=False,
-                                )
-                            )
+                            parsed_numbers[column] = parse_int(row.get(column), row_index, column)
+                        except ValueError as exc:
+                            print(json.dumps(fail_payload(str(exc)), ensure_ascii=False))
                             return 2
 
                 if has_fairness:
@@ -158,34 +131,19 @@ def main() -> int:
 
                     previous_state = state
 
-                if has_overflow and is_running:
-                    try:
-                        if safe_int(row.get("overflow_events")) > 0:
-                            overflow_hits += 1
-                    except Exception:
-                        print(json.dumps(fail_payload("invalid numeric overflow_events"), ensure_ascii=False))
-                        return 2
-
-                if has_budget and is_running:
-                    try:
-                        if safe_int(row.get("budget_overrun")) > 0:
-                            budget_hits += 1
-                        if safe_int(row.get("deferred_events")) > 0:
-                            deferred_hits += 1
-                    except Exception:
-                        print(json.dumps(fail_payload("invalid numeric budget/deferred values"), ensure_ascii=False))
-                        return 2
-
-                if has_warmup:
-                    warmup_rows += 1
-                    warmup_all_ok = warmup_all_ok and pass_bool(row.get("route_cache_warmup_ok"))
-                    rescan_all_ok = rescan_all_ok and pass_bool(row.get("route_cache_rescan_ok"))
-                    guardrail_all_ok = guardrail_all_ok and (row.get("route_cache_guardrail_status") or "").strip().upper() == "PASS"
 
             if total_rows == 0:
                 print(json.dumps(fail_payload("csv is empty"), ensure_ascii=False))
                 return 2
 
+        with path.open("r", encoding="utf-8", newline="") as f:
+            guardrail_reader = csv.DictReader(f)
+            guardrail_metrics = aggregate_guardrail_metrics(guardrail_reader, guardrail_reader.fieldnames)
+
+
+    except ValueError as exc:
+        print(json.dumps(fail_payload(str(exc)), ensure_ascii=False))
+        return 2
     except (OSError, UnicodeDecodeError) as exc:
         print(json.dumps(fail_payload(f"failed to read csv: {exc}"), ensure_ascii=False))
         return 2
@@ -228,36 +186,36 @@ def main() -> int:
 
     overflow_status = "NA"
     overflow_reason = "overflow_events data absent in fixture"
-    if has_overflow:
-        if running_rows == 0:
+    if guardrail_metrics.has_overflow:
+        if guardrail_metrics.running_rows == 0:
             overflow_status = "FAIL"
             overflow_reason = "no RUNNING rows in input"
-        elif overflow_hits > 0:
+        elif guardrail_metrics.overflow_hits > 0:
             overflow_status = "PASS"
-            overflow_reason = f"overflow events observed on {overflow_hits}/{running_rows} RUNNING rows"
+            overflow_reason = f"overflow events observed on {guardrail_metrics.overflow_hits}/{guardrail_metrics.running_rows} RUNNING rows"
         else:
             overflow_status = "FAIL"
             overflow_reason = "overflow events were not observed"
 
     budget_status = "NA"
     budget_reason = "budget_overrun/deferred_events data absent in fixture"
-    if has_budget:
-        if running_rows == 0:
+    if guardrail_metrics.has_budget:
+        if guardrail_metrics.running_rows == 0:
             budget_status = "FAIL"
             budget_reason = "no RUNNING rows in input"
-        elif budget_hits > 0 and deferred_hits > 0:
+        elif guardrail_metrics.budget_hits > 0 and guardrail_metrics.deferred_hits > 0:
             budget_status = "PASS"
-            budget_reason = f"budget_overrun={budget_hits}/{running_rows}, deferred_events={deferred_hits}/{running_rows}"
+            budget_reason = f"budget_overrun={guardrail_metrics.budget_hits}/{guardrail_metrics.running_rows}, deferred_events={guardrail_metrics.deferred_hits}/{guardrail_metrics.running_rows}"
         else:
             budget_status = "FAIL"
             budget_reason = "budget_overrun or deferred_events signals were not observed"
 
     warmup_status = "NA"
     warmup_reason = "route_cache_* columns absent in fixture"
-    if has_warmup:
-        if warmup_rows > 0 and warmup_all_ok and rescan_all_ok and guardrail_all_ok:
+    if guardrail_metrics.has_warmup:
+        if guardrail_metrics.warmup_rows > 0 and guardrail_metrics.warmup_all_ok and guardrail_metrics.rescan_all_ok and guardrail_metrics.guardrail_all_ok:
             warmup_status = "PASS"
-            warmup_reason = f"all warmup/rescan checks passed on {warmup_rows} rows"
+            warmup_reason = f"all warmup/rescan checks passed on {guardrail_metrics.warmup_rows} rows"
         else:
             warmup_status = "FAIL"
             warmup_reason = "warmup/rescan/guardrail contains non-PASS signal"
@@ -274,14 +232,14 @@ def main() -> int:
             "resume_window_violations": resume_window_violations if has_fairness else 0,
             "worst_starvation_window": {b: worst[b] for b in buckets} if has_fairness else {},
         },
-        "overflow": {"status": overflow_status, "reason": overflow_reason, "hits": overflow_hits if has_overflow else 0},
+        "overflow": {"status": overflow_status, "reason": overflow_reason, "hits": guardrail_metrics.overflow_hits if guardrail_metrics.has_overflow else 0},
         "budget": {
             "status": budget_status,
             "reason": budget_reason,
-            "budget_overrun_hits": budget_hits if has_budget else 0,
-            "deferred_hits": deferred_hits if has_budget else 0,
+            "budget_overrun_hits": guardrail_metrics.budget_hits if guardrail_metrics.has_budget else 0,
+            "deferred_hits": guardrail_metrics.deferred_hits if guardrail_metrics.has_budget else 0,
         },
-        "warmup": {"status": warmup_status, "reason": warmup_reason, "rows": warmup_rows if has_warmup else 0},
+        "warmup": {"status": warmup_status, "reason": warmup_reason, "rows": guardrail_metrics.warmup_rows if guardrail_metrics.has_warmup else 0},
     }
     print(json.dumps(payload, ensure_ascii=False))
     return 0
