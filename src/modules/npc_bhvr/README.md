@@ -63,14 +63,14 @@
 
 | Hook | Script | Core handler |
 | --- | --- | --- |
-| OnSpawn | `npc_bhvr_behavior_spawn.nss` | `NpcBhvrOnSpawn` |
-| OnPerception | `npc_bhvr_behavior_perception.nss` | `NpcBhvrOnPerception` |
-| OnDamaged | `npc_bhvr_behavior_damaged.nss` | `NpcBhvrOnDamaged` |
-| OnDeath | `npc_bhvr_behavior_death.nss` | `NpcBhvrOnDeath` |
-| OnDialogue | `npc_bhvr_behavior_dialogue.nss` | `NpcBhvrOnDialogue` |
+| OnSpawn | `npc_bhvr_spawn.nss` | `NpcBhvrOnSpawn` |
+| OnPerception | `npc_bhvr_perception.nss` | `NpcBhvrOnPerception` |
+| OnDamaged | `npc_bhvr_damaged.nss` | `NpcBhvrOnDamaged` |
+| OnDeath | `npc_bhvr_death.nss` | `NpcBhvrOnDeath` |
+| OnDialogue | `npc_bhvr_dialogue.nss` | `NpcBhvrOnDialogue` |
 | Area OnEnter | `npc_bhvr_area_enter.nss` | `NpcBhvrOnAreaEnter` |
 | Area OnExit | `npc_bhvr_area_exit.nss` | `NpcBhvrOnAreaExit` |
-| OnModuleLoad | `npc_bhvr_behavior_module_load.nss` | `NpcBhvrOnModuleLoad` |
+| OnModuleLoad | `npc_bhvr_module_load.nss` | `NpcBhvrOnModuleLoad` |
 | Area tick loop | `npc_bhvr_area_tick.nss` | `NpcBhvrOnAreaTick` |
 
 ## Норматив
