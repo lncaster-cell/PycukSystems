@@ -97,6 +97,21 @@ Tick/degraded telemetry в runtime включает:
 - Очистка pending (`NpcBhvrPendingNpcClear` и `NpcBhvrPendingAreaClear`) допустима только на явных terminal-переходах (`processed`, `dropped`, удаление/смерть NPC, очистка очереди/area shutdown).
 - Следствие: deferred является краткоживущим состоянием до следующего события/terminal-перехода, но в течение этого окна наблюдается консистентно и в NPC-local, и в area-local.
 
+
+## Canonical runtime references
+
+- Runtime module: `src/modules/npc/*`
+- Runtime backlog: `docs/npc_implementation_backlog.md`
+- Runtime checklist: `docs/npc_phase1_test_checklist.md`
+- Perf gate: `docs/perf/npc_perf_gate.md`
+
+## Current readiness snapshot
+
+- **Runtime MVP:** `READY` — core lifecycle/queue/activity/metrics и thin-entrypoints подключены в `src/modules/npc/*`.
+- **Fairness/lifecycle self-check:** `READY` — автоматические проверки доступны через `scripts/test_npc_fairness.sh` и `scripts/check_lifecycle_contract.sh`.
+- **Perf baseline/perf-gate:** `BLOCKED` — актуальный валидный baseline (>=3 runs, <=14 days) отсутствует; см. `docs/perf/npc_baseline_report.md`.
+- **Runtime dashboards:** `BLOCKED` — артефакты конфигураций дашбордов не зафиксированы в репозитории.
+
 ## Карта hook-скриптов (thin entrypoints)
 
 | Hook | Script | Core handler |

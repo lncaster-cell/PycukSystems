@@ -4,6 +4,17 @@
 
 ## Классификация проверок
 
+## Canonical runtime references
+
+Используйте только актуальные runtime-пути для NPC Bhvr:
+- Runtime module: `src/modules/npc/*`
+- Runtime README: `src/modules/npc/README.md`
+- Backlog/readiness: `docs/npc_implementation_backlog.md`
+- Perf gate: `docs/perf/npc_perf_gate.md`
+
+Legacy `tools/*` не являются active runtime; исторические материалы находятся в `docs/legacy/tools_reference/*`.
+
+
 - **Blocking (merge gate)** — проверка обязательна для merge.
 - **Informational** — полезная диагностика, но не блокирует merge сама по себе.
 
