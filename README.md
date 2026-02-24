@@ -17,10 +17,10 @@
 
 Чеклист приёмки и минимальных проверок для Phase 1: `docs/npc_phase1_test_checklist.md`.
 
-Матрица для подготовки третьего модуля («лучшее из AL» vs «лучшее из npc_behavior»): `docs/npc_bhvr_al_vs_npc_behavior_matrix.md`.
+Матрица для подготовки третьего модуля («лучшее из AL» vs «лучшее из npc_behavior»): `docs/npc_al_vs_npc_behavior_matrix.md`.
 
-Исполняемый бэклог старта Module 3: `docs/npc_bhvr_implementation_backlog.md`.
-Отдельный perf-gate для Module 3 (гибрид AL/NPC): `docs/perf/npc_bhvr_perf_gate.md`.
+Исполняемый бэклог старта Module 3: `docs/npc_implementation_backlog.md`.
+Отдельный perf-gate для Module 3 (гибрид AL/NPC): `docs/perf/npc_perf_gate.md`.
 
 ## Структура репозитория
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
@@ -28,7 +28,7 @@
 - `tools/` — вспомогательные генераторы и валидаторы для development-пайплайнов.
   - `tools/al_system/` — документация и материалы по Ambient Life system.
   - `tools/npc_behavior_system/` — runtime-скрипты NPC behavior system (entrypoints + core).
-  - `src/modules/npc_bhvr/` — официальный runtime-контур подготовки Module 3 (core + includes + thin entrypoints).
+  - `src/modules/npc/` — официальный runtime-контур подготовки Module 3 (core + includes + thin entrypoints).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - `src/modules/npc_behavior/` — redirect-документация для модуля NPC behavior (скрипты перенесены в `tools/npc_behavior_system/`).
@@ -114,8 +114,8 @@ RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ### Как запускать baseline для Module 3
 
 ```bash
-RUNS=3 bash scripts/run_npc_bhvr_bench.sh steady
-python3 scripts/analyze_npc_bhvr_fairness.py --input docs/perf/fixtures/npc_bhvr/steady.csv
+RUNS=3 bash scripts/run_npc_bench.sh steady
+python3 scripts/analyze_npc_fairness.py --input docs/perf/fixtures/npc/steady.csv
 ```
 
 Критерии pass/fail (gate):
@@ -125,7 +125,7 @@ python3 scripts/analyze_npc_bhvr_fairness.py --input docs/perf/fixtures/npc_bhvr
 - overflow rate: `<= 0.02`;
 - budget overrun rate: `<= 0.10`.
 
-Для стресс-проверки используйте сценарии `burst` и `starvation-risk` через `scripts/run_npc_bhvr_bench.sh` и проверяйте результаты тем же analyzer-скриптом.
+Для стресс-проверки используйте сценарии `burst` и `starvation-risk` через `scripts/run_npc_bench.sh` и проверяйте результаты тем же analyzer-скриптом.
 
 ## Принцип принятия архитектурных решений
 Перед принятием любого архитектурного решения выполняется короткий performance-research цикл:

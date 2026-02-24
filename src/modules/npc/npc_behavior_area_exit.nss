@@ -1,6 +1,6 @@
 // NPC Bhvr: area OnExit entrypoint (thin wrapper).
 
-#include "npc_bhvr_core"
+#include "npc_core"
 
 void main()
 {

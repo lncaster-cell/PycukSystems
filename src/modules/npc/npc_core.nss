@@ -4,8 +4,8 @@
 // 2) bounded queue + priority buckets,
 // 3) единый вход в метрики через helper API.
 
-#include "npc_bhvr_activity_inc"
-#include "npc_bhvr_metrics_inc"
+#include "npc_activity_inc"
+#include "npc_metrics_inc"
 
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;
@@ -35,20 +35,20 @@ const int NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS = 8;
 const int NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP = 64;
 const int NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP = 1000;
 
-const string NPC_BHVR_VAR_AREA_STATE = "npc_bhvr_area_state";
-const string NPC_BHVR_VAR_AREA_TIMER_RUNNING = "npc_bhvr_area_timer_running";
-const string NPC_BHVR_VAR_QUEUE_DEPTH = "npc_bhvr_queue_depth";
-const string NPC_BHVR_VAR_QUEUE_PENDING_TOTAL = "npc_bhvr_queue_pending_total";
-const string NPC_BHVR_VAR_QUEUE_CURSOR = "npc_bhvr_queue_cursor";
-const string NPC_BHVR_VAR_FAIRNESS_STREAK = "npc_bhvr_fairness_streak";
-const string NPC_BHVR_VAR_TICK_MAX_EVENTS = "npc_bhvr_tick_max_events";
-const string NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS = "npc_bhvr_tick_soft_budget_ms";
-const string NPC_BHVR_VAR_TICK_DEGRADED_MODE = "npc_bhvr_tick_degraded_mode";
-const string NPC_BHVR_VAR_TICK_DEGRADED_STREAK = "npc_bhvr_tick_degraded_streak";
-const string NPC_BHVR_VAR_TICK_DEGRADED_TOTAL = "npc_bhvr_tick_degraded_total";
-const string NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL = "npc_bhvr_tick_budget_exceeded_total";
-const string NPC_BHVR_VAR_TICK_PROCESSED = "npc_bhvr_tick_processed";
-const string NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS = "npc_bhvr_queue_backlog_age_ticks";
+const string NPC_BHVR_VAR_AREA_STATE = "npc_area_state";
+const string NPC_BHVR_VAR_AREA_TIMER_RUNNING = "npc_area_timer_running";
+const string NPC_BHVR_VAR_QUEUE_DEPTH = "npc_queue_depth";
+const string NPC_BHVR_VAR_QUEUE_PENDING_TOTAL = "npc_queue_pending_total";
+const string NPC_BHVR_VAR_QUEUE_CURSOR = "npc_queue_cursor";
+const string NPC_BHVR_VAR_FAIRNESS_STREAK = "npc_fairness_streak";
+const string NPC_BHVR_VAR_TICK_MAX_EVENTS = "npc_tick_max_events";
+const string NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS = "npc_tick_soft_budget_ms";
+const string NPC_BHVR_VAR_TICK_DEGRADED_MODE = "npc_tick_degraded_mode";
+const string NPC_BHVR_VAR_TICK_DEGRADED_STREAK = "npc_tick_degraded_streak";
+const string NPC_BHVR_VAR_TICK_DEGRADED_TOTAL = "npc_tick_degraded_total";
+const string NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL = "npc_tick_budget_exceeded_total";
+const string NPC_BHVR_VAR_TICK_PROCESSED = "npc_tick_processed";
+const string NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS = "npc_queue_backlog_age_ticks";
 
 const int NPC_BHVR_PENDING_STATUS_NONE = 0;
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
@@ -57,10 +57,10 @@ const int NPC_BHVR_PENDING_STATUS_PROCESSED = 3;
 const int NPC_BHVR_PENDING_STATUS_DEFERRED = 4;
 const int NPC_BHVR_PENDING_STATUS_DROPPED = 5;
 
-const string NPC_BHVR_VAR_PENDING_PRIORITY = "npc_bhvr_pending_priority";
-const string NPC_BHVR_VAR_PENDING_REASON = "npc_bhvr_pending_reason";
-const string NPC_BHVR_VAR_PENDING_STATUS = "npc_bhvr_pending_status";
-const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_bhvr_pending_updated_at";
+const string NPC_BHVR_VAR_PENDING_PRIORITY = "npc_pending_priority";
+const string NPC_BHVR_VAR_PENDING_REASON = "npc_pending_reason";
+const string NPC_BHVR_VAR_PENDING_STATUS = "npc_pending_status";
+const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 
 string NpcBhvrQueueDepthKey(int nPriority);
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
@@ -213,32 +213,32 @@ int NpcBhvrQueueCoalescePriority(int nExistingPriority, int nIncomingPriority, s
 
 string NpcBhvrQueueDepthKey(int nPriority)
 {
-    return "npc_bhvr_queue_depth_" + IntToString(nPriority);
+    return "npc_queue_depth_" + IntToString(nPriority);
 }
 
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex)
 {
-    return "npc_bhvr_queue_subject_" + IntToString(nPriority) + "_" + IntToString(nIndex);
+    return "npc_queue_subject_" + IntToString(nPriority) + "_" + IntToString(nIndex);
 }
 
 string NpcBhvrPendingPriorityKey(string sNpcKey)
 {
-    return "npc_bhvr_queue_pending_priority_" + sNpcKey;
+    return "npc_queue_pending_priority_" + sNpcKey;
 }
 
 string NpcBhvrPendingReasonCodeKey(string sNpcKey)
 {
-    return "npc_bhvr_queue_pending_reason_" + sNpcKey;
+    return "npc_queue_pending_reason_" + sNpcKey;
 }
 
 string NpcBhvrPendingStatusKey(string sNpcKey)
 {
-    return "npc_bhvr_queue_pending_status_" + sNpcKey;
+    return "npc_queue_pending_status_" + sNpcKey;
 }
 
 string NpcBhvrPendingUpdatedAtKey(string sNpcKey)
 {
-    return "npc_bhvr_queue_pending_updated_ts_" + sNpcKey;
+    return "npc_queue_pending_updated_ts_" + sNpcKey;
 }
 
 string NpcBhvrPendingSubjectTag(object oSubject)
@@ -407,7 +407,7 @@ void NpcBhvrAreaActivate(object oArea)
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
     {
         SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, TRUE);
-        DelayCommand(1.0, ExecuteScript("npc_bhvr_area_tick", oArea));
+        DelayCommand(1.0, ExecuteScript("npc_area_tick", oArea));
     }
 }
 
@@ -907,7 +907,7 @@ void NpcBhvrOnAreaTick(object oArea)
         }
     }
 
-    DelayCommand(1.0, ExecuteScript("npc_bhvr_area_tick", oArea));
+    DelayCommand(1.0, ExecuteScript("npc_area_tick", oArea));
 }
 
 void NpcBhvrBootstrapModuleAreas()

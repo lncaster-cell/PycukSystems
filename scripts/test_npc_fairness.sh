@@ -3,12 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANALYZER="$ROOT_DIR/scripts/analyze_area_queue_fairness.py"
-GATE_ANALYZER="$ROOT_DIR/scripts/analyze_npc_bhvr_fairness.py"
-PASS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc_bhvr/fairness_pass.csv"
-STARVATION_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc_bhvr/fairness_starvation_violation.csv"
-PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc_bhvr/fairness_pause_violation.csv"
-RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc_bhvr/fairness_resume_drain_violation.csv"
-DECIMAL_LATENCY_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc_bhvr/steady_decimal_latency.csv"
+GATE_ANALYZER="$ROOT_DIR/scripts/analyze_npc_fairness.py"
+PASS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_pass.csv"
+STARVATION_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_starvation_violation.csv"
+PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_pause_violation.csv"
+RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_resume_drain_violation.csv"
+DECIMAL_LATENCY_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/steady_decimal_latency.csv"
 
 expect_fail() {
   local description="$1"

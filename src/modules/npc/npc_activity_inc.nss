@@ -1,12 +1,12 @@
 // NPC Bhvr activity include.
-// Здесь размещается адаптированный контентный слой активностей (AL primitives -> npc_bhvr namespace).
+// Здесь размещается адаптированный контентный слой активностей (AL primitives -> npc namespace).
 
-const string NPC_BHVR_VAR_ACTIVITY_SLOT = "npc_bhvr_activity_slot";
-const string NPC_BHVR_VAR_ACTIVITY_ROUTE = "npc_bhvr_activity_route";
-const string NPC_BHVR_VAR_ACTIVITY_STATE = "npc_bhvr_activity_state";
-const string NPC_BHVR_VAR_ACTIVITY_COOLDOWN = "npc_bhvr_activity_cooldown";
-const string NPC_BHVR_VAR_ACTIVITY_LAST = "npc_bhvr_activity_last";
-const string NPC_BHVR_VAR_ACTIVITY_LAST_TS = "npc_bhvr_activity_last_ts";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT = "npc_activity_slot";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE = "npc_activity_route";
+const string NPC_BHVR_VAR_ACTIVITY_STATE = "npc_activity_state";
+const string NPC_BHVR_VAR_ACTIVITY_COOLDOWN = "npc_activity_cooldown";
+const string NPC_BHVR_VAR_ACTIVITY_LAST = "npc_activity_last";
+const string NPC_BHVR_VAR_ACTIVITY_LAST_TS = "npc_activity_last_ts";
 
 const string NPC_BHVR_ACTIVITY_SLOT_DEFAULT = "default";
 const string NPC_BHVR_ACTIVITY_SLOT_PRIORITY = "priority";
@@ -22,7 +22,7 @@ const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
 {
-    // AL-concept adapter: slot-group normalization in npc_bhvr namespace.
+    // AL-concept adapter: slot-group normalization in npc namespace.
     if (sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY)
     {
         return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
@@ -38,7 +38,7 @@ string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
 
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
 {
-    // AL-concept adapter: route-id normalization in npc_bhvr namespace.
+    // AL-concept adapter: route-id normalization in npc namespace.
     if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
     {
         return NPC_BHVR_ACTIVITY_ROUTE_PRIORITY;
@@ -54,7 +54,7 @@ string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
 
 int NpcBhvrActivityMapRouteHint(string sRouteId)
 {
-    // Adapter mapping: npc_bhvr_* profile -> AL-like activity semantics.
+    // Adapter mapping: npc_* profile -> AL-like activity semantics.
     if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
     {
         return NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE;
@@ -110,7 +110,7 @@ void NpcBhvrActivityOnSpawn(object oNpc)
         return;
     }
 
-    // Обязательная spawn-инициализация profile-state в npc_bhvr_* namespace.
+    // Обязательная spawn-инициализация profile-state в npc_* namespace.
     SetLocalString(
         oNpc,
         NPC_BHVR_VAR_ACTIVITY_SLOT,

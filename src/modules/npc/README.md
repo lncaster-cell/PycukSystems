@@ -12,14 +12,14 @@
 
 ## Базовые include-файлы
 
-- `npc_bhvr_core.nss` — lifecycle area-controller, bounded queue с приоритетами, routing хуков в core.
-- `npc_bhvr_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
-- `npc_bhvr_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
+- `npc_core.nss` — lifecycle area-controller, bounded queue с приоритетами, routing хуков в core.
+- `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
+- `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
 
 
 ## Activity primitives runtime-контракт
 
-`npc_bhvr_activity_inc.nss` теперь фиксирует минимальный runtime-layer поверх AL-подхода через `npc_bhvr_*` keyspace (без прямого использования `al_*` locals в core-flow):
+`npc_activity_inc.nss` теперь фиксирует минимальный runtime-layer поверх AL-подхода через `npc_*` keyspace (без прямого использования `al_*` locals в core-flow):
 
 - AL-понятия (`slot-group`, `route-profile`, `activity transition`) обязаны проходить через adapter-helpers include-файла:
   - `NpcBhvrActivityAdapterNormalizeSlot`,
@@ -28,12 +28,12 @@
   - `NpcBhvrActivityAdapterStampTransition`.
 
 - Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
-  - `npc_bhvr_activity_slot` (по умолчанию `default`),
-  - `npc_bhvr_activity_route` (по умолчанию `default_route`),
-  - `npc_bhvr_activity_state` (начальное состояние `spawn_ready`),
-  - `npc_bhvr_activity_cooldown` (неотрицательный cooldown/state gate),
-  - `npc_bhvr_activity_last` (последняя activity transition),
-  - `npc_bhvr_activity_last_ts` (timestamp последнего transition в секундах игрового времени).
+  - `npc_activity_slot` (по умолчанию `default`),
+  - `npc_activity_route` (по умолчанию `default_route`),
+  - `npc_activity_state` (начальное состояние `spawn_ready`),
+  - `npc_activity_cooldown` (неотрицательный cooldown/state gate),
+  - `npc_activity_last` (последняя activity transition),
+  - `npc_activity_last_ts` (timestamp последнего transition в секундах игрового времени).
 - Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
   - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
   - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
@@ -43,7 +43,7 @@
 
 ### Контракт входных/выходных состояний activity primitives
 
-- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_bhvr_activity_slot|route`; `npc_bhvr_activity_cooldown` может быть отрицательным.
+- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; `npc_activity_cooldown` может быть отрицательным.
 - **Выход `NpcBhvrActivityOnSpawn`:**
   - `slot` и `route` нормализованы в поддерживаемые значения (`default|priority|critical`, `default_route|priority_patrol|critical_safe`),
   - `state=spawn_ready`,
@@ -63,26 +63,26 @@
 
 | Hook | Script | Core handler |
 | --- | --- | --- |
-| OnSpawn | `npc_bhvr_spawn.nss` | `NpcBhvrOnSpawn` |
-| OnPerception | `npc_bhvr_perception.nss` | `NpcBhvrOnPerception` |
-| OnDamaged | `npc_bhvr_damaged.nss` | `NpcBhvrOnDamaged` |
-| OnDeath | `npc_bhvr_death.nss` | `NpcBhvrOnDeath` |
-| OnDialogue | `npc_bhvr_dialogue.nss` | `NpcBhvrOnDialogue` |
-| Area OnEnter | `npc_bhvr_area_enter.nss` | `NpcBhvrOnAreaEnter` |
-| Area OnExit | `npc_bhvr_area_exit.nss` | `NpcBhvrOnAreaExit` |
-| OnModuleLoad | `npc_bhvr_module_load.nss` | `NpcBhvrOnModuleLoad` |
-| Area tick loop | `npc_bhvr_area_tick.nss` | `NpcBhvrOnAreaTick` |
+| OnSpawn | `npc_spawn.nss` | `NpcBhvrOnSpawn` |
+| OnPerception | `npc_perception.nss` | `NpcBhvrOnPerception` |
+| OnDamaged | `npc_damaged.nss` | `NpcBhvrOnDamaged` |
+| OnDeath | `npc_death.nss` | `NpcBhvrOnDeath` |
+| OnDialogue | `npc_dialogue.nss` | `NpcBhvrOnDialogue` |
+| Area OnEnter | `npc_area_enter.nss` | `NpcBhvrOnAreaEnter` |
+| Area OnExit | `npc_area_exit.nss` | `NpcBhvrOnAreaExit` |
+| OnModuleLoad | `npc_module_load.nss` | `NpcBhvrOnModuleLoad` |
+| Area tick loop | `npc_area_tick.nss` | `NpcBhvrOnAreaTick` |
 
 ## Норматив
 
 **Правило:** entrypoint-скрипт не содержит бизнес-логики.
 
 Допустимо только:
-- подключение `npc_bhvr_core`;
+- подключение `npc_core`;
 - получение event-context (`OBJECT_SELF`, `GetEnteringObject()`, `GetExitingObject()`);
 - прямой вызов одного core-handler.
 
 Недопустимо:
 - прямые `SetLocal*`/`GetLocal*` для доменной логики в entrypoints;
-- манипуляции очередью/lifecycle вне `npc_bhvr_core.nss`;
+- манипуляции очередью/lifecycle вне `npc_core.nss`;
 - запись метрик вне `NpcBhvrMetricInc/Add`.
