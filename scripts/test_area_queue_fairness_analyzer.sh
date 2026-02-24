@@ -13,6 +13,8 @@ RESUME_DRAIN_EOF_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_
 NO_RUNNING_ROWS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_no_running_rows.csv"
 
 RESULTS=()
+LOG_FILE="$(mktemp)"
+trap 'rm -f "$LOG_FILE"' EXIT
 
 record_result() {
   local guardrail="$1"
@@ -26,11 +28,12 @@ run_expect_pass() {
   local guardrail="$1"
   local scenario_id="$2"
   shift 2
-  if "$@" >/tmp/area_queue_check.log 2>&1; then
-    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 /tmp/area_queue_check.log || echo ok)"
+  if "$@" >"$LOG_FILE" 2>&1; then
+    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 "$LOG_FILE" || echo ok)"
   else
-    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 /tmp/area_queue_check.log || echo failed)"
-    cat /tmp/area_queue_check.log
+    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 "$LOG_FILE" || echo failed)"
+    echo "[DEBUG] log file: $LOG_FILE"
+    cat "$LOG_FILE"
     return 1
   fi
 }
@@ -39,8 +42,10 @@ run_expect_fail() {
   local guardrail="$1"
   local scenario_id="$2"
   shift 2
-  if "$@" >/tmp/area_queue_check.log 2>&1; then
+  if "$@" >"$LOG_FILE" 2>&1; then
     record_result "${guardrail}" "${scenario_id}" "FAIL" "expected failure but command passed"
+    echo "[DEBUG] log file: $LOG_FILE"
+    cat "$LOG_FILE"
     return 1
   fi
   record_result "${guardrail}" "${scenario_id}" "PASS" "expected failure observed"
