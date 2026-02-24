@@ -1,9 +1,28 @@
 #!/usr/bin/env bash
-# Placeholder contract profile for future NPC Bhvr lifecycle integration.
+# Contract profile for NPC lifecycle integration.
 
-CONTRACT_NAME="NPC Bhvr lifecycle contract (placeholder)"
+CONTRACT_NAME="NPC lifecycle contract"
 
-HAS_CTRL_PATTERNS=()
-HAS_CORE_PATTERNS=()
+HAS_CTRL_PATTERNS=(
+  'const int NPC_AREA_LIFECYCLE_RUNNING = 1;'
+  'const int NPC_AREA_LIFECYCLE_PAUSED = 2;'
+  'void NpcControllerAreaPause\(object oArea\)'
+  'void NpcControllerAreaStop\(object oArea\)'
+)
+
+HAS_CORE_PATTERNS=(
+  'const int NPC_BHVR_AREA_STATE_RUNNING = 1;'
+  'const int NPC_BHVR_AREA_STATE_PAUSED = 2;'
+  'void NpcBhvrAreaActivate\(object oArea\)'
+  'void NpcBhvrAreaPause\(object oArea\)'
+  'void NpcBhvrOnAreaTick\(object oArea\)'
+  'void NpcBhvrOnModuleLoad\(\)'
+)
+
+NOT_CORE_PATTERNS=(
+  '#include "controllers/lifecycle_controller"'
+  'string NPC_VAR_AREA_ACTIVE = "nb_area_active";'
+  'string NPC_VAR_AREA_TIMER_RUNNING = "nb_area_timer_running";'
+)
+
 NOT_CTRL_PATTERNS=()
-NOT_CORE_PATTERNS=()

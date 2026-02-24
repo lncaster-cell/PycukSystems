@@ -1,6 +1,6 @@
 # Tasks
 
-## NPC Bhvr Preparation (execution backlog)
+## NPC Preparation (execution backlog)
 
 ### Phase A — Runtime foundation
 - [x] A1. Создать `src/modules/npc/` и базовые файлы (`npc_core.nss`, `npc_metrics_inc.nss`, `npc_activity_inc.nss`, `README.md`).
@@ -11,17 +11,17 @@
   - **DoD:** есть starvation guard и CRITICAL bypass.
 
 ### Phase B — AL activity adaptation
-- [ ] B1. Портировать AL activity primitives в `npc_activity_inc.nss` через адаптеры.
+- [x] B1. Портировать AL activity primitives в `npc_activity_inc.nss` через адаптеры.
   - **DoD:** slot/route активности работают без legacy keyspace drift.
 - [x] B2. Добавить dense area-registry helper (swap-remove, массовые сигналы).
   - **DoD:** insert/remove + swap-remove compaction реализованы, overflow/reject диагностируются метриками `npc_metric_registry_overflow_total` и `npc_metric_registry_reject_total`.
 
 ### Phase C — Metrics and perf gate
-- [ ] C1. Ввести единый metrics API (`npc_metrics_inc.nss`).
+- [x] C1. Ввести единый metrics API (`npc_metrics_inc.nss`).
   - **DoD:** entrypoints не используют прямые `SetLocalInt` для метрик.
-- [ ] C2. Подготовить `docs/perf/npc_perf_gate.md` + фикстуры `docs/perf/fixtures/npc/`.
+- [x] C2. Подготовить `docs/perf/npc_perf_gate.md` + фикстуры `docs/perf/fixtures/npc/`.
   - **DoD:** минимум 3 сценария и формальные pass/fail пороги.
-- [ ] C3. Добавить `scripts/test_npc_fairness.sh` и подключить starvation/pause-zero/post-resume проверки.
+- [x] C3. Добавить `scripts/test_npc_fairness.sh` и подключить starvation/pause-zero/post-resume проверки.
   - **DoD:** один скрипт self-check с non-zero при нарушениях.
 
 ### Dependencies / order
