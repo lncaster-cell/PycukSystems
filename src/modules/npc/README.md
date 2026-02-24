@@ -1,6 +1,10 @@
-# NPC Bhvr behavior runtime contour (skeleton)
+# NPC behavior runtime contour (skeleton)
 
-Каталог содержит официальный подготовительный runtime-контур для NPC Bhvr.
+Каталог содержит официальный подготовительный runtime-контур для NPC.
+
+> Примечание по неймингу: префикс `NpcBhvr*` в именах функций и константа `NPC_BHVR_*`
+> сохранены как часть уже принятого API-контракта, но сам модуль в документации
+> далее именуется просто `NPC`.
 
 ## Статус runtime foundation (Phase A)
 
