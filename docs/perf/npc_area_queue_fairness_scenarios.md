@@ -1,6 +1,6 @@
 # NPC area queue fairness: сценарные perf-проверки
 
-Документ фиксирует минимальные сценарии для проверки fairness очереди area-tick после выноса lifecycle-контроля в `src/controllers/lifecycle_controller.nss`.
+Документ фиксирует минимальные сценарии для проверки fairness очереди area-tick где lifecycle остаётся в `src/modules/npc/npc_core.nss` как единственный runtime-источник истины.
 
 ## Общие условия
 
