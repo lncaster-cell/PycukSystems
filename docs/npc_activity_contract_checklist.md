@@ -1,7 +1,5 @@
 # NPC Activity Contract Checklist
 
-_Обновлено: 2026-02-24._
-
 
 Чеклист фиксирует проверяемые инварианты activity-layer контракта NPC Bhvr из `src/modules/npc/README.md` и даёт команды для быстрого smoke/regression прогона.
 

@@ -1,7 +1,5 @@
 # NPC Phase 1 Test Checklist
 
-_Обновлено: 2026-02-24._
-
 
 Чеклист для приёмки первой фазы NPC-модуля с привязкой к архитектурным терминам и SLO/perf-gate из `docs/design.md` и runtime-контракту из `docs/npc_runtime_orchestration.md`.
 
