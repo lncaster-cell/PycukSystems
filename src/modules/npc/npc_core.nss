@@ -1757,6 +1757,8 @@ void NpcBhvrOnDialogue(object oNpc)
 
 void NpcBhvrOnAreaEnter(object oArea, object oEntering)
 {
+    int nEnteringType;
+
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oEntering))
     {
         return;
@@ -1765,6 +1767,13 @@ void NpcBhvrOnAreaEnter(object oArea, object oEntering)
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
     if (!GetIsPC(oEntering))
     {
+        nEnteringType = GetObjectType(oEntering);
+        if (nEnteringType != OBJECT_TYPE_CREATURE)
+        {
+            // Ранний фильтр снижает noise в npc_metric_registry_reject_total.
+            return;
+        }
+
         NpcBhvrRegistryInsert(oArea, oEntering);
         return;
     }
