@@ -48,7 +48,8 @@
 - при наличии `npc_route_count_<routeId> > 0` route-dispatch использует waypoint-индекс `npc_activity_wp_index`;
 - loop-policy берётся из `npc_route_loop_<routeId>` (`>0` loop, `<0` stop-at-tail, `0` default loop);
 - `npc_activity_route_tag` участвует в формировании состояния `<base_state>_<tag>_<i>_of_<N>`;
-- `npc_activity_slot_emote` резолвится через slot-aware цепочку `NPC-local(slot) -> area-local(slot) -> area-global -> NPC-global`.
+- `npc_activity_slot_emote` резолвится через slot-aware цепочку `NPC-local(slot) -> area-local(slot) -> area-global -> NPC-global`;
+- `npc_activity_action` вычисляется детерминированно из slot/route/waypoint (`critical => guard_hold`, `priority_patrol => patrol_move/patrol_scan`, `default => ambient_*`), а `npc_route_pause_ticks_<routeId>` добавляется к cooldown.
 
 **Что считается fail:** waypoint-индекс не обновляется после dispatch, route-tag игнорируется при наличии waypoint-count, или slot-emote не резолвится по slot-aware цепочке.
 

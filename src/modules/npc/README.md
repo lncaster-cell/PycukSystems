@@ -68,7 +68,8 @@ Tick/degraded telemetry в runtime включает:
   - `npc_activity_last_ts` (timestamp последнего transition в секундах игрового времени),
   - `npc_activity_wp_index|npc_activity_wp_count|npc_activity_wp_loop` (текущее состояние маршрута по waypoint-позициям),
   - `npc_activity_route_tag` (идентификатор route-tag для state-композера),
-  - `npc_activity_slot_emote` (resolved ambient emote для активного slot, с fallback `NPC-slot -> area-slot -> area-global -> NPC-global`).
+  - `npc_activity_slot_emote` (resolved ambient emote для активного slot, с fallback `NPC-slot -> area-slot -> area-global -> NPC-global`),
+  - `npc_activity_action` (resolved action-token для игрового runtime-dispatch: `guard_hold|patrol_move|patrol_scan|patrol_ready|ambient_*`).
 - Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
   1) `npc_activity_route` на NPC (если явно задан);
   2) `npc_route_profile_slot_<slot>` на NPC;
@@ -99,7 +100,8 @@ Tick/degraded telemetry в runtime включает:
 - Route-point/waypoint контракт задаётся через `npc_*`-locals (без `al_*` keyspace):
   - `npc_route_count_<routeId>` — количество waypoint-узлов в route (NPC-local приоритетнее area-local);
   - `npc_route_loop_<routeId>` — loop policy (`>0` loop enabled, `<0` loop disabled, `0` = default enabled);
-  - `npc_route_tag_<routeId>` — route-tag для генерации состояния формата `<base_state>_<tag>_<index>_of_<count>`.
+  - `npc_route_tag_<routeId>` — route-tag для генерации состояния формата `<base_state>_<tag>_<index>_of_<count>`;
+  - `npc_route_pause_ticks_<routeId>` — добавка к cooldown после dispatch для route-point pacing.
 
 ### Контракт входных/выходных состояний activity primitives
 
@@ -123,7 +125,8 @@ Tick/degraded telemetry в runtime включает:
     2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown=2`;
     3) `default` -> `state/last=idle_default`, `cooldown=1`;
   - если для route есть `npc_route_count_<routeId> > 0` и `npc_route_tag_<routeId>`, то `state/last` получают waypoint-суффикс (`..._<tag>_<i>_of_<N>`), а `npc_activity_wp_index` продвигается с учётом loop-policy;
-  - после dispatch `last_ts` всегда отражает момент последнего transition.
+  - после dispatch `last_ts` всегда отражает момент последнего transition;
+  - `npc_activity_action` пересчитывается на каждом dispatch в зависимости от slot/route/waypoint parity и может использоваться внешним runtime для привязки анимаций/поведенческих команд.
 
 
 ## Контракт pending-состояний (NPC-local и area-local)

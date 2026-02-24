@@ -23,8 +23,13 @@ assert_has 'void NpcBhvrActivityApplyRouteState\(' "$TARGET_FILE"
 assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex\);' "$TARGET_FILE"
 assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex\(nWpIndex \+ 1, nWpCount, bLoop\)\);' "$TARGET_FILE"
 assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag\);' "$TARGET_FILE"
-assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, NpcBhvrActivityResolveSlotEmote\(oNpc, sSlot\)\);' "$TARGET_FILE"
+assert_has 'const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";' "$TARGET_FILE"
+assert_has 'int NpcBhvrActivityResolveRoutePauseTicks\(' "$TARGET_FILE"
+assert_has 'string NpcBhvrActivityResolveAction\(' "$TARGET_FILE"
+assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote\);' "$TARGET_FILE"
+assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction\);' "$TARGET_FILE"
 assert_has 'GetLocalString\(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE\);' "$TARGET_FILE"
+assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown \+ nPauseTicks\);' "$TARGET_FILE"
 
 # Behavioral contract (emulated): index clamp/loop + state suffix composition.
 python3 - <<'PY'
@@ -59,6 +64,24 @@ assert_eq(normalize_waypoint_index(2, 0, True), 0, "zero-count fallback")
 assert_eq(compose_state("idle_default", "market", 0, 4), "idle_default_market_1_of_4", "state suffix with tag")
 assert_eq(compose_state("idle_default", "", 0, 4), "idle_default", "state unchanged without tag")
 assert_eq(compose_state("idle_default", "market", 0, 0), "idle_default", "state unchanged without waypoint count")
+
+
+
+def resolve_action(slot: str, route: str, idx: int, count: int, emote: str) -> str:
+    if route == "critical_safe" or slot == "critical":
+        return "guard_hold"
+    if route == "priority_patrol" or slot == "priority":
+        if count > 0:
+            return "patrol_move" if (idx % 2) == 0 else "patrol_scan"
+        return "patrol_ready"
+    if emote != "":
+        return "ambient_" + emote
+    return "ambient_idle"
+
+assert_eq(resolve_action("critical", "default_route", 0, 3, ""), "guard_hold", "critical action")
+assert_eq(resolve_action("priority", "priority_patrol", 1, 4, ""), "patrol_scan", "priority scan action")
+assert_eq(resolve_action("default", "default_route", 0, 0, "smoke"), "ambient_smoke", "ambient emote action")
+assert_eq(resolve_action("default", "default_route", 0, 0, ""), "ambient_idle", "ambient idle action")
 
 print("[OK] NPC activity waypoint behavioral checks passed")
 PY
