@@ -86,7 +86,7 @@ bash scripts/test_npc_fairness.sh
 - нет финального `[OK] NPC Bhvr fairness analyzer tests passed`.
 
 
-### 4. Activity route/waypoint contract
+### 3. Activity route/waypoint contract
 
 ```bash
 bash scripts/test_npc_activity_route_contract.sh
@@ -100,7 +100,7 @@ bash scripts/test_npc_activity_waypoint_contract.sh
 **Fail признаки:**
 - `[FAIL]` по любому из контрактов route/waypoint.
 
-### 3. Компиляционный smoke-check include/runtime контура
+### 4. Компиляционный smoke-check include/runtime контура
 
 ```bash
 bash scripts/compile.sh check
