@@ -10,6 +10,15 @@ void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus
 void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow);
 void NpcBhvrPendingSetTrackedAtIntReason(object oArea, object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow);
 void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta);
+int NpcBhvrQueueGetDeferredTotal(object oArea);
+void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal);
+int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
+string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
+object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex);
+void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus);
+void NpcBhvrPendingNpcClear(object oNpc);
+void NpcBhvrPendingAreaClear(object oArea, object oSubject);
+object NpcBhvrQueuePeekFromPriority(object oArea, int nPriority);
 
 #include "npc_queue_pending_inc"
 #include "npc_queue_index_inc"

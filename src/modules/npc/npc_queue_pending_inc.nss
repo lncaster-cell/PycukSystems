@@ -212,6 +212,8 @@ void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
     NpcBhvrPendingSetAt(oNpc, nPriority, sReason, nStatus, NpcBhvrPendingNow());
 }
 
+void NpcBhvrPendingSetAtIntReason(object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow);
+
 void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow)
 {
     NpcBhvrPendingSetAtIntReason(oNpc, nPriority, StringToInt(sReason), nStatus, nNow);
