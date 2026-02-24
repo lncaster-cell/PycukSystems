@@ -24,6 +24,18 @@
   - flush: `NpcSqliteWriteBehindFlush(int nNowTs, int nBatchSize)`;
   - graceful degradation: `NpcSqliteWriteBehindApplyWriteResult(int nWriteResult)` + `npc_sqlite_wb_degraded_mode`.
 
+
+## Compatibility aliases
+
+В каталоге сохранены два shim-include для обратной совместимости со старыми путями include:
+
+- `npc_sqlite_api_inc.nss` -> `npc_sql_api_inc.nss`;
+- `npc_writebehind_inc.nss` -> `npc_wb_inc.nss`.
+
+Причина существования: дать существующим скриптам время на миграцию без немедленного breaking change.
+Политика поддержки: **deprecated**, удаление запланировано на **2026-06-30**.
+Новые изменения и новые include должны использовать только канонические файлы.
+
 ## Нормализованные коды ошибок
 
 - `NPC_SQLITE_OK = 0`
