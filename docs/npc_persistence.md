@@ -192,11 +192,11 @@ Flush dirty-очереди выполняется при любом из усл�
 - `NpcSqliteLogDbError(...)` вызывается только при ошибке (`nCode != NPC_SQLITE_OK`), при этом `npc_sqlite_last_result` уже содержит ошибочный итог.
 
 ### 6.1 Базовый NWNX/SQLite API
-- Инициализация: `NpcSqliteInit` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
-- Healthcheck (`SELECT 1`): `NpcSqliteHealthcheck` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
-- Безопасный доступ read/write: `NpcSqliteSafeRead`, `NpcSqliteSafeWrite` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
-- Нормализация ошибок: `NpcSqliteNormalizeError` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
-- Единое runtime-логирование DB ошибок: `NpcSqliteLogDbError` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
+- Инициализация: `NpcSqliteInit` — `src/integrations/nwnx_sqlite/npc_sql_api_inc.nss`.
+- Healthcheck (`SELECT 1`): `NpcSqliteHealthcheck` — `src/integrations/nwnx_sqlite/npc_sql_api_inc.nss`.
+- Безопасный доступ read/write: `NpcSqliteSafeRead`, `NpcSqliteSafeWrite` — `src/integrations/nwnx_sqlite/npc_sql_api_inc.nss`.
+- Нормализация ошибок: `NpcSqliteNormalizeError` — `src/integrations/nwnx_sqlite/npc_sql_api_inc.nss`.
+- Единое runtime-логирование DB ошибок: `NpcSqliteLogDbError` — `src/integrations/nwnx_sqlite/npc_sql_api_inc.nss`.
 
 ### 6.2 Repository-слой (SQL вне NPC core)
 - SQL-константы и repository-функции:
