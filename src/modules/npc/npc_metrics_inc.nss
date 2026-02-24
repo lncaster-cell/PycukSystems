@@ -32,10 +32,20 @@ const string NPC_BHVR_METRIC_DEGRADATION_EVENTS_TOTAL = "npc_metric_degradation_
 const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EVENT_BUDGET_TOTAL = "npc_metric_degradation_by_reason_event_budget_total";
 const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_SOFT_BUDGET_TOTAL = "npc_metric_degradation_by_reason_soft_budget_total";
 const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EMPTY_QUEUE_TOTAL = "npc_metric_degradation_by_reason_empty_queue_total";
+const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_OVERFLOW_TOTAL = "npc_metric_degradation_by_reason_overflow_total";
+const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_QUEUE_PRESSURE_TOTAL = "npc_metric_degradation_by_reason_queue_pressure_total";
+const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_ROUTE_MISS_TOTAL = "npc_metric_degradation_by_reason_route_miss_total";
+const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_DISABLED_TOTAL = "npc_metric_degradation_by_reason_disabled_total";
 const string NPC_BHVR_METRIC_DIAGNOSTIC_DROPPED_TOTAL = "npc_metric_diagnostic_dropped_total";
 const string NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL = "npc_metric_activity_invalid_route_total";
 const string NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_NPC_LOCAL_TOTAL = "npc_metric_activity_invalid_route_npc_local_total";
 const string NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_AREA_LOCAL_TOTAL = "npc_metric_activity_invalid_route_area_local_total";
+const string NPC_BHVR_METRIC_ROUTE_CACHE_WARMUP_TOTAL = "npc_metric_route_cache_warmup_total";
+const string NPC_BHVR_METRIC_ROUTE_CACHE_RESCAN_TOTAL = "npc_metric_route_cache_rescan_total";
+const string NPC_BHVR_METRIC_ROUTE_CACHE_HIT_TOTAL = "npc_metric_route_cache_hit_total";
+const string NPC_BHVR_METRIC_ROUTE_CACHE_MISS_TOTAL = "npc_metric_route_cache_miss_total";
+// route_cache_hit_ratio: integer ratio in percents [0..100], updated on every cache access.
+const string NPC_BHVR_METRIC_ROUTE_CACHE_HIT_RATIO = "npc_metric_route_cache_hit_ratio";
 // pending_age_ms: интегральный возраст хвоста pending (pending_count * tick_ms surrogate).
 const string NPC_BHVR_METRIC_PENDING_AGE_MS = "npc_metric_pending_age_ms";
 // paused_watchdog_tick_count: редкий watchdog-тик в PAUSED, отдельный от RUNNING tick-loop.
@@ -57,4 +67,52 @@ void NpcBhvrMetricAdd(object oScope, string sMetric, int nDelta)
 void NpcBhvrMetricInc(object oScope, string sMetric)
 {
     NpcBhvrMetricAdd(oScope, sMetric, 1);
+}
+
+void NpcBhvrMetricRouteCacheRecordHit(object oScope)
+{
+    int nHits;
+    int nMisses;
+    int nTotal;
+
+    if (!GetIsObjectValid(oScope))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_TOTAL);
+    nHits = GetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_TOTAL);
+    nMisses = GetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_MISS_TOTAL);
+    nTotal = nHits + nMisses;
+    if (nTotal <= 0)
+    {
+        SetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_RATIO, 100);
+        return;
+    }
+
+    SetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_RATIO, (nHits * 100) / nTotal);
+}
+
+void NpcBhvrMetricRouteCacheRecordMiss(object oScope)
+{
+    int nHits;
+    int nMisses;
+    int nTotal;
+
+    if (!GetIsObjectValid(oScope))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_MISS_TOTAL);
+    nHits = GetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_TOTAL);
+    nMisses = GetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_MISS_TOTAL);
+    nTotal = nHits + nMisses;
+    if (nTotal <= 0)
+    {
+        SetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_RATIO, 0);
+        return;
+    }
+
+    SetLocalInt(oScope, NPC_BHVR_METRIC_ROUTE_CACHE_HIT_RATIO, (nHits * 100) / nTotal);
 }

@@ -12,6 +12,41 @@ const string NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK = "npc_activity_slot_fallback";
 
 const string NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX = "npc_route_profile_slot_";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT = "npc_route_profile_default";
+const string NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX = "npc_route_cache_slot_";
+const string NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT = "npc_route_cache_default";
+
+// Waypoint/ambient activity runtime locals.
+const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
+const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
+const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
+
+const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
+const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
+const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
+
+// Waypoint/ambient activity runtime locals.
+const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
+const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
+const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
+
+const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
+const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
+const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
+
+// Waypoint/ambient activity runtime locals.
+const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
+const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
+const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
+
+const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
+const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
+const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
 
 // Waypoint/ambient activity runtime locals.
 const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
@@ -41,6 +76,117 @@ const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
 const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL = 1;
 const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL = 2;
+
+string NpcBhvrActivityAreaRouteCacheSlotKey(string sSlot)
+{
+    return NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + sSlot;
+}
+
+void NpcBhvrActivityRouteCacheWarmup(object oArea)
+{
+    string sDefault;
+    string sPriority;
+    string sCritical;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (GetLocalInt(oArea, "routes_cached") == TRUE)
+    {
+        NpcBhvrMetricRouteCacheRecordHit(oArea);
+        return;
+    }
+
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_ROUTE_CACHE_WARMUP_TOTAL);
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_ROUTE_CACHE_RESCAN_TOTAL);
+    NpcBhvrMetricRouteCacheRecordMiss(oArea);
+
+    sDefault = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT)),
+        oArea,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
+    );
+    if (sDefault == "")
+    {
+        sDefault = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+            GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
+            oArea,
+            NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
+        );
+    }
+    if (sDefault == "")
+    {
+        sDefault = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    sPriority = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY)),
+        oArea,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
+    );
+    if (sPriority == "")
+    {
+        sPriority = sDefault;
+    }
+
+    sCritical = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL)),
+        oArea,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
+    );
+    if (sCritical == "")
+    {
+        sCritical = sDefault;
+    }
+
+    SetLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT, sDefault);
+    SetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT), sDefault);
+    SetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), sPriority);
+    SetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), sCritical);
+    SetLocalInt(oArea, "routes_cached", TRUE);
+    SetLocalInt(oArea, "routes_cache_version", GetLocalInt(oArea, "routes_cache_version") + 1);
+}
+
+void NpcBhvrActivityRouteCacheInvalidate(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    DeleteLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT);
+    DeleteLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT));
+    DeleteLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
+    DeleteLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
+    SetLocalInt(oArea, "routes_cached", FALSE);
+}
+
+string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot)
+{
+    string sRoute;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return "";
+    }
+
+    NpcBhvrActivityRouteCacheWarmup(oArea);
+
+    sRoute = GetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(sSlot));
+    if (sRoute == "")
+    {
+        sRoute = GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT);
+    }
+
+    if (sRoute == "")
+    {
+        sRoute = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    return sRoute;
+}
 
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
 {
@@ -145,21 +291,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
     }
 
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
-        oArea,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
-        oArea,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
-    );
+    sRoute = NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot);
     if (sRoute != "")
     {
         return sRoute;
@@ -598,8 +730,8 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
         return;
     }
 
-    string sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
-    string sSlot = sSlotRaw;
+    string sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
+    string sSlotRaw = sSlot;
     string sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
     int nRouteHint;
     int nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
