@@ -517,6 +517,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
 
     if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW)
     {
+        // Fallback: normalize out-of-range input priority to NORMAL.
         nPriority = NPC_BHVR_PRIORITY_NORMAL;
     }
 
