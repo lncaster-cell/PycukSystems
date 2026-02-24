@@ -2,6 +2,9 @@
 
 Каталог содержит рабочие include-модули интеграции NPC runtime с NWNX/SQLite.
 
+> Источник истины для SQLite API-обёртки: `npc_sql_api_inc.nss`.
+> `npc_sqlite_api_inc.nss` оставлен только как compatibility shim и не должен использоваться для изменений логики.
+
 ## Include-модули
 
 - `npc_sql_api_inc.nss` — базовый DB API:
