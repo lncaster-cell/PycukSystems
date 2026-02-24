@@ -95,9 +95,6 @@ const int NPC_BHVR_ACTIVITY_HINT_IDLE = 1;
 const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
 const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
-const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL = 1;
-const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL = 2;
-
 // AmbientLiveV2 activity IDs (ported from legacy AL data layer).
 const int NPC_BHVR_ACTIVITY_ID_HIDDEN = 0;
 const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;
@@ -180,7 +177,7 @@ int NpcBhvrActivityIsSupportedRoute(string sRouteId)
         || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
 }
 
-string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope, int nSource)
+string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope)
 {
     if (sRouteId == "")
     {
@@ -190,15 +187,6 @@ string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oM
     if (!NpcBhvrActivityIsSupportedRoute(sRouteId))
     {
         NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
-        if (nSource == NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL)
-        {
-            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_NPC_LOCAL_TOTAL);
-        }
-        else if (nSource == NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL)
-        {
-            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_AREA_LOCAL_TOTAL);
-        }
-
         return "";
     }
 
@@ -217,8 +205,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
-        oNpc,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
+        oNpc
     );
     if (sRoute != "")
     {
@@ -227,8 +214,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
-        oNpc,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
+        oNpc
     );
     if (sRoute != "")
     {
@@ -237,8 +223,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
-        oNpc,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
+        oNpc
     );
     if (sRoute != "")
     {
@@ -795,8 +780,7 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
     sRouteConfigured = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
-        oNpc,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
+        oNpc
     );
 
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
