@@ -8,6 +8,7 @@ PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_viola
 LONG_BURST_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_long_burst.csv"
 PAUSE_RESUME_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_resume_fault_injection.csv"
 RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_violation.csv"
+PARTIAL_PROCESSED_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_zero_partial_processed.csv"
 
 expect_fail() {
   local description="$1"
@@ -21,6 +22,12 @@ expect_fail() {
 
 python3 "$ANALYZER" \
   --input "$PASS_FIXTURE" \
+  --max-starvation-window 10 \
+  --buckets LOW,NORMAL \
+  --enforce-pause-zero
+
+python3 "$ANALYZER" \
+  --input "$PARTIAL_PROCESSED_FIXTURE" \
   --max-starvation-window 10 \
   --buckets LOW,NORMAL \
   --enforce-pause-zero
