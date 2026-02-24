@@ -8,12 +8,20 @@
 Подробности: `docs/design.md`.
 
 ## Текущий этап разработки (Phase 1 snapshot)
-Текущий этап зафиксирован как **runtime foundation готов, baseline обновлён, perf/release gate имеет статус GO (PASS)**:
+Текущий этап зафиксирован как **runtime foundation готов, baseline обновлён, perf/release gate имеет статус GO (PASS)**.
+
+### Готово для NPC
 
 - ✅ runtime-контур NPC в `src/modules/npc/*` собран и используется как canonical source;
 - ✅ lifecycle/fairness/activity контрактные проверки автоматизированы и проходят локально;
-- ✅ legacy-cleanup milestone (`tools/*`) закрыт; legacy-архив больше не хранится в дереве репозитория;
 - ✅ perf/release gate имеет статус `GO (PASS)`: baseline свежий (>=3 runs, <=14 days), активные guardrails проходят (см. `docs/perf/npc_baseline_report.md` и `docs/perf/reports/npc_gate_summary_latest.md`).
+
+### Готово как platform capability для других механик
+
+- ✅ legacy-cleanup milestone (`tools/*`) закрыт; legacy-архив больше не хранится в дереве репозитория;
+- ✅ общий модульный контракт зафиксирован в `docs/module_contract.md` (thin-entrypoints, lifecycle API, метрики/деградационные сигналы);
+- ✅ добавлены reusable-шаблоны для bootstrap нового модуля: `scripts/contracts/module.contract.template`, `scripts/contracts/check_module_contract.template.sh`, `scripts/test_module_smoke.template.sh`;
+- ✅ добавлен проверяемый skeleton модуля: `src/modules/module_skeleton/*`.
 
 Правило консистентности: при каждом обновлении baseline в `docs/perf/npc_baseline_report.md` синхронизируйте статус-блоки в этом разделе и в `src/modules/npc/README.md#current-readiness-snapshot`.
 
