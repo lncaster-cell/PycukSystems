@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANALYZER="$ROOT_DIR/scripts/bench/analyze_single_run.py"
+GUARDRAIL_ANALYZER="$ROOT_DIR/scripts/analyze_guardrails.py"
 SCHEMA="$ROOT_DIR/docs/perf/analyze_single_run_schema.json"
 STARVATION_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/starvation_risk.csv"
 WARMUP_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/warmup_rescan.csv"
@@ -92,5 +93,31 @@ if "invalid numeric" not in payload.get("error", ""):
     raise SystemExit("[FAIL] expected invalid numeric error")
 PY
 rm -f "$TMP_BAD"
+
+TMP_GUARDRAIL_BAD="$(mktemp)"
+cat > "$TMP_GUARDRAIL_BAD" <<'CSV'
+lifecycle_state,overflow_events,budget_overrun,deferred_events
+RUNNING,abc,1,1
+RUNNING,1,1,1
+CSV
+set +e
+output_guardrail_bad="$(python3 "$GUARDRAIL_ANALYZER" --input "$TMP_GUARDRAIL_BAD" --format json)"
+rc=$?
+set -e
+if [[ $rc -eq 0 ]]; then
+  echo "[FAIL] expected non-zero for guardrail analyzer invalid numeric fixture"
+  exit 1
+fi
+python3 - <<'PY' "$output_guardrail_bad"
+import json
+import sys
+payload = json.loads(sys.argv[1])
+if payload.get("status") != "INVALID":
+    raise SystemExit("[FAIL] invalid fixture must return status=INVALID")
+err = payload.get("error", "")
+if "invalid numeric value" not in err or "overflow_events" not in err:
+    raise SystemExit("[FAIL] expected structured invalid numeric error with column context")
+PY
+rm -f "$TMP_GUARDRAIL_BAD"
 
 echo "[OK] Single-run analyzer contract tests passed"
