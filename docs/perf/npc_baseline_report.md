@@ -11,9 +11,17 @@
 - Версия runtime/NWNX: **N/A**.
 
 ## 2. Сценарии и длительность
-- scenario_a_nominal: N/A
-- scenario_b_combat_spike: N/A
-- scenario_c_recovery: N/A
+- steady: N/A
+- burst: N/A
+- starvation-risk: N/A
+
+### Legacy → current naming mapping
+
+| Legacy ID | Current scenario ID (CLI) |
+|---|---|
+| `scenario_a_nominal` | `steady` |
+| `scenario_b_combat_spike` | `burst` |
+| `scenario_c_recovery` | `starvation-risk` |
 
 ## 3. Агрегированные метрики (минимум 3 прогона)
 

@@ -9,6 +9,10 @@
 - Если baseline отсутствует или старше 14 дней, результаты сравнения считаются `BLOCKED` до обновления baseline.
 - `docs/perf/reports/*` используется только как historical archive для ретроспективного анализа трендов и не является current baseline для gate-сравнений.
 
+## Scenario IDs
+
+Для consistency с CLI-режимами `scripts/run_npc_bench.sh` во всех perf-gate проверках используются идентификаторы сценариев: `steady`, `burst`, `starvation-risk`.
+
 ## 1) Registry overflow guardrail
 
 **Цель:** подтвердить, что лимит area-registry не приводит к silent failure.
@@ -16,7 +20,7 @@
 ### Сценарий
 
 - Поднять количество NPC в области выше `MAX_NPCS_PER_AREA` (например, 120+ при лимите 100).
-- Запустить area-loop в steady режиме с регистрацией новых NPC.
+- Запустить area-loop в `steady` режиме с регистрацией новых NPC.
 
 ### Проверки
 
@@ -62,7 +66,7 @@
 ### Сценарий
 
 - Выполнить fault-injection для причин: `OVERFLOW`, `QUEUE_PRESSURE`, `ROUTE_MISS`, `DISABLED`.
-- Запустить короткие burst-серии с включённой диагностикой.
+- Запустить короткие `burst`-серии с включённой диагностикой.
 
 ### Проверки
 
@@ -112,7 +116,7 @@
 ### Сценарий
 
 - Установить runtime-конфиги области: `npc_tick_max_events` и `npc_tick_soft_budget_ms` в заведомо малые значения (например, `2` и `8`).
-- Сформировать burst, превышающий бюджет тика (очередь HIGH/NORMAL + CRITICAL).
+- Сформировать `burst`, превышающий бюджет тика (очередь HIGH/NORMAL + CRITICAL).
 - Запустить 5–10 последовательных тиков и снять метрики по области.
 
 ### Проверки
