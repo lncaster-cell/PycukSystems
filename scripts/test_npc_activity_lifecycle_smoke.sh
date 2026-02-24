@@ -65,24 +65,39 @@ else:
 spawn = body("NpcBhvrActivityOnSpawn")
 idle = body("NpcBhvrActivityOnIdleTick")
 
-# Case 1: Spawn initializes required lifecycle keys.
-expect_contains(spawn, 'SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);', 'spawn init')
-expect_contains(spawn, 'SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);', 'spawn init')
+# Case 1: Spawn initializes required lifecycle keys through centralized refresh.
+expect_contains(spawn, 'NpcBhvrActivityRefreshProfileState(oNpc);', 'spawn init')
+expect_contains(spawn, 'sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);', 'spawn init')
+expect_contains(spawn, 'sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);', 'spawn init')
 expect_contains(spawn, 'NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");', 'spawn init')
 expect_contains(spawn, 'SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, 0);', 'spawn init')
-expect_contains(spawn, 'SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sRouteConfigured);', 'spawn configured route')
-expect_contains(spawn, 'DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);', 'spawn configured route')
 
 # Case 2: Idle tick cooldown > 0 path decrements only and returns.
 expect_contains(idle, 'if (nCooldown > 0)', 'idle cooldown gate')
 expect_contains(idle, 'SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1);', 'idle cooldown gate')
 expect_regex(
     idle,
-    r'if \(nCooldown > 0\)\s*\{\s*SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1\);\s*return;\s*\}\s*\n\s*string sSlotRaw = GetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT\);\s*\n\s*string sSlot = sSlotRaw;',
+    r'if \(nCooldown > 0\)\s*\{\s*SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1\);\s*return;\s*\}',
     'idle cooldown gate',
 )
 
-# Case 3: cooldown == 0 dispatch path follows slot/route branch order.
+# Case 3: Idle invalidation gate and cached fast-path are present.
+expect_contains(idle, 'if (bInvalidate)', 'idle invalidation')
+expect_contains(idle, 'NpcBhvrActivityRefreshProfileState(oNpc);', 'idle invalidation')
+expect_contains(idle, 'sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);', 'idle cached slot')
+expect_contains(idle, 'sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);', 'idle cached route')
+expect_order(
+    idle,
+    [
+        'if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR) != nResolvedHour)',
+        'else if (sSlotCached == "" || sSlotCached != sSlot)',
+        'else if (sRouteConfiguredCached != sRouteConfigured)',
+        'else if (sAreaCached != sAreaTag)',
+    ],
+    'idle invalidation conditions',
+)
+
+# Case 4: cooldown == 0 dispatch path follows slot/route branch order.
 expect_contains(idle, 'nRouteHint = NpcBhvrActivityMapRouteHint(sRoute);', 'idle dispatch')
 expect_order(
     idle,
@@ -96,14 +111,12 @@ expect_order(
     'idle dispatch',
 )
 
-# Case 4: route source transition (NPC -> area fallback) keeps configured route key intact.
-expect_regex(
-    resolve,
-    r'GetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE\).*?GetLocalString\(oNpc, NpcBhvrActivitySlotRouteProfileKey\(sSlot\)\).*?GetLocalString\(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT\).*?GetLocalString\(oArea, NpcBhvrActivitySlotRouteProfileKey\(sSlot\)\).*?GetLocalString\(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT\).*?return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;',
-    'resolve fallback chain',
-)
-expect_contains(idle, 'SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);', 'route source transition')
-expect_not_contains(idle, 'SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE,', 'route source transition')
+# Case 5: route source transition fallback chain keeps configured route source and defaults.
+expect_contains(resolve, 'GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE)', 'resolve fallback chain')
+expect_contains(resolve, 'NpcBhvrActivitySlotRouteProfileKey(sSlot)', 'resolve fallback chain')
+expect_contains(resolve, 'NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT', 'resolve fallback chain')
+expect_contains(resolve, 'NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot)', 'resolve fallback chain')
+expect_contains(resolve, 'return NpcBhvrActivityAdapterNormalizeRoute("");', 'resolve fallback chain')
 
 if errors:
     print('[FAIL] npc activity lifecycle smoke checks failed')
