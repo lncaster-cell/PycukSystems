@@ -104,92 +104,96 @@ def main() -> int:
     try:
         with path.open("r", encoding="utf-8", newline="") as f:
             reader = csv.DictReader(f)
-            fieldnames = set(reader.fieldnames or [])
-            rows = list(reader)
+            fieldnames = reader.fieldnames
+            if fieldnames is None:
+                print("[FAIL] csv is empty")
+                return 2
+
+            required_columns = ["tick", *[BUCKET_COLUMN[b] for b in buckets]]
+            missing = [column for column in required_columns if column not in fieldnames]
+            if missing:
+                print(f"[FAIL] csv missing required columns: {', '.join(missing)}")
+                return 2
+
+            pause_zero_columns = [
+                column
+                for column in ("processed_low", "processed_normal", "processed_high", "processed_critical")
+                if column in fieldnames
+            ]
+
+            streak = {b: 0 for b in buckets}
+            worst = {b: 0 for b in buckets}
+
+            total_rows = 0
+            pause_violation_rows = 0
+            running_ticks = 0
+            resume_transitions = 0
+            resume_window_tick = -1
+            resume_window_violations = 0
+            previous_state = "RUNNING"
+            parse_errors: list[str] = []
+
+            for row_index, row in enumerate(reader, start=1):
+                total_rows += 1
+                state = (row.get("lifecycle_state") or "RUNNING").strip().upper()
+
+                numeric_columns = {"tick", *[BUCKET_COLUMN[b] for b in buckets]}
+                if args.enforce_pause_zero:
+                    numeric_columns.update(pause_zero_columns)
+
+                parsed_numbers: dict[str, int] = {}
+                for column in numeric_columns:
+                    parsed = to_int(row.get(column, ""), row_index, column, parse_errors)
+                    if parsed is not None:
+                        parsed_numbers[column] = parsed
+
+                if parse_errors:
+                    print(parse_errors[0])
+                    return 2
+
+                if previous_state == "PAUSED" and state == "RUNNING":
+                    resume_transitions += 1
+                    resume_window_tick = 0
+
+                if state == "PAUSED" and args.enforce_pause_zero:
+                    row_has_processing = False
+                    for col in pause_zero_columns:
+                        if parsed_numbers.get(col, 0) > 0:
+                            row_has_processing = True
+                            break
+                    if row_has_processing:
+                        pause_violation_rows += 1
+
+                if state != "RUNNING":
+                    previous_state = state
+                    continue
+
+                running_ticks += 1
+
+                resume_window_tick, resume_window_violations = evaluate_post_resume_window(
+                    args,
+                    buckets,
+                    parsed_numbers,
+                    resume_window_tick,
+                    resume_window_violations,
+                )
+
+                for b in buckets:
+                    col = BUCKET_COLUMN[b]
+                    if parsed_numbers.get(col, 0) > 0:
+                        worst[b] = max(worst[b], streak[b])
+                        streak[b] = 0
+                    else:
+                        streak[b] += 1
+
+                previous_state = state
+
+            if total_rows == 0:
+                print("[FAIL] csv is empty")
+                return 2
     except (OSError, UnicodeDecodeError) as exc:
         print(f"[FAIL] failed to read csv input: {path} ({exc})")
         return 2
-
-    if not rows:
-        print("[FAIL] csv is empty")
-        return 2
-
-    required_columns = ["tick", *[BUCKET_COLUMN[b] for b in buckets]]
-    missing = [column for column in required_columns if column not in fieldnames]
-    if missing:
-        print(f"[FAIL] csv missing required columns: {', '.join(missing)}")
-        return 2
-
-    pause_zero_columns = [
-        column
-        for column in ("processed_low", "processed_normal", "processed_high", "processed_critical")
-        if column in fieldnames
-    ]
-
-    streak = {b: 0 for b in buckets}
-    worst = {b: 0 for b in buckets}
-
-    pause_violation_rows = 0
-    running_ticks = 0
-    resume_transitions = 0
-    resume_window_tick = -1
-    resume_window_violations = 0
-    previous_state = "RUNNING"
-    parse_errors: list[str] = []
-
-    for row_index, row in enumerate(rows, start=1):
-        state = (row.get("lifecycle_state") or "RUNNING").strip().upper()
-
-        numeric_columns = {"tick", *[BUCKET_COLUMN[b] for b in buckets]}
-        if args.enforce_pause_zero:
-            numeric_columns.update(pause_zero_columns)
-
-        parsed_numbers: dict[str, int] = {}
-        for column in numeric_columns:
-            parsed = to_int(row.get(column, ""), row_index, column, parse_errors)
-            if parsed is not None:
-                parsed_numbers[column] = parsed
-
-        if parse_errors:
-            print(parse_errors[0])
-            return 2
-
-        if previous_state == "PAUSED" and state == "RUNNING":
-            resume_transitions += 1
-            resume_window_tick = 0
-
-        if state == "PAUSED" and args.enforce_pause_zero:
-            row_has_processing = False
-            for col in pause_zero_columns:
-                if parsed_numbers.get(col, 0) > 0:
-                    row_has_processing = True
-                    break
-            if row_has_processing:
-                pause_violation_rows += 1
-
-        if state != "RUNNING":
-            previous_state = state
-            continue
-
-        running_ticks += 1
-
-        resume_window_tick, resume_window_violations = evaluate_post_resume_window(
-            args,
-            buckets,
-            parsed_numbers,
-            resume_window_tick,
-            resume_window_violations,
-        )
-
-        for b in buckets:
-            col = BUCKET_COLUMN[b]
-            if parsed_numbers.get(col, 0) > 0:
-                worst[b] = max(worst[b], streak[b])
-                streak[b] = 0
-            else:
-                streak[b] += 1
-
-        previous_state = state
 
     for b in buckets:
         worst[b] = max(worst[b], streak[b])
@@ -207,7 +211,7 @@ def main() -> int:
             resume_window_violations,
         )
 
-    print(f"[INFO] analyzed rows: {len(rows)}, running_ticks: {running_ticks}")
+    print(f"[INFO] analyzed rows: {total_rows}, running_ticks: {running_ticks}")
     print(f"[INFO] resume_transitions: {resume_transitions}")
     for b in buckets:
         print(f"[INFO] bucket={b} worst_starvation_window={worst[b]}")
