@@ -62,6 +62,27 @@ const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
 const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
 const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
 
+// Waypoint/ambient activity runtime locals.
+const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
+const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
+const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
+const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";
+const string NPC_BHVR_VAR_ACTIVITY_ID = "npc_activity_id";
+const string NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS = "npc_activity_custom_anims";
+const string NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS = "npc_activity_numeric_anims";
+const string NPC_BHVR_VAR_ACTIVITY_WAYPOINT_TAG = "npc_activity_waypoint_tag";
+const string NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER = "npc_activity_requires_training_partner";
+const string NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR = "npc_activity_requires_bar_pair";
+
+const string NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX = "npc_route_pause_ticks_";
+
+const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
+const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
+const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
+const string NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX = "npc_route_activity_";
+
 const string NPC_BHVR_ACTIVITY_SLOT_DEFAULT = "default";
 const string NPC_BHVR_ACTIVITY_SLOT_PRIORITY = "priority";
 const string NPC_BHVR_ACTIVITY_SLOT_CRITICAL = "critical";
@@ -77,116 +98,50 @@ const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL = 1;
 const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL = 2;
 
-string NpcBhvrActivityAreaRouteCacheSlotKey(string sSlot)
-{
-    return NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + sSlot;
-}
-
-void NpcBhvrActivityRouteCacheWarmup(object oArea)
-{
-    string sDefault;
-    string sPriority;
-    string sCritical;
-
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    if (GetLocalInt(oArea, "routes_cached") == TRUE)
-    {
-        NpcBhvrMetricRouteCacheRecordHit(oArea);
-        return;
-    }
-
-    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_ROUTE_CACHE_WARMUP_TOTAL);
-    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_ROUTE_CACHE_RESCAN_TOTAL);
-    NpcBhvrMetricRouteCacheRecordMiss(oArea);
-
-    sDefault = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT)),
-        oArea,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
-    );
-    if (sDefault == "")
-    {
-        sDefault = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-            GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
-            oArea,
-            NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
-        );
-    }
-    if (sDefault == "")
-    {
-        sDefault = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
-    }
-
-    sPriority = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY)),
-        oArea,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
-    );
-    if (sPriority == "")
-    {
-        sPriority = sDefault;
-    }
-
-    sCritical = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL)),
-        oArea,
-        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
-    );
-    if (sCritical == "")
-    {
-        sCritical = sDefault;
-    }
-
-    SetLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT, sDefault);
-    SetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT), sDefault);
-    SetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), sPriority);
-    SetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), sCritical);
-    SetLocalInt(oArea, "routes_cached", TRUE);
-    SetLocalInt(oArea, "routes_cache_version", GetLocalInt(oArea, "routes_cache_version") + 1);
-}
-
-void NpcBhvrActivityRouteCacheInvalidate(object oArea)
-{
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    DeleteLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT);
-    DeleteLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT));
-    DeleteLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
-    DeleteLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
-    SetLocalInt(oArea, "routes_cached", FALSE);
-}
-
-string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot)
-{
-    string sRoute;
-
-    if (!GetIsObjectValid(oArea))
-    {
-        return "";
-    }
-
-    NpcBhvrActivityRouteCacheWarmup(oArea);
-
-    sRoute = GetLocalString(oArea, NpcBhvrActivityAreaRouteCacheSlotKey(sSlot));
-    if (sRoute == "")
-    {
-        sRoute = GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT);
-    }
-
-    if (sRoute == "")
-    {
-        sRoute = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
-    }
-
-    return sRoute;
-}
+// AmbientLiveV2 activity IDs (ported from legacy AL data layer).
+const int NPC_BHVR_ACTIVITY_ID_HIDDEN = 0;
+const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;
+const int NPC_BHVR_ACTIVITY_ID_ACT_TWO = 2;
+const int NPC_BHVR_ACTIVITY_ID_DINNER = 3;
+const int NPC_BHVR_ACTIVITY_ID_MIDNIGHT_BED = 4;
+const int NPC_BHVR_ACTIVITY_ID_SLEEP_BED = 5;
+const int NPC_BHVR_ACTIVITY_ID_WAKE = 6;
+const int NPC_BHVR_ACTIVITY_ID_AGREE = 7;
+const int NPC_BHVR_ACTIVITY_ID_ANGRY = 8;
+const int NPC_BHVR_ACTIVITY_ID_SAD = 9;
+const int NPC_BHVR_ACTIVITY_ID_COOK = 10;
+const int NPC_BHVR_ACTIVITY_ID_DANCE_FEMALE = 11;
+const int NPC_BHVR_ACTIVITY_ID_DANCE_MALE = 12;
+const int NPC_BHVR_ACTIVITY_ID_DRUM = 13;
+const int NPC_BHVR_ACTIVITY_ID_FLUTE = 14;
+const int NPC_BHVR_ACTIVITY_ID_FORGE = 15;
+const int NPC_BHVR_ACTIVITY_ID_GUITAR = 16;
+const int NPC_BHVR_ACTIVITY_ID_WOODSMAN = 17;
+const int NPC_BHVR_ACTIVITY_ID_MEDITATE = 18;
+const int NPC_BHVR_ACTIVITY_ID_POST = 19;
+const int NPC_BHVR_ACTIVITY_ID_READ = 20;
+const int NPC_BHVR_ACTIVITY_ID_SIT = 21;
+const int NPC_BHVR_ACTIVITY_ID_SIT_DINNER = 22;
+const int NPC_BHVR_ACTIVITY_ID_STAND_CHAT = 23;
+const int NPC_BHVR_ACTIVITY_ID_TRAINING_ONE = 24;
+const int NPC_BHVR_ACTIVITY_ID_TRAINING_TWO = 25;
+const int NPC_BHVR_ACTIVITY_ID_TRAINER_PACE = 26;
+const int NPC_BHVR_ACTIVITY_ID_WWP = 27;
+const int NPC_BHVR_ACTIVITY_ID_CHEER = 28;
+const int NPC_BHVR_ACTIVITY_ID_COOK_MULTI = 29;
+const int NPC_BHVR_ACTIVITY_ID_FORGE_MULTI = 30;
+const int NPC_BHVR_ACTIVITY_ID_MIDNIGHT_90 = 31;
+const int NPC_BHVR_ACTIVITY_ID_SLEEP_90 = 32;
+const int NPC_BHVR_ACTIVITY_ID_THIEF = 33;
+const int NPC_BHVR_ACTIVITY_ID_THIEF2 = 36;
+const int NPC_BHVR_ACTIVITY_ID_ASSASSIN = 37;
+const int NPC_BHVR_ACTIVITY_ID_MERCHANT_MULTI = 38;
+const int NPC_BHVR_ACTIVITY_ID_KNEEL_TALK = 39;
+const int NPC_BHVR_ACTIVITY_ID_BARMAID = 41;
+const int NPC_BHVR_ACTIVITY_ID_BARTENDER = 42;
+const int NPC_BHVR_ACTIVITY_ID_GUARD = 43;
+const int NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MIN = 91;
+const int NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MAX = 98;
 
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
 {
@@ -211,6 +166,11 @@ string NpcBhvrActivityRouteTagKey(string sRouteId)
 string NpcBhvrActivityRoutePauseTicksKey(string sRouteId)
 {
     return NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX + sRouteId;
+}
+
+string NpcBhvrActivityRoutePointActivityKey(string sRouteId, int nIndex)
+{
+    return NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX + sRouteId + "_" + IntToString(nIndex);
 }
 
 int NpcBhvrActivityIsSupportedRoute(string sRouteId)
@@ -485,6 +445,153 @@ string NpcBhvrActivityComposeWaypointState(string sBaseState, string sRouteTag, 
     return sBaseState + "_" + sRouteTag + "_" + IntToString(nWpIndex + 1) + "_of_" + IntToString(nWpCount);
 }
 
+int NpcBhvrActivityIsLocateWrapperActivity(int nActivity)
+{
+    return nActivity >= NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MIN
+        && nActivity <= NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MAX;
+}
+
+int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int nWpIndex)
+{
+    int nActivity;
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc) || nWpIndex < 0)
+    {
+        return 0;
+    }
+
+    nActivity = GetLocalInt(oNpc, NpcBhvrActivityRoutePointActivityKey(sRouteId, nWpIndex));
+    if (nActivity > 0)
+    {
+        return nActivity;
+    }
+
+    oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    nActivity = GetLocalInt(oArea, NpcBhvrActivityRoutePointActivityKey(sRouteId, nWpIndex));
+    if (nActivity > 0)
+    {
+        return nActivity;
+    }
+
+    return 0;
+}
+
+string NpcBhvrActivityGetLocateWrapperCustomAnims(int nActivity)
+{
+    switch (nActivity)
+    {
+        case 91: return "lookleft, lookright, shrug";
+        case 92: return "bored, scratchhead, yawn";
+        case 93: return "sitfidget, sitidle, sittalk, sittalk01, sittalk02";
+        case 94: return "kneelidle, kneeltalk";
+        case 95: return "chuckle, nodno, nodyes, talk01, talk02, talklaugh";
+        case 96: return "craft01, dustoff, forge01, openlock";
+        case 97: return "meditate";
+        case 98: return "disableground, sleightofhand, sneak";
+    }
+
+    return "";
+}
+
+string NpcBhvrActivityGetCustomAnims(int nActivity)
+{
+    if (NpcBhvrActivityIsLocateWrapperActivity(nActivity))
+    {
+        return NpcBhvrActivityGetLocateWrapperCustomAnims(nActivity);
+    }
+
+    switch (nActivity)
+    {
+        case NPC_BHVR_ACTIVITY_ID_ACT_ONE: return "lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_ACT_TWO: return "lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_DINNER: return "sitdrink, siteat, sitidle";
+        case NPC_BHVR_ACTIVITY_ID_MIDNIGHT_BED: return "laydownB, proneB";
+        case NPC_BHVR_ACTIVITY_ID_SLEEP_BED: return "laydownB, proneB";
+        case NPC_BHVR_ACTIVITY_ID_WAKE: return "sitdrink, siteat, sitidle";
+        case NPC_BHVR_ACTIVITY_ID_AGREE: return "chuckle, flirt, nodyes";
+        case NPC_BHVR_ACTIVITY_ID_ANGRY: return "intimidate, nodno, talkshout";
+        case NPC_BHVR_ACTIVITY_ID_SAD: return "talksad, tired";
+        case NPC_BHVR_ACTIVITY_ID_COOK: return "cooking02, disablefront";
+        case NPC_BHVR_ACTIVITY_ID_DANCE_FEMALE: return "curtsey, dance01";
+        case NPC_BHVR_ACTIVITY_ID_DANCE_MALE: return "bow, dance01, dance02";
+        case NPC_BHVR_ACTIVITY_ID_DRUM: return "bow, playdrum";
+        case NPC_BHVR_ACTIVITY_ID_FLUTE: return "curtsey, playflute";
+        case NPC_BHVR_ACTIVITY_ID_FORGE: return "craft01, dustoff, forge01";
+        case NPC_BHVR_ACTIVITY_ID_GUITAR: return "bow, playguitar";
+        case NPC_BHVR_ACTIVITY_ID_WOODSMAN: return "*1attack01, kneelidle";
+        case NPC_BHVR_ACTIVITY_ID_MEDITATE: return "meditate";
+        case NPC_BHVR_ACTIVITY_ID_POST: return "lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_READ: return "sitidle, sitread, sitteat";
+        case NPC_BHVR_ACTIVITY_ID_SIT: return "sitfidget, sitidle, sittalk, sittalk01, sittalk02";
+        case NPC_BHVR_ACTIVITY_ID_SIT_DINNER:
+            return "sitdrink, siteat, sitidle, sittalk, sittalk01, sittalk02";
+        case NPC_BHVR_ACTIVITY_ID_STAND_CHAT:
+            return "chuckle, lookleft, lookright, shrug, talk01, talk02, talklaugh";
+        case NPC_BHVR_ACTIVITY_ID_TRAINING_ONE: return "lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_TRAINING_TWO: return "lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_TRAINER_PACE: return "lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_WWP: return "kneelidle, lookleft, lookright";
+        case NPC_BHVR_ACTIVITY_ID_CHEER: return "chuckle, clapping, talklaugh, victory";
+        case NPC_BHVR_ACTIVITY_ID_COOK_MULTI:
+            return "cooking01, cooking02, craft01, disablefront, dustoff, forge01, gettable, kneelidle, kneelup, openlock, scratchhead";
+        case NPC_BHVR_ACTIVITY_ID_FORGE_MULTI:
+            return "craft01, dustoff, forge01, forge02, gettable, kneeldown, kneelidle, kneelup, openlock";
+        case NPC_BHVR_ACTIVITY_ID_MIDNIGHT_90: return "laydownB, proneB";
+        case NPC_BHVR_ACTIVITY_ID_SLEEP_90: return "laydownB, proneB";
+        case NPC_BHVR_ACTIVITY_ID_THIEF: return "chuckle, getground, gettable, openlock";
+        case NPC_BHVR_ACTIVITY_ID_THIEF2: return "disableground, sleightofhand, sneak";
+        case NPC_BHVR_ACTIVITY_ID_ASSASSIN: return "sneak";
+        case NPC_BHVR_ACTIVITY_ID_MERCHANT_MULTI:
+            return "bored, getground, gettable, openlock, sleightofhand, yawn";
+        case NPC_BHVR_ACTIVITY_ID_KNEEL_TALK: return "kneelidle, kneeltalk";
+        case NPC_BHVR_ACTIVITY_ID_BARMAID: return "gettable, lookright, openlock, yawn";
+        case NPC_BHVR_ACTIVITY_ID_BARTENDER: return "gettable, lookright, openlock, yawn";
+        case NPC_BHVR_ACTIVITY_ID_GUARD: return "bored, lookleft, lookright, sigh";
+    }
+
+    return "";
+}
+
+string NpcBhvrActivityGetNumericAnims(int nActivity)
+{
+    switch (nActivity)
+    {
+        case NPC_BHVR_ACTIVITY_ID_ANGRY: return "10";
+        case NPC_BHVR_ACTIVITY_ID_SAD: return "9";
+        case NPC_BHVR_ACTIVITY_ID_COOK: return "35, 36";
+        case NPC_BHVR_ACTIVITY_ID_DANCE_FEMALE: return "27";
+    }
+
+    return "";
+}
+
+string NpcBhvrActivityGetWaypointTagRequirement(int nActivity)
+{
+    switch (nActivity)
+    {
+        case NPC_BHVR_ACTIVITY_ID_TRAINER_PACE: return "AL_WP_PACE";
+        case NPC_BHVR_ACTIVITY_ID_WWP: return "AL_WP_WWP";
+    }
+
+    return "";
+}
+
+int NpcBhvrActivityRequiresTrainingPartner(int nActivity)
+{
+    return nActivity == NPC_BHVR_ACTIVITY_ID_TRAINING_ONE || nActivity == NPC_BHVR_ACTIVITY_ID_TRAINING_TWO;
+}
+
+int NpcBhvrActivityRequiresBarPair(int nActivity)
+{
+    return nActivity == NPC_BHVR_ACTIVITY_ID_BARMAID;
+}
+
 string NpcBhvrActivityResolveSlotEmote(object oNpc, string sSlot)
 {
     string sEmote;
@@ -612,21 +719,29 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     int bLoop;
     int nWpIndex;
     int nPauseTicks;
+    int nActivityId;
     string sRouteTag;
     string sState;
     string sSlot;
     string sEmote;
     string sAction;
+    string sCustomAnims;
+    string sNumericAnims;
+    string sWaypointRequirement;
 
     nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRouteId);
     bLoop = NpcBhvrActivityResolveRouteLoop(oNpc, sRouteId);
     nWpIndex = NpcBhvrActivityNormalizeWaypointIndex(GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX), nWpCount, bLoop);
     nPauseTicks = NpcBhvrActivityResolveRoutePauseTicks(oNpc, sRouteId);
+    nActivityId = NpcBhvrActivityResolveRoutePointActivity(oNpc, sRouteId, nWpIndex);
     sRouteTag = NpcBhvrActivityResolveRouteTag(oNpc, sRouteId);
     sState = NpcBhvrActivityComposeWaypointState(sBaseState, sRouteTag, nWpIndex, nWpCount);
     sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
     sEmote = NpcBhvrActivityResolveSlotEmote(oNpc, sSlot);
     sAction = NpcBhvrActivityResolveAction(oNpc, sSlot, sRouteId, nWpIndex, nWpCount);
+    sCustomAnims = NpcBhvrActivityGetCustomAnims(nActivityId);
+    sNumericAnims = NpcBhvrActivityGetNumericAnims(nActivityId);
+    sWaypointRequirement = NpcBhvrActivityGetWaypointTagRequirement(nActivityId);
 
     NpcBhvrActivityAdapterStampTransition(oNpc, sState);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown + nPauseTicks);
@@ -636,6 +751,12 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_WAYPOINT_TAG, sWaypointRequirement);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner(nActivityId));
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair(nActivityId));
 }
 
 void NpcBhvrActivityApplyCriticalSafeRoute(object oNpc)
@@ -712,6 +833,12 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, NpcBhvrActivityResolveSlotEmote(oNpc, sSlot));
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, "spawn_init");
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, 0);
+    DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS);
+    DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS);
+    DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_WAYPOINT_TAG);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, FALSE);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, FALSE);
 
     NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
 }

@@ -96,6 +96,9 @@ Tick/degraded telemetry в runtime включает:
   - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
   - fallback: `default_route` c состоянием `idle_default`.
 - Mapping-слой (`NpcBhvrActivityMapRouteHint`) выполняет трансляцию route-id -> activity hint, чтобы AL-семантика подключалась через адаптер, а не через прямой `al_*` namespace.
+- В `npc_activity_inc.nss` перенесён data-layer AmbientLiveV2 активностей (legacy `al_acts_inc.nss`) с полной линейкой activity-id и runtime metadata-резолверами:
+  - custom anims, numeric anims, waypoint-tag requirements, training/bar pair flags;
+  - route-point activity id читается через `npc_route_activity_<routeId>_<index>` (NPC-local -> area-local) и пробрасывается в locals `npc_activity_id|custom_anims|numeric_anims|waypoint_tag|requires_*`.
 - Примитивы `NpcBhvrActivityApplyCriticalSafeRoute/NpcBhvrActivityApplyPriorityRoute/NpcBhvrActivityApplyDefaultRoute` выполняются через единый helper `NpcBhvrActivityApplyRouteState` и теперь дополнительно обновляют waypoint/runtime locals.
 - Route-point/waypoint контракт задаётся через `npc_*`-locals (без `al_*` keyspace):
   - `npc_route_count_<routeId>` — количество waypoint-узлов в route (NPC-local приоритетнее area-local);

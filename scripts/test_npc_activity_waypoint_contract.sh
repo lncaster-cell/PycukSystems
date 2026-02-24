@@ -30,6 +30,17 @@ assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote\);' "
 assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction\);' "$TARGET_FILE"
 assert_has 'GetLocalString\(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE\);' "$TARGET_FILE"
 assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown \+ nPauseTicks\);' "$TARGET_FILE"
+assert_has 'const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;' "$TARGET_FILE"
+assert_has 'const int NPC_BHVR_ACTIVITY_ID_GUARD = 43;' "$TARGET_FILE"
+assert_has 'int NpcBhvrActivityResolveRoutePointActivity\(' "$TARGET_FILE"
+assert_has 'string NpcBhvrActivityGetCustomAnims\(' "$TARGET_FILE"
+assert_has 'string NpcBhvrActivityGetNumericAnims\(' "$TARGET_FILE"
+assert_has 'string NpcBhvrActivityGetWaypointTagRequirement\(' "$TARGET_FILE"
+assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId\);' "$TARGET_FILE"
+assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims\);' "$TARGET_FILE"
+assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims\);' "$TARGET_FILE"
+assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner\(nActivityId\)\);' "$TARGET_FILE"
+assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair\(nActivityId\)\);' "$TARGET_FILE"
 
 # Behavioral contract (emulated): index clamp/loop + state suffix composition.
 python3 - <<'PY'
@@ -82,6 +93,25 @@ assert_eq(resolve_action("critical", "default_route", 0, 3, ""), "guard_hold", "
 assert_eq(resolve_action("priority", "priority_patrol", 1, 4, ""), "patrol_scan", "priority scan action")
 assert_eq(resolve_action("default", "default_route", 0, 0, "smoke"), "ambient_smoke", "ambient emote action")
 assert_eq(resolve_action("default", "default_route", 0, 0, ""), "ambient_idle", "ambient idle action")
+
+
+def custom_anims(activity: int) -> str:
+    if activity == 1:
+        return "lookleft, lookright"
+    if activity == 43:
+        return "bored, lookleft, lookright, sigh"
+    if activity == 97:
+        return "meditate"
+    return ""
+
+def numeric_anims(activity: int) -> str:
+    if activity == 8:
+        return "10"
+    return ""
+
+assert_eq(custom_anims(1), "lookleft, lookright", "ambientlivev2 custom anims act_one")
+assert_eq(custom_anims(97), "meditate", "ambientlivev2 locate wrapper anim")
+assert_eq(numeric_anims(8), "10", "ambientlivev2 numeric anim angry")
 
 print("[OK] NPC activity waypoint behavioral checks passed")
 PY

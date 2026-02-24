@@ -44,6 +44,8 @@
 
 ## 5) Waypoint/route-point runtime semantics
 
+Порт AmbientLiveV2 data-layer считается обязательным: mapping activity-id -> metadata (custom/numeric anims, requirements) не должен деградировать относительно legacy `al_acts_inc.nss`.
+
 Инварианты для `NpcBhvrActivityApplyRouteState` и `NpcBhvrActivityOnIdleTick`:
 - при наличии `npc_route_count_<routeId> > 0` route-dispatch использует waypoint-индекс `npc_activity_wp_index`;
 - loop-policy берётся из `npc_route_loop_<routeId>` (`>0` loop, `<0` stop-at-tail, `0` default loop);
