@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCENARIO="${1:-steady}"
+SCENARIO="steady"
+MATERIALIZE_RAW="false"
 RUNS="${RUNS:-3}"
 OUTPUT_ROOT="benchmarks/npc_baseline/results"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
@@ -23,6 +24,36 @@ QUEUE_FLAGS=(
 )
 
 mkdir -p "${RAW_DIR}" "${ANALYSIS_DIR}"
+
+while (( "$#" )); do
+  case "$1" in
+    --materialize-raw)
+      MATERIALIZE_RAW="true"
+      ;;
+    -h|--help)
+      cat <<'USAGE'
+Usage: scripts/run_npc_bench.sh [SCENARIO] [--materialize-raw]
+
+SCENARIO defaults to "steady".
+--materialize-raw copies SOURCE_FIXTURE into raw/run_N.csv per run for debugging.
+Without this flag, raw/run_N.csv is a symlink to SOURCE_FIXTURE and raw/manifest.csv is emitted.
+USAGE
+      exit 0
+      ;;
+    --*)
+      echo "[ERR] Unknown option: $1" >&2
+      exit 2
+      ;;
+    *)
+      if [[ "${SCENARIO}" != "steady" ]]; then
+        echo "[ERR] Scenario already provided: ${SCENARIO}. Unexpected extra argument: $1" >&2
+        exit 2
+      fi
+      SCENARIO="$1"
+      ;;
+  esac
+  shift
+done
 
 if ! [[ "${RUNS}" =~ ^[0-9]+$ ]] || (( RUNS < 1 )); then
   echo "[ERR] Invalid RUNS value: ${RUNS}. RUNS must be an integer >= 1 (example: RUNS=3)." >&2
@@ -202,15 +233,21 @@ for i in $(seq 1 "${RUNS}"); do
   npc_log="${ANALYSIS_DIR}/run_${i}_npc_fairness.log"
   queue_log="${ANALYSIS_DIR}/run_${i}_area_queue_fairness.log"
 
-  cp "${SOURCE_FIXTURE}" "${run_csv}"
+  if [[ "${MATERIALIZE_RAW}" == "true" ]]; then
+    cp "${SOURCE_FIXTURE}" "${run_csv}"
+    analysis_input="${run_csv}"
+  else
+    ln -sf "$(realpath --relative-to="${RAW_DIR}" "${SOURCE_FIXTURE}")" "${run_csv}"
+    analysis_input="${SOURCE_FIXTURE}"
+  fi
 
-  if python3 "${NPC_ANALYZER}" --input "${run_csv}" >"${npc_log}" 2>&1; then
+  if python3 "${NPC_ANALYZER}" --input "${analysis_input}" >"${npc_log}" 2>&1; then
     ((npc_pass += 1))
   fi
   ((npc_runs += 1))
 
   if [[ "${HAS_QUEUE_COLUMNS}" == "true" ]]; then
-    if python3 "${QUEUE_ANALYZER}" --input "${run_csv}" "${QUEUE_FLAGS[@]}" >"${queue_log}" 2>&1; then
+    if python3 "${QUEUE_ANALYZER}" --input "${analysis_input}" "${QUEUE_FLAGS[@]}" >"${queue_log}" 2>&1; then
       ((queue_pass += 1))
     fi
     ((queue_runs += 1))
@@ -225,7 +262,7 @@ for i in $(seq 1 "${RUNS}"); do
       BUDGET) budget_result="${value}" ;;
       WARMUP) warmup_result="${value}" ;;
     esac
-  done < <(python3 "${GUARDRAIL_ANALYZER}" --input "${run_csv}")
+  done < <(python3 "${GUARDRAIL_ANALYZER}" --input "${analysis_input}")
 
   if [[ "${overflow_result}" != "NA" ]]; then
     ((overflow_runs += 1))
@@ -242,6 +279,23 @@ for i in $(seq 1 "${RUNS}"); do
     [[ "${warmup_result}" == "PASS" ]] && ((warmup_pass += 1))
   fi
 done
+
+MANIFEST_FILE="${RAW_DIR}/manifest.csv"
+RAW_MODE="symlink"
+if [[ "${MATERIALIZE_RAW}" == "true" ]]; then
+  RAW_MODE="materialized-copy"
+fi
+
+{
+  echo "run_id,analysis_input,raw_artifact,raw_mode"
+  for i in $(seq 1 "${RUNS}"); do
+    if [[ "${MATERIALIZE_RAW}" == "true" ]]; then
+      echo "${i},${RAW_DIR}/run_${i}.csv,${RAW_DIR}/run_${i}.csv,${RAW_MODE}"
+    else
+      echo "${i},${SOURCE_FIXTURE},${RAW_DIR}/run_${i}.csv,${RAW_MODE}"
+    fi
+  done
+} > "${MANIFEST_FILE}"
 
 summarize_guardrail() {
   local name="$1"
@@ -348,7 +402,7 @@ with open(path, "w", encoding="utf-8", newline="") as f:
     writer.writerows(rows)
 PY
 
-TIMESTAMP="${TIMESTAMP}" SCENARIO="${SCENARIO}" SOURCE_FIXTURE="${SOURCE_FIXTURE}" RUNS="${RUNS}" BASELINE_STATE="${baseline_state}" BASELINE_NOTE="${baseline_note}" BASELINE_FILE="${BASELINE_FILE}" OVERFLOW_STATUS="${overflow_status}" OVERFLOW_PASS="${overflow_pass}" OVERFLOW_RUNS="${overflow_runs}" OVERFLOW_NOTE="${overflow_note}" BUDGET_STATUS="${budget_status}" BUDGET_PASS="${budget_pass}" BUDGET_RUNS="${budget_runs}" BUDGET_NOTE="${budget_note}" FAIRNESS_STATUS="${fairness_status}" QUEUE_PASS="${queue_pass}" QUEUE_RUNS="${queue_runs}" FAIRNESS_NOTE="${fairness_note}" WARMUP_STATUS="${warmup_status}" WARMUP_PASS="${warmup_pass}" WARMUP_RUNS="${warmup_runs}" WARMUP_NOTE="${warmup_note}" python3 - "${OUT_DIR}/gate_summary.json" <<'PY'
+TIMESTAMP="${TIMESTAMP}" SCENARIO="${SCENARIO}" SOURCE_FIXTURE="${SOURCE_FIXTURE}" RUNS="${RUNS}" BASELINE_STATE="${baseline_state}" BASELINE_NOTE="${baseline_note}" BASELINE_FILE="${BASELINE_FILE}" OVERFLOW_STATUS="${overflow_status}" OVERFLOW_PASS="${overflow_pass}" OVERFLOW_RUNS="${overflow_runs}" OVERFLOW_NOTE="${overflow_note}" BUDGET_STATUS="${budget_status}" BUDGET_PASS="${budget_pass}" BUDGET_RUNS="${budget_runs}" BUDGET_NOTE="${budget_note}" FAIRNESS_STATUS="${fairness_status}" QUEUE_PASS="${queue_pass}" QUEUE_RUNS="${queue_runs}" FAIRNESS_NOTE="${fairness_note}" WARMUP_STATUS="${warmup_status}" WARMUP_PASS="${warmup_pass}" WARMUP_RUNS="${warmup_runs}" WARMUP_NOTE="${warmup_note}" RAW_MODE="${RAW_MODE}" MANIFEST_FILE="${MANIFEST_FILE}" python3 - "${OUT_DIR}/gate_summary.json" <<'PY'
 import json
 import os
 import sys
@@ -358,6 +412,10 @@ payload = {
     "timestamp": os.environ["TIMESTAMP"],
     "scenario_id": os.environ["SCENARIO"],
     "source_fixture": os.environ["SOURCE_FIXTURE"],
+    "raw_artifacts": {
+        "mode": os.environ["RAW_MODE"],
+        "manifest": os.environ["MANIFEST_FILE"],
+    },
     "runs": int(os.environ["RUNS"]),
     "baseline": {
         "status": os.environ["BASELINE_STATE"],
@@ -408,6 +466,8 @@ cat > "${OUT_DIR}/summary.md" <<MD
 - Scenario/profile: ${SCENARIO}
 - Source fixture: ${SOURCE_FIXTURE}
 - Runs: ${RUNS}
+- Raw artifacts mode: ${RAW_MODE}
+- Raw manifest: ${MANIFEST_FILE}
 - Baseline reference: ${BASELINE_FILE} (${baseline_state}: ${baseline_note})
 
 ## Analyzer post-processing
@@ -417,6 +477,7 @@ cat > "${OUT_DIR}/summary.md" <<MD
 - Mandatory fairness flags: ${QUEUE_FLAGS[*]}.
 
 Logs per run are stored in ${ANALYSIS_DIR}.
+Raw traces are represented via ${RAW_MODE} in ${RAW_DIR}; see ${MANIFEST_FILE}.
 
 ## Guardrail checklist (PASS/FAIL/BLOCKED)
 
@@ -432,6 +493,7 @@ Logs per run are stored in ${ANALYSIS_DIR}.
 - ${OUT_DIR}/gate_summary.csv
 - ${OUT_DIR}/gate_summary.json
 - ${BASELINE_META_FILE}
+- ${MANIFEST_FILE}
 MD
 
 echo "[OK] Benchmark scaffolding completed: ${OUT_DIR}"
