@@ -185,7 +185,7 @@ void NpcBhvrApplyTickRuntimeConfig(object oArea)
     }
 }
 
-int NpcBhvrQueueProcessOne(object oArea)
+int NpcBhvrQueueProcessOne(object oArea, int nNow)
 {
     int nTotalDepth;
     int nPriority;
@@ -223,21 +223,21 @@ int NpcBhvrQueueProcessOne(object oArea)
         return TRUE;
     }
 
-    NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_RUNNING);
+    NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_RUNNING, nNow);
 
     if (GetArea(oSubject) != oArea)
     {
-        NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_DEFERRED);
-        NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED);
+        NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_DEFERRED, nNow);
+        NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED, nNow);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
         return TRUE;
     }
 
-    NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_RUNNING);
+    NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_RUNNING, nNow);
     NpcBhvrActivityOnIdleTick(oSubject);
     if (GetIsObjectValid(oSubject))
     {
-        NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_PROCESSED);
+        NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_PROCESSED, nNow);
         NpcBhvrPendingNpcClear(oSubject);
         return TRUE;
     }
@@ -261,6 +261,7 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
     int nEventsBudgetLeft;
     int nBudgetFlags;
     int nPendingAfter;
+    int nNow;
 
     nSpentEvents = 0;
     nSpentBudgetMs = 0;
@@ -280,7 +281,8 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
             break;
         }
 
-        if (!NpcBhvrQueueProcessOne(oArea))
+        nNow = NpcBhvrPendingNow();
+        if (!NpcBhvrQueueProcessOne(oArea, nNow))
         {
             break;
         }
