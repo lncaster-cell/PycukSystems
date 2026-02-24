@@ -383,6 +383,25 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 ---
 
+## 3.1) TL;DR: минимальная настройка NPC за 5 минут
+
+Если коротко, чтобы NPC вообще «ожили», нужно всего 4 вещи:
+
+1. В **Module OnLoad** поставить `npc_module_load`.
+2. У NPC-шаблонов (creature blueprints) выставить hooks:
+   - `OnSpawn = npc_spawn`
+   - `OnPerception = npc_perception`
+   - `OnDamaged = npc_damaged`
+   - `OnDeath = npc_death`
+   - `OnConversation = npc_dialogue`
+3. У area привязать `npc_area_enter` и `npc_area_exit` (если в модуле используется area enter/exit pipeline).
+4. Скомпилировать скрипты и проверить, что после запуска у NPC появляются locals:
+   - `npc_activity_slot`
+   - `npc_activity_state`
+   - `npc_activity_last_ts`
+
+Если эти locals не появляются, почти всегда проблема в одном из пунктов выше (обычно не назначен hook или не скомпилирован нужный `npc_*.nss`).
+
 ## 4) Настройка в тулсете: пошагово
 
 ### Шаг 1. Подключить исходники
