@@ -1,5 +1,6 @@
 # NPC Bhvr Implementation Backlog
 
+
 Документ фиксирует **исполняемый** бэклог для развития текущего модуля поведения NPC в active-контуре `src/modules/npc/*`.
 
 ---

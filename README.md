@@ -1,5 +1,6 @@
 # PycukSystems
 
+
 Модульная библиотека NWScript для персонального сервера **Neverwinter Nights 2**.
 Текущий фокус репозитория — **runtime-модуль поведения NPC** в `src/modules/npc/`.
 

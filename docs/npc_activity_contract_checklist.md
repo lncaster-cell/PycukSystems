@@ -1,5 +1,6 @@
 # NPC Activity Contract Checklist
 
+
 Чеклист фиксирует проверяемые инварианты activity-layer контракта NPC Bhvr из `src/modules/npc/README.md` и даёт команды для быстрого smoke/regression прогона.
 
 ## 1) Route fallback resolve order

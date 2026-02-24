@@ -1,5 +1,6 @@
 # Module Contract (Platform Capability)
 
+
 Документ фиксирует **общий контракт модульного runtime**, который может применяться не только к NPC, но и к любым новым механикам в `src/modules/*`.
 
 ## 1) Thin-entrypoints (обязательно)
