@@ -11,6 +11,7 @@ ANALYSIS_DIR="${OUT_DIR}/analysis"
 FIXTURE_ROOT="docs/perf/fixtures/npc"
 NPC_ANALYZER="scripts/analyze_npc_fairness.py"
 QUEUE_ANALYZER="scripts/analyze_area_queue_fairness.py"
+BASELINE_FILE="docs/perf/npc_baseline_report.md"
 
 QUEUE_FLAGS=(
   --max-starvation-window 3
@@ -37,10 +38,7 @@ resolve_fixture() {
     starvation-risk)
       echo "${FIXTURE_ROOT}/starvation_risk.csv"
       ;;
-    overflow-guardrail)
-      echo "${FIXTURE_ROOT}/starvation_risk.csv"
-      ;;
-    tick-budget|tick-budget-degraded)
+    overflow-guardrail|tick-budget|tick-budget-degraded)
       echo "${FIXTURE_ROOT}/starvation_risk.csv"
       ;;
     fairness-checks)
@@ -52,37 +50,63 @@ resolve_fixture() {
   esac
 }
 
-profile_guardrail_status() {
+is_guardrail_enabled() {
   local profile="$1"
-  local overflow_status="$2"
-  local budget_status="$3"
-  local fairness_status="$4"
-  local overflow_note="$5"
-  local budget_note="$6"
-  local fairness_note="$7"
-
-  case "${profile}" in
-    overflow-guardrail)
-      echo "| Registry overflow guardrail | ${overflow_status} | ${overflow_note} |"
-      echo "| Tick budget / degraded-mode guardrail | N/A | Not part of overflow profile. |"
-      echo "| Automated fairness checks | N/A | Not part of overflow profile. |"
+  local guardrail="$2"
+  case "${profile}:${guardrail}" in
+    steady:fairness)
+      echo "true"
       ;;
-    tick-budget|tick-budget-degraded)
-      echo "| Registry overflow guardrail | N/A | Not part of tick-budget profile. |"
-      echo "| Tick budget / degraded-mode guardrail | ${budget_status} | ${budget_note} |"
-      echo "| Automated fairness checks | N/A | Not part of tick-budget profile. |"
+    burst:budget|burst:fairness)
+      echo "true"
       ;;
-    fairness-checks)
-      echo "| Registry overflow guardrail | N/A | Not part of fairness profile. |"
-      echo "| Tick budget / degraded-mode guardrail | N/A | Not part of fairness profile. |"
-      echo "| Automated fairness checks | ${fairness_status} | ${fairness_note} |"
+    starvation-risk:overflow|starvation-risk:budget|starvation-risk:fairness)
+      echo "true"
+      ;;
+    overflow-guardrail:overflow|tick-budget:budget|tick-budget-degraded:budget|fairness-checks:fairness)
+      echo "true"
       ;;
     *)
-      echo "| Registry overflow guardrail | ${overflow_status} | ${overflow_note} |"
-      echo "| Tick budget / degraded-mode guardrail | ${budget_status} | ${budget_note} |"
-      echo "| Automated fairness checks | ${fairness_status} | ${fairness_note} |"
+      echo "false"
       ;;
   esac
+}
+
+check_baseline_freshness() {
+  python3 - "${BASELINE_FILE}" <<'PY'
+import re
+import sys
+from datetime import datetime, timezone
+
+path = sys.argv[1]
+try:
+    text = open(path, encoding="utf-8").read()
+except OSError:
+    print("BLOCKED|baseline file not found")
+    raise SystemExit(0)
+
+match = re.search(r"- Дата:\s*\*\*(.+?)\*\*", text)
+if not match:
+    print("BLOCKED|baseline date field is missing")
+    raise SystemExit(0)
+
+raw = match.group(1).strip()
+if raw.upper() == "N/A":
+    print("BLOCKED|baseline date is N/A")
+    raise SystemExit(0)
+
+try:
+    baseline_date = datetime.strptime(raw, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+except ValueError:
+    print(f"BLOCKED|baseline date format is invalid: {raw}")
+    raise SystemExit(0)
+
+age_days = (datetime.now(timezone.utc) - baseline_date).days
+if age_days > 14:
+    print(f"BLOCKED|baseline older than 14 days ({age_days} days)")
+else:
+    print(f"FRESH|baseline age {age_days} days")
+PY
 }
 
 SOURCE_FIXTURE="$(resolve_fixture "${SCENARIO}" || true)"
@@ -97,10 +121,9 @@ if [[ ! -f "${SOURCE_FIXTURE}" ]]; then
   exit 2
 fi
 
-echo "[INFO] Running NPC Bhvr benchmark scaffolding"
-echo "[INFO] Scenario/profile: ${SCENARIO}"
-echo "[INFO] Runs: ${RUNS}"
-echo "[INFO] Output: ${OUT_DIR}"
+baseline_info="$(check_baseline_freshness)"
+baseline_state="${baseline_info%%|*}"
+baseline_note="${baseline_info#*|}"
 
 npc_runs=0
 npc_pass=0
@@ -116,29 +139,18 @@ for i in $(seq 1 "${RUNS}"); do
   npc_log="${ANALYSIS_DIR}/run_${i}_npc_fairness.log"
   queue_log="${ANALYSIS_DIR}/run_${i}_area_queue_fairness.log"
 
-  echo "[INFO] Run ${i}/${RUNS}"
   cp "${SOURCE_FIXTURE}" "${run_csv}"
 
   if python3 "${NPC_ANALYZER}" --input "${run_csv}" >"${npc_log}" 2>&1; then
-    npc_status="PASS"
     ((npc_pass += 1))
-  else
-    npc_status="FAIL"
   fi
   ((npc_runs += 1))
-  echo "[INFO] run_${i}: npc_fairness=${npc_status} (${npc_log})"
 
   if head -n1 "${run_csv}" | rg -q "processed_low"; then
     if python3 "${QUEUE_ANALYZER}" --input "${run_csv}" "${QUEUE_FLAGS[@]}" >"${queue_log}" 2>&1; then
-      queue_status="PASS"
       ((queue_pass += 1))
-    else
-      queue_status="FAIL"
     fi
     ((queue_runs += 1))
-    echo "[INFO] run_${i}: area_queue_fairness=${queue_status} (${queue_log})"
-  else
-    echo "[INFO] run_${i}: area_queue_fairness=SKIP (fixture has no processed_* columns)"
   fi
 
   overflow_result="$(python3 - "${run_csv}" <<'PY'
@@ -166,9 +178,7 @@ PY
 )"
   if [[ "${overflow_result}" != "NA" ]]; then
     ((overflow_runs += 1))
-    if [[ "${overflow_result}" == "PASS" ]]; then
-      ((overflow_pass += 1))
-    fi
+    [[ "${overflow_result}" == "PASS" ]] && ((overflow_pass += 1))
   fi
 
   budget_result="$(python3 - "${run_csv}" <<'PY'
@@ -200,47 +210,73 @@ PY
 )"
   if [[ "${budget_result}" != "NA" ]]; then
     ((budget_runs += 1))
-    if [[ "${budget_result}" == "PASS" ]]; then
-      ((budget_pass += 1))
-    fi
+    [[ "${budget_result}" == "PASS" ]] && ((budget_pass += 1))
   fi
 done
 
-overflow_status="N/A"
-overflow_note="No overflow_events data in selected fixtures."
-if (( overflow_runs > 0 )); then
-  if (( overflow_pass == overflow_runs )); then
-    overflow_status="PASS"
-    overflow_note="overflow_events observed in all ${overflow_runs}/${overflow_runs} runs."
-  else
-    overflow_status="FAIL"
-    overflow_note="overflow_events missing in $((overflow_runs - overflow_pass)) of ${overflow_runs} runs."
+summarize_guardrail() {
+  local name="$1"
+  local enabled="$2"
+  local pass_count="$3"
+  local total_count="$4"
+  local unavailable_note="$5"
+
+  if [[ "${enabled}" != "true" ]]; then
+    echo "N/A|Not part of selected profile"
+    return
   fi
+
+  if (( total_count == 0 )); then
+    echo "N/A|${unavailable_note}"
+    return
+  fi
+
+  if (( pass_count == total_count )); then
+    echo "PASS|${pass_count}/${total_count} runs passed"
+  else
+    echo "FAIL|$((total_count-pass_count)) of ${total_count} runs failed"
+  fi
+}
+
+overflow_summary="$(summarize_guardrail "overflow" "$(is_guardrail_enabled "${SCENARIO}" overflow)" "${overflow_pass}" "${overflow_runs}" "overflow_events data absent in fixture")"
+budget_summary="$(summarize_guardrail "budget" "$(is_guardrail_enabled "${SCENARIO}" budget)" "${budget_pass}" "${budget_runs}" "budget_overrun/deferred_events data absent in fixture")"
+fairness_summary="$(summarize_guardrail "fairness" "$(is_guardrail_enabled "${SCENARIO}" fairness)" "${queue_pass}" "${queue_runs}" "processed_* columns absent in fixture")"
+
+overflow_status="${overflow_summary%%|*}"; overflow_note="${overflow_summary#*|}"
+budget_status="${budget_summary%%|*}"; budget_note="${budget_summary#*|}"
+fairness_status="${fairness_summary%%|*}"; fairness_note="${fairness_summary#*|}"
+
+if [[ "${baseline_state}" == "BLOCKED" ]]; then
+  if [[ "${overflow_status}" == "PASS" ]]; then overflow_status="BLOCKED"; overflow_note="${overflow_note}; baseline ${baseline_note}"; fi
+  if [[ "${budget_status}" == "PASS" ]]; then budget_status="BLOCKED"; budget_note="${budget_note}; baseline ${baseline_note}"; fi
+  if [[ "${fairness_status}" == "PASS" ]]; then fairness_status="BLOCKED"; fairness_note="${fairness_note}; baseline ${baseline_note}"; fi
 fi
 
-budget_status="N/A"
-budget_note="No budget_overrun/deferred_events data in selected fixtures."
-if (( budget_runs > 0 )); then
-  if (( budget_pass == budget_runs )); then
-    budget_status="PASS"
-    budget_note="budget_overrun+deferred tail observed in all ${budget_runs}/${budget_runs} runs."
-  else
-    budget_status="FAIL"
-    budget_note="budget_overrun/deferred signal missing in $((budget_runs - budget_pass)) of ${budget_runs} runs."
-  fi
-fi
+cat > "${OUT_DIR}/gate_summary.csv" <<CSV
+guardrail,status,scenario_id,profile,runs_passed,runs_total,evidence
+registry_overflow,${overflow_status},${SCENARIO},${SCENARIO},${overflow_pass},${overflow_runs},"${overflow_note}"
+tick_budget_degraded,${budget_status},${SCENARIO},${SCENARIO},${budget_pass},${budget_runs},"${budget_note}"
+automated_fairness,${fairness_status},${SCENARIO},${SCENARIO},${queue_pass},${queue_runs},"${fairness_note}"
+CSV
 
-fairness_status="N/A"
-fairness_note="No fairness fixtures with processed_* columns in selected profile."
-if (( queue_runs > 0 )); then
-  if (( queue_pass == queue_runs )); then
-    fairness_status="PASS"
-    fairness_note="Mandatory area-queue fairness flags passed in all ${queue_runs}/${queue_runs} runs."
-  else
-    fairness_status="FAIL"
-    fairness_note="Area-queue fairness failed in $((queue_runs - queue_pass)) of ${queue_runs} runs."
-  fi
-fi
+cat > "${OUT_DIR}/gate_summary.json" <<JSON
+{
+  "timestamp": "${TIMESTAMP}",
+  "scenario_id": "${SCENARIO}",
+  "source_fixture": "${SOURCE_FIXTURE}",
+  "runs": ${RUNS},
+  "baseline": {
+    "status": "${baseline_state}",
+    "note": "${baseline_note}",
+    "reference": "${BASELINE_FILE}"
+  },
+  "guardrails": [
+    {"id": "registry_overflow", "status": "${overflow_status}", "passed_runs": ${overflow_pass}, "total_runs": ${overflow_runs}, "evidence": "${overflow_note}"},
+    {"id": "tick_budget_degraded", "status": "${budget_status}", "passed_runs": ${budget_pass}, "total_runs": ${budget_runs}, "evidence": "${budget_note}"},
+    {"id": "automated_fairness", "status": "${fairness_status}", "passed_runs": ${queue_pass}, "total_runs": ${queue_runs}, "evidence": "${fairness_note}"}
+  ]
+}
+JSON
 
 cat > "${OUT_DIR}/summary.md" <<MD
 # NPC Bhvr Baseline Summary
@@ -249,6 +285,7 @@ cat > "${OUT_DIR}/summary.md" <<MD
 - Scenario/profile: ${SCENARIO}
 - Source fixture: ${SOURCE_FIXTURE}
 - Runs: ${RUNS}
+- Baseline reference: ${BASELINE_FILE} (${baseline_state}: ${baseline_note})
 
 ## Analyzer post-processing
 
@@ -258,23 +295,19 @@ cat > "${OUT_DIR}/summary.md" <<MD
 
 Logs per run are stored in ${ANALYSIS_DIR}.
 
-## Guardrail checklist (PASS/FAIL)
+## Guardrail checklist (PASS/FAIL/BLOCKED)
 
 | Guardrail | Result | Evidence |
 | --- | --- | --- |
-$(profile_guardrail_status "${SCENARIO}" "${overflow_status}" "${budget_status}" "${fairness_status}" "${overflow_note}" "${budget_note}" "${fairness_note}")
+| Registry overflow guardrail | ${overflow_status} | ${overflow_note} |
+| Tick budget / degraded-mode guardrail | ${budget_status} | ${budget_note} |
+| Automated fairness checks | ${fairness_status} | ${fairness_note} |
 
-## One-step examples
+## Machine-readable artifacts
 
-    # Legacy baseline scenarios
-    bash scripts/run_npc_bench.sh steady
-    bash scripts/run_npc_bench.sh burst
-    bash scripts/run_npc_bench.sh starvation-risk
-
-    # Audit-derived profiles
-    bash scripts/run_npc_bench.sh overflow-guardrail
-    bash scripts/run_npc_bench.sh tick-budget
-    bash scripts/run_npc_bench.sh fairness-checks
+- ${OUT_DIR}/gate_summary.csv
+- ${OUT_DIR}/gate_summary.json
 MD
 
 echo "[OK] Benchmark scaffolding completed: ${OUT_DIR}"
+echo "[OK] Gate summary: ${OUT_DIR}/gate_summary.json"
