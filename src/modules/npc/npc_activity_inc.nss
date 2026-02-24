@@ -709,24 +709,24 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
         return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
     }
 
-    sTag = NpcBhvrActivityReadMigratedString(oNpc, NpcBhvrActivityRouteTagKey(sRouteId), NpcBhvrActivityRouteTagLegacyKey(sRouteId));
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
+    sTag = NpcBhvrActivityReadMigratedString(oNpc, NpcBhvrActivityRouteTagKey(sRouteIdNormalized), NpcBhvrActivityRouteTagLegacyKey(sRouteIdNormalized));
     if (sTag != "")
     {
         return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
     }
 
-    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-
     oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
-        sTag = GetLocalString(oArea, NpcBhvrActivityRouteTagKey(sRouteId));
+        sTag = GetLocalString(oArea, NpcBhvrActivityRouteTagKey(sRouteIdNormalized));
         if (sTag != "")
         {
             return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
         }
 
-        sTag = NpcBhvrActivityReadMigratedString(oArea, NpcBhvrActivityRouteTagKey(sRouteId), NpcBhvrActivityRouteTagLegacyKey(sRouteId));
+        sTag = NpcBhvrActivityReadMigratedString(oArea, NpcBhvrActivityRouteTagKey(sRouteIdNormalized), NpcBhvrActivityRouteTagLegacyKey(sRouteIdNormalized));
         return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
     }
 
