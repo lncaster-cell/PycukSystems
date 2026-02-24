@@ -102,7 +102,8 @@
 - [x] Зафиксированы lifecycle/queue/metrics контракты.
 - [x] Подготовлен perf-gate документ и фикстуры.
 - [x] Автоматизирован fairness/lifecycle self-check.
-- [ ] Обновлены ссылки в README и рабочих чеклистах на актуальные пути runtime.
+- [x] Обновлены ссылки в README и рабочих чеклистах на актуальные пути runtime.
+  - Артефакты: `src/modules/npc/README.md` (секция **Canonical runtime references**), `docs/npc_phase1_test_checklist.md` (раздел **Canonical runtime references**).
 
 _Примечание: perf-gate (`docs/perf/npc_perf_gate.md`), фикстуры `docs/perf/fixtures/npc/*` и
 fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*lifecycle_contract.sh`) готовы,

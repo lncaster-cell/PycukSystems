@@ -123,10 +123,15 @@
 
 #### Checklist: Перед merge
 - [ ] Бенчмарк первой фазы пройден (≥ 3 прогона), отчёт приложен.
+  - **BLOCKED**: в репозитории нет валидного benchmark-отчёта с telemetry за ≥3 прогона; текущий baseline помечен как blocked. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/2026-02-23_npc_baseline_report.md`.
 - [ ] Perf-gate пороги не нарушены относительно baseline.
+  - **BLOCKED**: сравнение невозможно без актуального (≤14 дней) валидного baseline; текущий current baseline содержит `N/A` и статус `BLOCKED`. Owner: NPC runtime/perf owner. Артефакт: `docs/perf/npc_baseline_report.md`.
 - [ ] Проверены SLO по p95 area-tick, queue depth и dropped/deferred events.
-- [ ] Зафиксирован rollback-план для изменённых флагов/констант.
+  - **BLOCKED**: отсутствуют подтверждённые измерения SLO-метрик (p95/p99/deferred) из валидного benchmark-run. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/npc_perf_plan.md`.
+- [x] Зафиксирован rollback-план для изменённых флагов/констант.
+  - Артефакт: раздел **Rollback-процедура** в этом документе (`docs/design.md`, §7.4).
 - [ ] Обновлены runtime-дашборды для tick orchestration, DB flush и AI step cost.
+  - **BLOCKED**: в репозитории отсутствуют экспорт/конфигурации runtime-дашбордов (Grafana/аналоги) для подтверждения обновления. Owner: Observability/dashboard owner.
 
 ## 8. План этапов
 1. Каркас ядра событий и контракт модулей.
@@ -140,4 +145,5 @@
 - [x] Определён performance-first процесс принятия решений.
 - [x] Описан scope первой целевой механики (NPC behavior).
 - [x] Подготовлены baseline benchmark-сценарии.
-- [ ] Реализован и подключен MVP модуля NPC behavior.
+- [x] Реализован и подключен MVP модуля NPC behavior.
+  - Артефакты: runtime-модуль `src/modules/npc/npc_core.nss`, thin-entrypoint hooks `src/modules/npc/npc_spawn.nss`, `src/modules/npc/npc_perception.nss`, `src/modules/npc/npc_area_tick.nss`.
