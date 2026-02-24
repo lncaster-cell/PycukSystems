@@ -1,6 +1,6 @@
 # Tasks
 
-## NPC Bhvr Preparation (execution backlog)
+## NPC Preparation (execution backlog)
 
 ### Phase A — Runtime foundation
 - [x] A1. Создать `src/modules/npc/` и базовые файлы (`npc_core.nss`, `npc_metrics_inc.nss`, `npc_activity_inc.nss`, `README.md`).

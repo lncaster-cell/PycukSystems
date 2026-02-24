@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Contract profile for NPC Bhvr lifecycle integration.
+# Contract profile for NPC lifecycle integration.
 
-CONTRACT_NAME="NPC Bhvr lifecycle contract"
+CONTRACT_NAME="NPC lifecycle contract"
 
 HAS_CTRL_PATTERNS=(
   'const int NPC_AREA_LIFECYCLE_RUNNING = 1;'
