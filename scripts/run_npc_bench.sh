@@ -44,6 +44,9 @@ resolve_fixture() {
     fairness-checks)
       echo "${FIXTURE_ROOT}/fairness_pass.csv"
       ;;
+    warmup-rescan)
+      echo "${FIXTURE_ROOT}/warmup_rescan.csv"
+      ;;
     *)
       return 1
       ;;
@@ -64,6 +67,9 @@ is_guardrail_enabled() {
       echo "true"
       ;;
     overflow-guardrail:overflow|tick-budget:budget|tick-budget-degraded:budget|fairness-checks:fairness)
+      echo "true"
+      ;;
+    warmup-rescan:warmup)
       echo "true"
       ;;
     *)
@@ -112,7 +118,7 @@ PY
 SOURCE_FIXTURE="$(resolve_fixture "${SCENARIO}" || true)"
 if [[ -z "${SOURCE_FIXTURE}" ]]; then
   echo "[ERR] Unknown scenario/profile: ${SCENARIO}" >&2
-  echo "Supported values: steady, burst, starvation-risk, overflow-guardrail, tick-budget, tick-budget-degraded, fairness-checks" >&2
+  echo "Supported values: steady, burst, starvation-risk, overflow-guardrail, tick-budget, tick-budget-degraded, fairness-checks, warmup-rescan" >&2
   exit 2
 fi
 
@@ -133,6 +139,8 @@ overflow_runs=0
 overflow_pass=0
 budget_runs=0
 budget_pass=0
+warmup_runs=0
+warmup_pass=0
 
 for i in $(seq 1 "${RUNS}"); do
   run_csv="${RAW_DIR}/run_${i}.csv"
@@ -212,6 +220,31 @@ PY
     ((budget_runs += 1))
     [[ "${budget_result}" == "PASS" ]] && ((budget_pass += 1))
   fi
+
+  warmup_result="$(python3 - "${run_csv}" <<'PY'
+import csv,sys
+path=sys.argv[1]
+req={'route_cache_warmup_ok','route_cache_rescan_ok','route_cache_guardrail_status'}
+with open(path,encoding='utf-8',newline='') as f:
+    reader=csv.DictReader(f)
+    fields=set(reader.fieldnames or [])
+    if not req.issubset(fields):
+        print('NA')
+        raise SystemExit(0)
+    rows=list(reader)
+if not rows:
+    print('FAIL')
+    raise SystemExit(0)
+warmup=all((r.get('route_cache_warmup_ok') or '').strip() in {'1','true','TRUE','pass','PASS'} for r in rows)
+rescan=all((r.get('route_cache_rescan_ok') or '').strip() in {'1','true','TRUE','pass','PASS'} for r in rows)
+guardrails=all((r.get('route_cache_guardrail_status') or '').strip().upper()=='PASS' for r in rows)
+print('PASS' if warmup and rescan and guardrails else 'FAIL')
+PY
+)"
+  if [[ "${warmup_result}" != "NA" ]]; then
+    ((warmup_runs += 1))
+    [[ "${warmup_result}" == "PASS" ]] && ((warmup_pass += 1))
+  fi
 done
 
 summarize_guardrail() {
@@ -241,15 +274,18 @@ summarize_guardrail() {
 overflow_summary="$(summarize_guardrail "overflow" "$(is_guardrail_enabled "${SCENARIO}" overflow)" "${overflow_pass}" "${overflow_runs}" "overflow_events data absent in fixture")"
 budget_summary="$(summarize_guardrail "budget" "$(is_guardrail_enabled "${SCENARIO}" budget)" "${budget_pass}" "${budget_runs}" "budget_overrun/deferred_events data absent in fixture")"
 fairness_summary="$(summarize_guardrail "fairness" "$(is_guardrail_enabled "${SCENARIO}" fairness)" "${queue_pass}" "${queue_runs}" "processed_* columns absent in fixture")"
+warmup_summary="$(summarize_guardrail "warmup" "$(is_guardrail_enabled "${SCENARIO}" warmup)" "${warmup_pass}" "${warmup_runs}" "route_cache_* columns absent in fixture")"
 
 overflow_status="${overflow_summary%%|*}"; overflow_note="${overflow_summary#*|}"
 budget_status="${budget_summary%%|*}"; budget_note="${budget_summary#*|}"
 fairness_status="${fairness_summary%%|*}"; fairness_note="${fairness_summary#*|}"
+warmup_status="${warmup_summary%%|*}"; warmup_note="${warmup_summary#*|}"
 
 if [[ "${baseline_state}" == "BLOCKED" ]]; then
   if [[ "${overflow_status}" == "PASS" ]]; then overflow_status="BLOCKED"; overflow_note="${overflow_note}; baseline ${baseline_note}"; fi
   if [[ "${budget_status}" == "PASS" ]]; then budget_status="BLOCKED"; budget_note="${budget_note}; baseline ${baseline_note}"; fi
   if [[ "${fairness_status}" == "PASS" ]]; then fairness_status="BLOCKED"; fairness_note="${fairness_note}; baseline ${baseline_note}"; fi
+  if [[ "${warmup_status}" == "PASS" ]]; then warmup_status="BLOCKED"; warmup_note="${warmup_note}; baseline ${baseline_note}"; fi
 fi
 
 cat > "${OUT_DIR}/gate_summary.csv" <<CSV
@@ -257,6 +293,7 @@ guardrail,status,scenario_id,profile,runs_passed,runs_total,evidence
 registry_overflow,${overflow_status},${SCENARIO},${SCENARIO},${overflow_pass},${overflow_runs},"${overflow_note}"
 tick_budget_degraded,${budget_status},${SCENARIO},${SCENARIO},${budget_pass},${budget_runs},"${budget_note}"
 automated_fairness,${fairness_status},${SCENARIO},${SCENARIO},${queue_pass},${queue_runs},"${fairness_note}"
+route_cache_warmup_rescan,${warmup_status},${SCENARIO},${SCENARIO},${warmup_pass},${warmup_runs},"${warmup_note}"
 CSV
 
 cat > "${OUT_DIR}/gate_summary.json" <<JSON
@@ -273,7 +310,8 @@ cat > "${OUT_DIR}/gate_summary.json" <<JSON
   "guardrails": [
     {"id": "registry_overflow", "status": "${overflow_status}", "passed_runs": ${overflow_pass}, "total_runs": ${overflow_runs}, "evidence": "${overflow_note}"},
     {"id": "tick_budget_degraded", "status": "${budget_status}", "passed_runs": ${budget_pass}, "total_runs": ${budget_runs}, "evidence": "${budget_note}"},
-    {"id": "automated_fairness", "status": "${fairness_status}", "passed_runs": ${queue_pass}, "total_runs": ${queue_runs}, "evidence": "${fairness_note}"}
+    {"id": "automated_fairness", "status": "${fairness_status}", "passed_runs": ${queue_pass}, "total_runs": ${queue_runs}, "evidence": "${fairness_note}"},
+    {"id": "route_cache_warmup_rescan", "status": "${warmup_status}", "passed_runs": ${warmup_pass}, "total_runs": ${warmup_runs}, "evidence": "${warmup_note}"}
   ]
 }
 JSON
@@ -302,6 +340,7 @@ Logs per run are stored in ${ANALYSIS_DIR}.
 | Registry overflow guardrail | ${overflow_status} | ${overflow_note} |
 | Tick budget / degraded-mode guardrail | ${budget_status} | ${budget_note} |
 | Automated fairness checks | ${fairness_status} | ${fairness_note} |
+| Route cache warmup/rescan guardrail | ${warmup_status} | ${warmup_note} |
 
 ## Machine-readable artifacts
 

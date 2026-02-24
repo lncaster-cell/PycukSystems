@@ -19,6 +19,7 @@ Fault profiles (отдельные прогоны guardrails):
 - `tick-budget`
 - `tick-budget-degraded`
 - `fairness-checks`
+- `warmup-rescan`
 
 ## Guardrail criteria (machine-readable contract)
 
@@ -70,10 +71,27 @@ Fault profiles (отдельные прогоны guardrails):
 **BLOCKED:**
 - baseline stale/absent.
 
+### G4 — Route cache warmup/rescan guardrail
+
+**Сценарии:** `warmup-rescan`.
+
+**PASS:**
+- fixture содержит поля `route_cache_warmup_ok`, `route_cache_rescan_ok`, `route_cache_guardrail_status`;
+- во всех RUNNING-записях `route_cache_warmup_ok=1`, `route_cache_rescan_ok=1`;
+- `route_cache_guardrail_status=PASS` на каждом run;
+- `gate_summary` фиксирует `route_cache_warmup_rescan=PASS`.
+
+**FAIL:**
+- отсутствует любой из `route_cache_*` сигналов;
+- либо warmup/rescan signal не PASS хотя бы в одном run.
+
+**BLOCKED:**
+- baseline stale/absent.
+
 ## Release gate integration checklist
 
 - [x] Overflow сценарий добавлен в perf-прогон NPC Bhvr.
-- [ ] Warmup/rescan сценарий *(BLOCKED: route cache ещё не внедрён в runtime)*.
+- [x] Warmup/rescan сценарий добавлен в perf-прогон и связан с route-cache guardrail status.
 - [x] Fault-injection silent degradation сценарий добавлен в perf-прогон для активных guardrails (overflow/tick-budget/fairness).
 - [x] Automated fairness checks добавлены в perf-прогон NPC Bhvr.
 - [x] Tick budget/degraded-mode сценарий добавлен в perf-прогон NPC Bhvr.
@@ -92,6 +110,7 @@ RUNS=3 bash scripts/run_npc_bench.sh overflow-guardrail
 RUNS=3 bash scripts/run_npc_bench.sh tick-budget
 RUNS=3 bash scripts/run_npc_bench.sh tick-budget-degraded
 RUNS=3 bash scripts/run_npc_bench.sh fairness-checks
+RUNS=3 bash scripts/run_npc_bench.sh warmup-rescan
 
 # Self-check analyzers
 bash scripts/test_npc_fairness.sh

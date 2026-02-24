@@ -137,6 +137,35 @@ string NpcBhvrActivityScheduleEndKey(string sSlot)
     return NPC_BHVR_VAR_ACTIVITY_SCHEDULE_END_PREFIX + sSlot;
 }
 
+string NpcBhvrActivityRouteCacheSlotKey(string sSlot)
+{
+    return NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + sSlot;
+}
+
+string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot)
+{
+    string sRoute;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return "";
+    }
+
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivityRouteCacheSlotKey(sSlot)),
+        oArea
+    );
+    if (sRoute != "")
+    {
+        return sRoute;
+    }
+
+    return NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT),
+        oArea
+    );
+}
+
 // Contract: see schedule-aware slot section in src/modules/npc/README.md.
 int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
 {

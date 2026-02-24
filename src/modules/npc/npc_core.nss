@@ -98,6 +98,106 @@ int NpcBhvrRegistryRemove(object oArea, object oNpc);
 void NpcBhvrRegistryBroadcastIdleTick(object oArea);
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
 void NpcBhvrRecordDegradationReason(object oArea, int nReason);
+void NpcBhvrAreaRouteCacheWarmup(object oArea);
+void NpcBhvrAreaRouteCacheInvalidate(object oArea);
+
+void NpcBhvrAreaRouteCacheWarmup(object oArea)
+{
+    string sDefaultRoute;
+    string sPriorityRoute;
+    string sCriticalRoute;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (GetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHED) == TRUE)
+    {
+        return;
+    }
+
+    sDefaultRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_DEFAULT)),
+        oArea
+    );
+    if (sDefaultRoute == "")
+    {
+        sDefaultRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+            GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
+            oArea
+        );
+    }
+    if (sDefaultRoute == "")
+    {
+        sDefaultRoute = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    sPriorityRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY)),
+        oArea
+    );
+    if (sPriorityRoute == "")
+    {
+        sPriorityRoute = sDefaultRoute;
+    }
+
+    sCriticalRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL)),
+        oArea
+    );
+    if (sCriticalRoute == "")
+    {
+        sCriticalRoute = sDefaultRoute;
+    }
+
+    SetLocalString(
+        oArea,
+        NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT,
+        NpcBhvrActivityAdapterNormalizeRoute(sDefaultRoute)
+    );
+    SetLocalString(
+        oArea,
+        NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_DEFAULT,
+        NpcBhvrActivityAdapterNormalizeRoute(sDefaultRoute)
+    );
+    SetLocalString(
+        oArea,
+        NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_PRIORITY,
+        NpcBhvrActivityAdapterNormalizeRoute(sPriorityRoute)
+    );
+    SetLocalString(
+        oArea,
+        NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_CRITICAL,
+        NpcBhvrActivityAdapterNormalizeRoute(sCriticalRoute)
+    );
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHED, TRUE);
+}
+
+void NpcBhvrAreaRouteCacheInvalidate(object oArea)
+{
+    int nVersion;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    DeleteLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT);
+    DeleteLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+    DeleteLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_PRIORITY);
+    DeleteLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_CRITICAL);
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHED, FALSE);
+
+    nVersion = GetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHE_VERSION) + 1;
+    if (nVersion < 0)
+    {
+        nVersion = 1;
+    }
+    SetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHE_VERSION, nVersion);
+}
 
 int NpcBhvrPendingNow()
 {
