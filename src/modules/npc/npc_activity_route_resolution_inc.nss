@@ -1,5 +1,9 @@
 // Route config resolution helpers.
 
+int NpcBhvrActivityIsSupportedRoute(string sRouteId);
+string NpcBhvrActivitySlotRouteProfileKey(string sSlot);
+string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot);
+
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
 {
     if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
@@ -124,4 +128,3 @@ string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetri
 
     return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
 }
-
