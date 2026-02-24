@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "docs/perf/analyze_single_run_schema.json",
+  "title": "NPC single-run analyzer payload",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "status",
+    "input",
+    "rows",
+    "fairness",
+    "overflow",
+    "budget",
+    "warmup"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "status": {"enum": ["OK", "INVALID"]},
+    "error": {"type": "string"},
+    "input": {"type": "string"},
+    "rows": {
+      "type": "object",
+      "required": ["total", "running"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "running": {"type": "integer", "minimum": 0}
+      }
+    },
+    "fairness": {
+      "type": "object",
+      "required": ["status", "reason", "resume_transitions", "resume_window_violations", "worst_starvation_window"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "NA"]},
+        "reason": {"type": "string"},
+        "resume_transitions": {"type": "integer", "minimum": 0},
+        "resume_window_violations": {"type": "integer", "minimum": 0},
+        "worst_starvation_window": {
+          "type": "object",
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "overflow": {
+      "type": "object",
+      "required": ["status", "reason", "hits"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "NA"]},
+        "reason": {"type": "string"},
+        "hits": {"type": "integer", "minimum": 0}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "required": ["status", "reason", "budget_overrun_hits", "deferred_hits"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "NA"]},
+        "reason": {"type": "string"},
+        "budget_overrun_hits": {"type": "integer", "minimum": 0},
+        "deferred_hits": {"type": "integer", "minimum": 0}
+      }
+    },
+    "warmup": {
+      "type": "object",
+      "required": ["status", "reason", "rows"],
+      "properties": {
+        "status": {"enum": ["PASS", "FAIL", "NA"]},
+        "reason": {"type": "string"},
+        "rows": {"type": "integer", "minimum": 0}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "INVALID"}}},
+      "then": {"required": ["error"]}
+    }
+  ]
+}
