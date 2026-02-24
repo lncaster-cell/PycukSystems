@@ -346,6 +346,7 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
 void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
 {
     int nPlayers;
+    int nExitingType;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oExiting))
     {
@@ -356,6 +357,12 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
 
     if (!GetIsPC(oExiting))
     {
+        nExitingType = GetObjectType(oExiting);
+        if (nExitingType != OBJECT_TYPE_CREATURE)
+        {
+            return;
+        }
+
         NpcBhvrRegistryRemove(oArea, oExiting);
         NpcBhvrAreaRouteCacheInvalidate(oArea);
         return;
