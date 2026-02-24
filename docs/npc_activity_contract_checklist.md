@@ -55,6 +55,17 @@
 
 **Что считается fail:** waypoint-индекс не обновляется после dispatch, route-tag игнорируется при наличии waypoint-count, или slot-emote не резолвится по slot-aware цепочке.
 
+## 6) E2E schedule-aware semantics (`npc_activity_slot`, `npc_activity_route_effective`, `npc_activity_last_ts`)
+
+Инварианты e2e-уровня для расписаний:
+- переходы `npc_activity_slot` по времени детерминированы: `critical` имеет приоритет над `priority`, вне окон — fallback в `default`;
+- boundary-кейсы проверяются явно: границы часа (`start` включительно, `end` исключительно) и граница суток (`23:59:59 -> 00:00:00`);
+- при пустом расписании (`npc_schedule_start_* / npc_schedule_end_*` не заданы или невалидны) слот не «залипает» в старом состоянии и fallback-ится в `default`;
+- `npc_activity_route_effective` следует fallback-цепочке независимо от невалидного configured route;
+- `npc_activity_last_ts` формируется как `hour*3600 + minute*60 + second` и корректно сбрасывается при переходе суток.
+
+**Что считается fail:** несогласованные переходы слота на границах окна/суток, отсутствие fallback при пустом расписании, либо нарушение контракта `route_effective`/`last_ts`.
+
 ---
 
 ## Как проверить (команды из `scripts/`)
@@ -89,19 +100,21 @@ bash scripts/test_npc_fairness.sh
 - нет финального `[OK] NPC Bhvr fairness analyzer tests passed`.
 
 
-### 3. Activity route/waypoint contract
+### 3. Activity route/waypoint/schedule e2e contract (одной командой)
 
 ```bash
-bash scripts/test_npc_activity_route_contract.sh
-bash scripts/test_npc_activity_waypoint_contract.sh
+bash scripts/test_npc_activity_contract.sh
 ```
 
 **Pass признаки:**
 - есть `[OK] npc_activity route contract tests passed`;
-- есть `[OK] NPC activity waypoint contract tests passed`.
+- есть `[OK] NPC activity waypoint contract tests passed`;
+- есть `[OK] npc_activity slot contract tests passed`;
+- есть `[OK] npc_activity route_effective contract tests passed`;
+- есть `[OK] npc_activity last_ts contract tests passed`.
 
 **Fail признаки:**
-- `[FAIL]` по любому из контрактов route/waypoint.
+- `[FAIL]` по любому из контрактов route/waypoint/schedule e2e.
 
 ### 4. Компиляционный smoke-check include/runtime контура
 
