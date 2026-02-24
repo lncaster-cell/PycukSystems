@@ -517,7 +517,8 @@ NPC runtime учитывает:
 Pending/queue зеркало:
 
 - `npc_pending_priority`
-- `npc_pending_reason`
+- `npc_pending_reason_code`
+- `npc_pending_reason` (legacy string mirror for diagnostics/transition compatibility)
 - `npc_pending_status`
 - `npc_pending_updated_at`
 

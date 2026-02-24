@@ -97,6 +97,7 @@ const int NPC_BHVR_PENDING_STATUS_DEFERRED = 4;
 const int NPC_BHVR_PENDING_STATUS_DROPPED = 5;
 
 const string NPC_BHVR_VAR_PENDING_PRIORITY = "npc_pending_priority";
+const string NPC_BHVR_VAR_PENDING_REASON_CODE = "npc_pending_reason_code";
 const string NPC_BHVR_VAR_PENDING_REASON = "npc_pending_reason";
 const string NPC_BHVR_VAR_PENDING_STATUS = "npc_pending_status";
 const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";

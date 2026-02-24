@@ -214,13 +214,23 @@ void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
 
 void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow)
 {
+    NpcBhvrPendingSetAtIntReason(oNpc, nPriority, StringToInt(sReason), nStatus, nNow);
+    if (GetIsObjectValid(oNpc))
+    {
+        // Backward compatibility transition: keep legacy string mirror until downstream consumers are migrated.
+        SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+    }
+}
+
+void NpcBhvrPendingSetAtIntReason(object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow)
+{
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
-    SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
     NpcBhvrPendingSetStatusAt(oNpc, nStatus, nNow);
 }
 
@@ -231,12 +241,22 @@ void NpcBhvrPendingSetTracked(object oArea, object oNpc, int nPriority, string s
 
 void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow)
 {
+    NpcBhvrPendingSetTrackedAtIntReason(oArea, oNpc, nPriority, StringToInt(sReason), nStatus, nNow);
+    if (GetIsObjectValid(oNpc))
+    {
+        // Backward compatibility transition: keep legacy string mirror until downstream consumers are migrated.
+        SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+    }
+}
+
+void NpcBhvrPendingSetTrackedAtIntReason(object oArea, object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow)
+{
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc))
     {
         return;
     }
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
-    SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
     NpcBhvrPendingSetStatusTrackedAt(oArea, oNpc, nStatus, nNow);
 }
