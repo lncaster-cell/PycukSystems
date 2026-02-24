@@ -124,14 +124,16 @@
 #### Checklist: Перед merge
 - [x] Бенчмарк первой фазы выполнен (≥ 3 прогона), отчёт приложен.
   - **DONE**: валидный benchmark-run зафиксирован в `docs/perf/npc_baseline_report.md`, подробности в `docs/perf/reports/2026-02-24_npc_gate_report.md`. Owner: NPC runtime/perf owner.
-- [ ] Perf-gate пороги не нарушены относительно baseline.
-  - **FAIL**: baseline свежий, но профиль `tick-budget-degraded` превышает пороги (latency/queue/deferred/overrun/overflow). Owner: NPC runtime/perf owner. Артефакт: `docs/perf/npc_baseline_report.md`.
+- [x] Perf-gate пороги не нарушены относительно baseline.
+  - **DONE**: current baseline и latest gate-report фиксируют итоговый статус `GO (PASS)`, активные guardrails в PASS. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/2026-02-24_npc_gate_report.md`.
 - [x] Проверены SLO по p95 area-tick, queue depth и dropped/deferred events.
-  - **DONE**: фактические p95/p99/deferred/overrun зафиксированы в baseline-отчёте; `tick-budget-degraded` отмечен как FAIL относительно порогов. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/npc_perf_plan.md`.
+  - **DONE**: фактические p95/p99/deferred/overrun зафиксированы в baseline-отчёте, gate decision — `GO (PASS)` по актуальной матрице прогонов. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/2026-02-24_npc_gate_report.md`, `docs/perf/npc_perf_plan.md`.
 - [x] Зафиксирован rollback-план для изменённых флагов/констант.
   - Артефакт: раздел **Rollback-процедура** в этом документе (`docs/design.md`, §7.4).
 - [x] Обновлены runtime-дашборды для tick orchestration, DB flush и AI step cost.
   - Артефакты: `docs/perf/dashboards/tick_orchestration_dashboard.json`, `docs/perf/dashboards/db_flush_dashboard.json`, `docs/perf/dashboards/ai_step_cost_dashboard.json`, `docs/perf/dashboards/README.md`.
+
+Source of truth для финального gate-статуса: `docs/perf/npc_baseline_report.md` (раздел **6. Вывод (go/no-go)**) + latest gate report в `docs/perf/reports/*_npc_gate_report.md` (или актуальный `docs/perf/reports/npc_gate_summary_latest.md`). При расхождении статусов в checklist приоритет имеет эта пара артефактов.
 
 ## 8. План этапов
 1. Каркас ядра событий и контракт модулей.
