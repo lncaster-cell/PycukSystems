@@ -7,6 +7,10 @@ const string NPC_BHVR_VAR_ACTIVITY_STATE = "npc_activity_state";
 const string NPC_BHVR_VAR_ACTIVITY_COOLDOWN = "npc_activity_cooldown";
 const string NPC_BHVR_VAR_ACTIVITY_LAST = "npc_activity_last";
 const string NPC_BHVR_VAR_ACTIVITY_LAST_TS = "npc_activity_last_ts";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE = "npc_activity_route_effective";
+
+const string NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX = "npc_route_profile_slot_";
+const string NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT = "npc_route_profile_default";
 
 const string NPC_BHVR_ACTIVITY_SLOT_DEFAULT = "default";
 const string NPC_BHVR_ACTIVITY_SLOT_PRIORITY = "priority";
@@ -19,6 +23,60 @@ const string NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE = "critical_safe";
 const int NPC_BHVR_ACTIVITY_HINT_IDLE = 1;
 const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
 const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
+
+string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
+{
+    return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
+}
+
+string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
+{
+    object oArea;
+    string sRoute;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+    if (sRoute != "")
+    {
+        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+    }
+
+    sRoute = GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot));
+    if (sRoute != "")
+    {
+        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+    }
+
+    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT);
+    if (sRoute != "")
+    {
+        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+    }
+
+    oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    sRoute = GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot));
+    if (sRoute != "")
+    {
+        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+    }
+
+    sRoute = GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT);
+    if (sRoute != "")
+    {
+        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+    }
+
+    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+}
 
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
 {
@@ -105,23 +163,36 @@ void NpcBhvrActivityApplyPriorityRoute(object oNpc)
 
 void NpcBhvrActivityOnSpawn(object oNpc)
 {
+    string sSlot;
+    string sRouteConfigured;
+    string sRoute;
+
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
     // Обязательная spawn-инициализация profile-state в npc_* namespace.
-    SetLocalString(
-        oNpc,
-        NPC_BHVR_VAR_ACTIVITY_SLOT,
-        NpcBhvrActivityAdapterNormalizeSlot(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT))
-    );
+    sSlot = NpcBhvrActivityAdapterNormalizeSlot(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT));
+    sRouteConfigured = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+    if (sRouteConfigured != "")
+    {
+        sRouteConfigured = NpcBhvrActivityAdapterNormalizeRoute(sRouteConfigured);
+    }
 
-    SetLocalString(
-        oNpc,
-        NPC_BHVR_VAR_ACTIVITY_ROUTE,
-        NpcBhvrActivityAdapterNormalizeRoute(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE))
-    );
+    sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
+
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
+    if (sRouteConfigured != "")
+    {
+        SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sRouteConfigured);
+    }
+    else
+    {
+        DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+    }
+
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
 
     NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
 
@@ -150,9 +221,9 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     int nRouteHint;
 
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlot);
-    sRoute = NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+    sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sRoute);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
 
     nRouteHint = NpcBhvrActivityMapRouteHint(sRoute);
 
