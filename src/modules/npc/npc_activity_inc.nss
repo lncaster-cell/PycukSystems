@@ -5,6 +5,7 @@ const string NPC_BHVR_VAR_ACTIVITY_SLOT = "npc_activity_slot";
 const string NPC_BHVR_VAR_ACTIVITY_ROUTE = "npc_activity_route";
 const string NPC_BHVR_VAR_ACTIVITY_STATE = "npc_activity_state";
 const string NPC_BHVR_VAR_ACTIVITY_COOLDOWN = "npc_activity_cooldown";
+const string NPC_BHVR_VAR_ACTIVITY_COOLDOWN_UNTIL_TS = "npc_activity_cooldown_until_ts";
 const string NPC_BHVR_VAR_ACTIVITY_LAST = "npc_activity_last";
 const string NPC_BHVR_VAR_ACTIVITY_LAST_TS = "npc_activity_last_ts";
 const string NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE = "npc_activity_route_effective";
@@ -136,6 +137,8 @@ int NpcBhvrActivityResolveRouteRuntimeReadContext(
 int ReadRouteRuntimeIntWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, int nFallback);
 string ReadRouteRuntimeStringWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, string sFallback);
 int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag);
+void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow);
+int NpcBhvrActivityIsCooldownActive(object oNpc, int nNow);
 
 #include "npc_activity_migration_inc"
 
@@ -261,6 +264,51 @@ int NpcBhvrActivityNeedsHeavyRefreshL2(object oNpc, string sPrecheckL2Stamp)
 
     sPrecheckCached = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_PRECHECK_L2_STAMP);
     return sPrecheckCached == "" || sPrecheckCached != sPrecheckL2Stamp;
+}
+
+void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow)
+{
+    int nCooldownTicks;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    nCooldownTicks = nTicks;
+    if (nCooldownTicks < 0)
+    {
+        nCooldownTicks = 0;
+    }
+
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN_UNTIL_TS, nNow + nCooldownTicks);
+}
+
+int NpcBhvrActivityIsCooldownActive(object oNpc, int nNow)
+{
+    int nCooldownUntil;
+    int nLegacyCooldown;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return FALSE;
+    }
+
+    nCooldownUntil = GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN_UNTIL_TS);
+    if (nCooldownUntil > nNow)
+    {
+        return TRUE;
+    }
+
+    // Read-only fallback for legacy NPCs where old per-tick counter is still present.
+    nLegacyCooldown = GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN);
+    if (nLegacyCooldown > 0)
+    {
+        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN_UNTIL_TS, nNow + nLegacyCooldown);
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 void NpcBhvrActivityRunHeavyRefreshForIdle(object oNpc, int nResolvedHour, object oArea, string sAreaTag)
@@ -961,9 +1009,9 @@ void NpcBhvrActivityInitRuntimeState(object oNpc)
     sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
     sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
-    if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN) < 0)
+    if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN_UNTIL_TS) < 0)
     {
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, 0);
+        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN_UNTIL_TS, 0);
     }
 
     nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRoute);
@@ -1009,16 +1057,16 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     int nRouteHint;
     int nResolvedHour;
     int bScheduleEnabled;
+    int nNow;
 
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
-    int nCooldown = GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN);
-    if (nCooldown > 0)
+    nNow = NpcBhvrPendingNow();
+    if (NpcBhvrActivityIsCooldownActive(oNpc, nNow))
     {
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1);
         return;
     }
 

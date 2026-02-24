@@ -93,7 +93,8 @@ Tick/degraded telemetry в runtime включает:
   - `npc_activity_route_effective` (диагностическое зеркало effective route-profile после fallback-резолва),
   - `npc_activity_slot_fallback` (`0|1`, признак fallback в `default` при невалидном slot),
   - `npc_activity_state` (начальное состояние `spawn_ready`),
-  - `npc_activity_cooldown` (неотрицательный cooldown/state gate),
+  - `npc_activity_cooldown_until_ts` (deadline cooldown/state gate в timestamp-тиках от `NpcBhvrPendingNow()`),
+  - `npc_activity_cooldown` (legacy fallback, read-only для миграции уже созданных NPC),
   - `npc_activity_last` (последняя activity transition),
   - `npc_activity_last_ts` (timestamp последнего transition в секундах игрового времени),
   - `npc_activity_wp_index|npc_activity_wp_count|npc_activity_wp_loop` (текущее состояние маршрута по waypoint-позициям),
@@ -131,7 +132,7 @@ Tick/degraded telemetry в runtime включает:
 
 ### Контракт входных/выходных состояний activity primitives
 
-- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` и `npc_route_profile_default` на NPC/area; `npc_activity_cooldown` может быть отрицательным.
+- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` и `npc_route_profile_default` на NPC/area; `npc_activity_cooldown_until_ts` может быть отрицательным.
 - **Выход `NpcBhvrActivityOnSpawn`:**
   - `slot` нормализован в поддерживаемые значения (`default|priority|critical`),
   - `npc_activity_route` сохраняет только явно заданный route (или очищается, если route не задан),
@@ -139,17 +140,17 @@ Tick/degraded telemetry в runtime включает:
   - `state=spawn_ready`,
   - `last=spawn_ready`,
   - `last_ts` обновлён,
-  - `cooldown >= 0`,
+  - `cooldown_until_ts >= 0`,
   - waypoint-runtime locals нормализованы и готовы к первому idle-dispatch.
 - **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (slot нормализуется, невалидный route отбрасывается и заменяется fallback-резолвом).
 - **Допустимые значения `slot`:** только `default|priority|critical`. Любое другое значение (включая пустую строку) считается невалидным и принудительно нормализуется в `default`.
 - **Выход `NpcBhvrActivityOnIdleTick`:**
-  - при `cooldown > 0` выполняется только декремент cooldown на 1 и early-return;
+  - при активном cooldown (`npc_activity_cooldown_until_ts > now`) выполняется early-return без записи;
   - при невалидном `slot` выставляется `npc_activity_slot_fallback=1` и инкрементируется метрика `npc_metric_activity_invalid_slot_total`;
-  - при `cooldown == 0` выполняется ровно одна ветка диспетчера:
-    1) `critical_safe` -> `state/last=idle_critical_safe`, `cooldown=1`;
-    2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown=2`;
-    3) `default` -> `state/last=idle_default`, `cooldown=1`;
+  - при неактивном cooldown выполняется ровно одна ветка диспетчера:
+    1) `critical_safe` -> `state/last=idle_critical_safe`, `cooldown_until_ts=now+1`;
+    2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown_until_ts=now+2`;
+    3) `default` -> `state/last=idle_default`, `cooldown_until_ts=now+1`;
   - если для route есть `npc_route_count_<routeId> > 0` и `npc_route_tag_<routeId>`, то `state/last` получают waypoint-суффикс (`..._<tag>_<i>_of_<N>`), а `npc_activity_wp_index` продвигается с учётом loop-policy;
   - после dispatch `last_ts` всегда отражает момент последнего transition;
   - `npc_activity_action` пересчитывается на каждом dispatch в зависимости от slot/route/waypoint parity и может использоваться внешним runtime для привязки анимаций/поведенческих команд.
@@ -509,6 +510,7 @@ NPC runtime учитывает:
 - `npc_activity_state`
 - `npc_activity_last`
 - `npc_activity_last_ts`
+- `npc_activity_cooldown_until_ts`
 - `npc_activity_cooldown`
 - `npc_activity_wp_index`
 - `npc_activity_wp_count`
