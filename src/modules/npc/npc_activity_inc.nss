@@ -75,6 +75,10 @@ const string NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS = "npc_activity_numeric_anims";
 const string NPC_BHVR_VAR_ACTIVITY_WAYPOINT_TAG = "npc_activity_waypoint_tag";
 const string NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER = "npc_activity_requires_training_partner";
 const string NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR = "npc_activity_requires_bar_pair";
+const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED = "npc_activity_schedule_enabled";
+
+const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_START_PREFIX = "npc_schedule_start_";
+const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_END_PREFIX = "npc_schedule_end_";
 
 const string NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX = "npc_route_pause_ticks_";
 
@@ -171,6 +175,85 @@ string NpcBhvrActivityRoutePauseTicksKey(string sRouteId)
 string NpcBhvrActivityRoutePointActivityKey(string sRouteId, int nIndex)
 {
     return NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX + sRouteId + "_" + IntToString(nIndex);
+}
+
+string NpcBhvrActivityScheduleStartKey(string sSlot)
+{
+    return NPC_BHVR_VAR_ACTIVITY_SCHEDULE_START_PREFIX + sSlot;
+}
+
+string NpcBhvrActivityScheduleEndKey(string sSlot)
+{
+    return NPC_BHVR_VAR_ACTIVITY_SCHEDULE_END_PREFIX + sSlot;
+}
+
+int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
+{
+    if (nStart < 0 || nStart > 23 || nEnd < 0 || nEnd > 23)
+    {
+        return FALSE;
+    }
+
+    if (nStart == nEnd)
+    {
+        // Полные сутки для роли.
+        return TRUE;
+    }
+
+    // Non-wrapping window.
+    if (nStart < nEnd)
+    {
+        return nHour >= nStart && nHour < nEnd;
+    }
+
+    // Wrapping window (например, 22 -> 6).
+    return nHour >= nStart || nHour < nEnd;
+}
+
+string NpcBhvrActivityResolveScheduledSlot(object oNpc, string sCurrentSlot)
+{
+    object oArea;
+    int bEnabled;
+    int nHour;
+    int nPriorityStart;
+    int nPriorityEnd;
+    int nCriticalStart;
+    int nCriticalEnd;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return sCurrentSlot;
+    }
+
+    oArea = GetArea(oNpc);
+
+    bEnabled = GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED);
+    if (!bEnabled && GetIsObjectValid(oArea))
+    {
+        bEnabled = GetLocalInt(oArea, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED);
+    }
+    if (!bEnabled)
+    {
+        return sCurrentSlot;
+    }
+
+    nHour = GetTimeHour();
+
+    nCriticalStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
+    nCriticalEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
+    if (NpcBhvrActivityIsHourInWindow(nHour, nCriticalStart, nCriticalEnd))
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_CRITICAL;
+    }
+
+    nPriorityStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
+    nPriorityEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
+    if (NpcBhvrActivityIsHourInWindow(nHour, nPriorityStart, nPriorityEnd))
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
+    }
+
+    return NPC_BHVR_ACTIVITY_SLOT_DEFAULT;
 }
 
 int NpcBhvrActivityIsSupportedRoute(string sRouteId)
@@ -793,6 +876,7 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     int nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
 
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
+    sSlot = NpcBhvrActivityResolveScheduledSlot(oNpc, sSlot);
     sRouteConfigured = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
         oNpc,
@@ -864,6 +948,7 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     int nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
 
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
+    sSlot = NpcBhvrActivityResolveScheduledSlot(oNpc, sSlot);
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);

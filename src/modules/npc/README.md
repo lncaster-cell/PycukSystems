@@ -131,6 +131,23 @@ Tick/degraded telemetry в runtime включает:
   - после dispatch `last_ts` всегда отражает момент последнего transition;
   - `npc_activity_action` пересчитывается на каждом dispatch в зависимости от slot/route/waypoint parity и может использоваться внешним runtime для привязки анимаций/поведенческих команд.
 
+## Плановое "повседневное" поведение NPC (schedule-aware slot)
+
+Для подготовки модуля к тестам поведения "NPC живут по расписанию" добавлен schedule-aware выбор slot на `spawn` и `idle tick`:
+
+- Флаг включения: `npc_activity_schedule_enabled` на NPC или area (`1` включает планировщик).
+- Окна задаются локалами по слотам:
+  - `npc_schedule_start_critical` / `npc_schedule_end_critical`,
+  - `npc_schedule_start_priority` / `npc_schedule_end_priority`.
+- Правила интерпретации окна:
+  - `start == end` -> окно на 24 часа;
+  - `start < end` -> обычное дневное окно `[start, end)`;
+  - `start > end` -> ночное окно с переходом через полночь (например, `22 -> 6`).
+- Приоритет резолва slot по расписанию: `critical` -> `priority` -> `default`.
+- Если расписание выключено, сохраняется текущий runtime slot после нормализации.
+
+Smoke-композит теперь включает `scripts/test_npc_activity_schedule_contract.sh` для валидации этих инвариантов.
+
 
 ## Контракт pending-состояний (NPC-local и area-local)
 

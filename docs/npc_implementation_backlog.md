@@ -8,6 +8,7 @@
 
 - Runtime foundation в `src/modules/npc/*`: **READY** (core lifecycle/queue/activity/metrics + thin-entrypoints).
 - Contract/self-check suite: **READY** (`scripts/test_npc_smoke.sh`, `scripts/check_npc_lifecycle_contract.sh`, `scripts/test_npc_fairness.sh`).
+- Schedule-aware activity foundation: **IN PROGRESS** (добавлен runtime-resolve slot по расписанию + `scripts/test_npc_activity_schedule_contract.sh`, далее требуется расширить e2e сценарии в module/toolset).
 - Legacy cleanup milestone `tools/*`: **COMPLETED** (архив в `docs/legacy/tools_reference/*`).
 - Perf/release gate: **BLOCKED** до публикации нового baseline (>=3 runs на сценарий, baseline freshness <=14 дней).
 
