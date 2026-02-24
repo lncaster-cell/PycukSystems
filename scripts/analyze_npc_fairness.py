@@ -60,11 +60,18 @@ def parse_int(raw: str, row_index: int, column_name: str) -> int:
 
 def parse_float(raw: str, row_index: int, column_name: str) -> float:
     try:
-        return float(raw)
+        value = float(raw)
     except (TypeError, ValueError):
         raise ValueError(
             f"[FAIL] invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
         )
+
+    if not math.isfinite(value):
+        raise ValueError(
+            f"[FAIL] invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
+        )
+
+    return value
 
 
 def main() -> int:
