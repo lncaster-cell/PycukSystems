@@ -207,6 +207,11 @@ Flush dirty-очереди выполняется при любом из усл�
   - `NPC_SQL_SCHEDULES_FETCH_DUE`, `NpcRepoFetchDueSchedules`.
 - Файл: `src/integrations/nwnx_sqlite/npc_repo_inc.nss`.
 - Инвариант: `src/modules/npc/npc_core.nss` не содержит прямых SQL-строк.
+- Текущий статус runtime-подключения repository API:
+  - используется: `NpcRepoUpsertNpcState` (через write-behind flush);
+  - пока **contract-only** (без runtime-вызовов из lifecycle/worker):
+    `NpcRepoFetchUnprocessedEvents`, `NpcRepoMarkEventProcessed`,
+    `NpcRepoFetchDueSchedules`.
 
 ### 6.3 Минимальный write-behind контракт
 - Dirty-очередь: `NpcSqliteWriteBehindMarkDirty`, `NpcSqliteWriteBehindDirtyCount`.
