@@ -169,6 +169,7 @@ Tick/degraded telemetry в runtime включает:
   - `start > end` -> ночное окно с переходом через полночь (например, `22 -> 6`).
 - Причина для `start == end`: защита от неявного always-on, когда ключи расписания отсутствуют и `GetLocalInt` даёт `0` для `start/end`.
 - Приоритет резолва slot по расписанию: `critical` -> `priority` -> `default`.
+- Публичная точка резолва для scheduling API: `NpcBhvrActivityResolveScheduledSlotForContext(oNpc, sCurrentSlot, bScheduleEnabled, nResolvedHour)`; вызывающая сторона обязана передать уже вычисленные context-параметры (`bScheduleEnabled`, `nResolvedHour`).
 - Если расписание выключено, сохраняется текущий runtime slot после нормализации.
 
 Smoke-композит теперь включает `scripts/test_npc_activity_schedule_contract.sh` для валидации этих инвариантов.
