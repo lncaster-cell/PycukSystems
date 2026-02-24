@@ -28,6 +28,7 @@ const string NPC_BHVR_PENDING_STATUS_STR_DROPPED = "dropped";
 
 
 const int NPC_BHVR_QUEUE_MAX = 64;
+const int NPC_BHVR_REGISTRY_MAX = 100;
 const int NPC_BHVR_STARVATION_STREAK_LIMIT = 3;
 const int NPC_BHVR_TICK_MAX_EVENTS_DEFAULT = 4;
 const int NPC_BHVR_TICK_SOFT_BUDGET_MS_DEFAULT = 25;
@@ -51,6 +52,9 @@ const string NPC_BHVR_VAR_TICK_DEGRADED_TOTAL = "npc_tick_degraded_total";
 const string NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL = "npc_tick_budget_exceeded_total";
 const string NPC_BHVR_VAR_TICK_PROCESSED = "npc_tick_processed";
 const string NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS = "npc_queue_backlog_age_ticks";
+const string NPC_BHVR_VAR_REGISTRY_COUNT = "npc_registry_count";
+const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
+const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 
 const int NPC_BHVR_PENDING_STATUS_NONE = 0;
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
@@ -69,6 +73,11 @@ string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
 void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
 void NpcBhvrQueueSyncTotals(object oArea);
+string NpcBhvrRegistrySlotKey(int nIndex);
+string NpcBhvrRegistryIndexKey(object oNpc);
+int NpcBhvrRegistryInsert(object oArea, object oNpc);
+int NpcBhvrRegistryRemove(object oArea, object oNpc);
+void NpcBhvrRegistryBroadcastIdleTick(object oArea);
 
 int NpcBhvrPendingNow()
 {
@@ -243,6 +252,118 @@ int NpcBhvrQueueCoalescePriority(int nExistingPriority, int nIncomingPriority, s
     return nPriority;
 }
 
+string NpcBhvrRegistrySlotKey(int nIndex)
+{
+    return NPC_BHVR_VAR_REGISTRY_PREFIX + IntToString(nIndex);
+}
+
+string NpcBhvrRegistryIndexKey(object oNpc)
+{
+    return NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX + NpcBhvrPendingSubjectTag(oNpc);
+}
+
+int NpcBhvrRegistryInsert(object oArea, object oNpc)
+{
+    int nCount;
+    int nIndex;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc) || GetIsPC(oNpc) || GetObjectType(oNpc) != OBJECT_TYPE_CREATURE)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL);
+        return FALSE;
+    }
+
+    if (GetArea(oNpc) != oArea)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL);
+        return FALSE;
+    }
+
+    nIndex = GetLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc));
+    if (nIndex > 0 && GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex)) == oNpc)
+    {
+        return TRUE;
+    }
+
+    nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    if (nCount >= NPC_BHVR_REGISTRY_MAX)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_OVERFLOW_TOTAL);
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL);
+        return FALSE;
+    }
+
+    nCount = nCount + 1;
+    SetLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount), oNpc);
+    SetLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc), nCount);
+    SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount);
+    return TRUE;
+}
+
+int NpcBhvrRegistryRemove(object oArea, object oNpc)
+{
+    int nCount;
+    int nIndex;
+    object oTail;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc))
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL);
+        return FALSE;
+    }
+
+    nIndex = GetLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc));
+    nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    if (nIndex <= 0 || nIndex > nCount)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL);
+        return FALSE;
+    }
+
+    oTail = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
+    if (nIndex != nCount)
+    {
+        SetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex), oTail);
+        if (GetIsObjectValid(oTail))
+        {
+            SetLocalInt(oArea, NpcBhvrRegistryIndexKey(oTail), nIndex);
+        }
+    }
+
+    DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
+    DeleteLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc));
+    SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount - 1);
+    return TRUE;
+}
+
+void NpcBhvrRegistryBroadcastIdleTick(object oArea)
+{
+    int nIndex;
+    int nCount;
+    object oNpc;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    nIndex = 1;
+    nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    while (nIndex <= nCount)
+    {
+        oNpc = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
+        if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea)
+        {
+            NpcBhvrRegistryRemove(oArea, oNpc);
+            nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+            continue;
+        }
+
+        NpcBhvrActivityOnIdleTick(oNpc);
+        nIndex = nIndex + 1;
+    }
+}
+
 string NpcBhvrQueueDepthKey(int nPriority)
 {
     return "npc_queue_depth_" + IntToString(nPriority);
@@ -380,6 +501,7 @@ void NpcBhvrQueueClear(object oArea)
     int nPriority;
     int nDepth;
     int nIndex;
+    object oRegistered;
 
     nPriority = NPC_BHVR_PRIORITY_CRITICAL;
     while (nPriority <= NPC_BHVR_PRIORITY_LOW)
@@ -396,8 +518,23 @@ void NpcBhvrQueueClear(object oArea)
         nPriority = nPriority + 1;
     }
 
+    nDepth = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    nIndex = 1;
+    while (nIndex <= nDepth)
+    {
+        oRegistered = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
+        if (GetIsObjectValid(oRegistered))
+        {
+            DeleteLocalInt(oArea, NpcBhvrRegistryIndexKey(oRegistered));
+        }
+
+        DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
+        nIndex = nIndex + 1;
+    }
+
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_CURSOR, NPC_BHVR_PRIORITY_HIGH);
     SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
+    SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
     NpcBhvrQueueSyncTotals(oArea);
 }
 
@@ -983,9 +1120,13 @@ void NpcBhvrOnSpawn(object oNpc)
     NpcBhvrActivityOnSpawn(oNpc);
 
     oArea = GetArea(oNpc);
-    if (GetIsObjectValid(oArea) && !NpcBhvrAreaIsRunning(oArea))
+    if (GetIsObjectValid(oArea))
     {
-        NpcBhvrAreaActivate(oArea);
+        NpcBhvrRegistryInsert(oArea, oNpc);
+        if (!NpcBhvrAreaIsRunning(oArea))
+        {
+            NpcBhvrAreaActivate(oArea);
+        }
     }
 }
 
@@ -1019,7 +1160,14 @@ void NpcBhvrOnDamaged(object oNpc)
 
 void NpcBhvrOnDeath(object oNpc)
 {
+    object oArea;
+
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DEATH_COUNT);
+    oArea = GetArea(oNpc);
+    if (GetIsObjectValid(oArea))
+    {
+        NpcBhvrRegistryRemove(oArea, oNpc);
+    }
 }
 
 void NpcBhvrOnDialogue(object oNpc)
@@ -1035,7 +1183,13 @@ void NpcBhvrOnAreaEnter(object oArea, object oEntering)
     }
 
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
-    if (GetIsPC(oEntering) && !NpcBhvrAreaIsRunning(oArea))
+    if (!GetIsPC(oEntering))
+    {
+        NpcBhvrRegistryInsert(oArea, oEntering);
+        return;
+    }
+
+    if (!NpcBhvrAreaIsRunning(oArea))
     {
         NpcBhvrAreaActivate(oArea);
     }
@@ -1051,6 +1205,12 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
     }
 
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_EXIT_COUNT);
+
+    if (!GetIsPC(oExiting))
+    {
+        NpcBhvrRegistryRemove(oArea, oExiting);
+        return;
+    }
 
     nPlayers = NpcBhvrCountPlayersInArea(oArea);
     if (GetIsPC(oExiting) && nPlayers <= 0)

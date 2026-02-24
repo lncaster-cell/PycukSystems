@@ -54,13 +54,14 @@
   - нет прямого копирования legacy keyspace (`al_*`) в runtime API;
   - есть адаптерная прослойка для маршрутов и ограничений активностей.
 
-### Task B2 — Dense area-registry helper (опционально, но рекомендовано)
+### Task B2 — Dense area-registry helper (выполнено)
 - **Артефакты:**
-  - helper API для плотного реестра NPC на область.
+  - helper API для плотного реестра NPC на область в `npc_core.nss` (`NpcBhvrRegistryInsert/Remove/BroadcastIdleTick`).
+  - метрики `npc_metric_registry_overflow_total` и `npc_metric_registry_reject_total` в `npc_metrics_inc.nss`.
 - **Definition of Done:**
-  - swap-remove compaction при невалидных ссылках;
-  - массовые сигналы/broadcast выполняются без tag-search;
-  - переполнение реестра диагностируется метрикой/логом.
+  - swap-remove compaction при remove/prune реализован;
+  - массовый обход registry выполняется через `NpcBhvrRegistryBroadcastIdleTick` без tag-search;
+  - переполнение и reject-path диагностируются отдельными метриками.
 
 ---
 
@@ -97,8 +98,8 @@
 
 ## Release readiness checklist для старта разработки
 
-- [ ] Создан базовый runtime-каркас NPC Bhvr в `src/modules/npc/`.
-- [ ] Зафиксированы lifecycle/queue/metrics контракты.
+- [x] Создан базовый runtime-каркас NPC Bhvr в `src/modules/npc/`.
+- [x] Зафиксированы lifecycle/queue/metrics контракты.
 - [ ] Подготовлен perf-gate документ и фикстуры.
 - [ ] Автоматизирован fairness/lifecycle self-check.
 - [ ] Обновлены ссылки в README и рабочих чеклистах на актуальные пути runtime.
