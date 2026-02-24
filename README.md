@@ -12,7 +12,7 @@
 
 - ✅ runtime-контур NPC в `src/modules/npc/*` собран и используется как canonical source;
 - ✅ lifecycle/fairness/activity контрактные проверки автоматизированы и проходят локально;
-- ✅ legacy-cleanup milestone (`tools/*` -> `docs/legacy/tools_reference/*`) закрыт;
+- ✅ legacy-cleanup milestone (`tools/*`) закрыт; legacy-архив больше не хранится в дереве репозитория;
 - ⚠️ perf/release gate имеет статус `FAIL`: baseline свежий (>=3 runs), но `tick-budget-degraded` превышает пороги (см. `docs/perf/npc_baseline_report.md`).
 
 Операционный статус и readiness-детали:
@@ -72,6 +72,7 @@
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - Source of truth для активной разработки runtime NPC: `src/modules/npc/`.
 - Legacy-референсы старых систем (`ambientlive`, `npc_behavior`) удалены из репозитория; поддерживается только текущий runtime-модуль `src/modules/npc/`.
+- Исторические материалы по legacy-инструментам ищите вне рабочего дерева репозитория: в истории Git и опубликованных архивных артефактах проекта.
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
