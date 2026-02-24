@@ -105,13 +105,12 @@ void NpcBhvrAreaActivate(object oArea)
         return;
     }
 
+    // Единый источник применения runtime-budget (area -> module -> defaults + normalisation):
+    // только NpcBhvrApplyTickRuntimeConfig.
     NpcBhvrApplyTickRuntimeConfig(oArea);
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrAreaRouteCacheWarmup(oArea);
     NpcBhvrActivityOnAreaActivate(oArea);
-    NpcBhvrSetTickMaxEvents(oArea, NpcBhvrGetTickMaxEvents(oArea));
-    NpcBhvrSetTickSoftBudgetMs(oArea, NpcBhvrGetTickSoftBudgetMs(oArea));
-
     // Contract: один area-loop на область.
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
     {
