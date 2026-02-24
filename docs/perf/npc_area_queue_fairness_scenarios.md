@@ -17,7 +17,7 @@
 Перед сценарными прогонами выполнить:
 
 ```bash
-bash scripts/check_area_lifecycle_contract.sh
+bash scripts/check_npc_lifecycle_contract.sh
 ```
 
 Проверка валидирует, что `src/modules/npc/npc_core.nss` соответствует текущему lifecycle-контракту и не дублирует legacy area lifecycle vars.
