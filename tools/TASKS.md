@@ -13,8 +13,8 @@
 ### Phase B — AL activity adaptation
 - [ ] B1. Портировать AL activity primitives в `npc_activity_inc.nss` через адаптеры.
   - **DoD:** slot/route активности работают без legacy keyspace drift.
-- [ ] B2. Добавить dense area-registry helper (swap-remove, массовые сигналы).
-  - **DoD:** переполнение реестра диагностируется метрикой/логом.
+- [x] B2. Добавить dense area-registry helper (swap-remove, массовые сигналы).
+  - **DoD:** insert/remove + swap-remove compaction реализованы, overflow/reject диагностируются метриками `npc_metric_registry_overflow_total` и `npc_metric_registry_reject_total`.
 
 ### Phase C — Metrics and perf gate
 - [ ] C1. Ввести единый metrics API (`npc_metrics_inc.nss`).

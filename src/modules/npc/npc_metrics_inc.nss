@@ -20,6 +20,8 @@ const string NPC_BHVR_METRIC_QUEUE_ENQUEUED_COUNT = "npc_metric_queue_enqueued_c
 // queue_coalesced_count: повторное событие обновило существующую pending-запись (coalescing, без дубликата).
 const string NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT = "npc_metric_queue_coalesced_count";
 const string NPC_BHVR_METRIC_QUEUE_STARVATION_GUARD_TRIPS = "npc_metric_queue_starvation_guard_trips";
+const string NPC_BHVR_METRIC_REGISTRY_OVERFLOW_TOTAL = "npc_metric_registry_overflow_total";
+const string NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL = "npc_metric_registry_reject_total";
 
 // Tick-budget/degraded-mode metrics.
 const string NPC_BHVR_METRIC_PROCESSED_TOTAL = "npc_metric_processed_total";

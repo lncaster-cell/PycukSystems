@@ -4,7 +4,7 @@
 
 ## Baseline reference-point
 
-Для всех сравнений perf-gate NPC Bhvr reference-point задаётся текущим NPC baseline: `docs/perf/npc_baseline_report.md`.
+Для всех сравнений perf-gate NPC Bhvr reference-point задаётся текущим baseline-отчётом в `docs/perf/reports/` (например, `docs/perf/reports/2026-02-23_npc_baseline_report.md`).
 
 - Если baseline отсутствует или старше 14 дней, результаты сравнения считаются `BLOCKED` до обновления baseline.
 - Исторические baseline-версии берутся из `docs/perf/reports/` и используются только для ретроспективного анализа трендов.
@@ -21,7 +21,7 @@
 ### Проверки
 
 - tick-loop продолжает работу без остановки;
-- `registry_overflow_total > 0` и `registry_reject_total > 0`;
+- `npc_metric_registry_overflow_total > 0` и `npc_metric_registry_reject_total > 0`;
 - нет повреждения существующих записей (старые NPC продолжают получать update/events).
 
 ### Gate
@@ -29,7 +29,9 @@
 - **PASS:** overflow фиксируется, loop стабилен, деградация диагностируема.
 - **FAIL:** переполнение не отражено в метриках или приводит к потере управления уже зарегистрированными NPC.
 
-## 2) Route cache warmup policy guardrail
+## 2) Route cache warmup policy guardrail *(future/blocked)*
+
+**Статус:** BLOCKED до внедрения route-cache в runtime `src/modules/npc/*`.
 
 **Цель:** исключить повторный дорогостоящий area scan после первичного warmup.
 
@@ -51,7 +53,9 @@
 - **PASS:** warmup однократный, повторные OnEnter не запускают полный re-scan.
 - **FAIL:** каждый вход запускает re-scan или hit ratio указывает на отсутствие рабочего cache.
 
-## 3) Silent degradation diagnostics guardrail
+## 3) Silent degradation diagnostics guardrail *(future/blocked)*
+
+**Статус:** BLOCKED до внедрения reason-specific degradation telemetry (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`) в runtime-код.
 
 **Цель:** убедиться, что деградационные ветки не остаются «тихими».
 
@@ -75,8 +79,8 @@
 ## 4) Release gate integration checklist
 
 - [ ] Overflow сценарий добавлен в perf-прогон NPC Bhvr.
-- [ ] Warmup/rescan сценарий добавлен в perf-прогон NPC Bhvr.
-- [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон NPC Bhvr.
+- [ ] Warmup/rescan сценарий добавлен в perf-прогон NPC Bhvr *(BLOCKED: route cache ещё не внедрён)*.
+- [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон NPC Bhvr *(BLOCKED: нет reason-specific degradation telemetry в runtime)*.
 - [ ] Automated fairness checks добавлены в perf-прогон NPC Bhvr.
 - [ ] Tick budget/degraded-mode сценарий добавлен в perf-прогон NPC Bhvr.
 - [ ] Итоговый отчёт содержит явный pass/fail по каждому guardrail.
