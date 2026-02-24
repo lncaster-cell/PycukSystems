@@ -1,5 +1,6 @@
-// NPC persistence repository contract-only API.
-// Контракты будущих worker/lifecycle сценариев. Не подключать в production runtime.
+// NPC persistence repository contract-only API (EXPERIMENTAL / PLANNED).
+// Контракты будущих worker/lifecycle сценариев.
+// Не подключать в production runtime до явного runtime wiring.
 
 #include "npc_sql_api_inc"
 
