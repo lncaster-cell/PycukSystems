@@ -27,6 +27,43 @@
 Исполняемый бэклог старта Module 3: `docs/npc_implementation_backlog.md`.
 Отдельный perf-gate для Module 3 (гибрид AL/NPC): `docs/perf/npc_perf_gate.md`.
 
+## Краткий каталог разработанных механизмов и функций
+
+Ниже — сжатая сводка того, что уже реализовано в проекте на текущем этапе.
+
+### 1) Runtime-механизмы NPC (ядро)
+- Lifecycle area-controller: состояния `RUNNING/PAUSED/STOPPED`, auto-start, auto-idle-stop, watchdog-тик в `PAUSED`.
+- Очередь событий: bounded queue (`NPC_BHVR_QUEUE_MAX=64`) с приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
+- Fairness/устойчивость: starvation guard, bypass для `CRITICAL`, degraded-mode и reason-codes.
+- Pending-контракт: консистентные `npc_pending_*` (NPC-local) + зеркалирование `npc_queue_pending_*` (area-local).
+
+### 2) Обработчики и точки входа (event hooks)
+- Реализованы thin-entrypoint скрипты и маршрутизация в core для событий:
+  `OnSpawn`, `OnPerception`, `OnDamaged`, `OnDeath`, `OnDialogue`,
+  `Area OnEnter`, `Area OnExit`, `OnModuleLoad`, `Area tick loop`.
+- Правило: бизнес-логика размещается в `npc_core.nss` и include-слоях, entrypoints остаются тонкими.
+
+### 3) Activity/runtime-функциональность NPC
+- Activity adapter-layer (`npc_activity_inc.nss`) с нормализацией slot/route и fallback-цепочками route-profile.
+- Инициализация и сопровождение runtime-состояний activity (`npc_activity_*`, waypoint state, cooldown, last transition).
+- Schedule-aware выбор слота (`critical/priority/default`) по временным окнам и предсказуемым правилам интерпретации.
+
+### 4) Метрики и observability
+- Единый helper API метрик (`NpcBhvrMetricInc/Add`) и контракт ключей `NPC_VAR_METRIC_*`.
+- Runtime telemetry для tick/degraded-профиля (`processed_total`, budget/degraded counters, degradation reason).
+- Подготовленная база для дальнейшего write-behind sink и эксплуатационного мониторинга.
+
+### 5) Персистентность и интеграция
+- Подготовлен слой интеграции персистентности через NWNX SQLite (`src/integrations/nwnx_sqlite/`).
+- Отдельно документированы схема и эксплуатационные правила сохранения/восстановления NPC.
+
+### 6) Тестирование, контракты и perf-инструменты
+- Автоматизированы smoke/contract проверки lifecycle, fairness и activity-контрактов (набор `scripts/test_*` и `scripts/check_*`).
+- Реализованы benchmark/gate инструменты (`scripts/run_npc_bench.sh`, `scripts/analyze_npc_fairness.py`).
+- Поддерживается операционный контур perf-артефактов: baseline, gate-отчёты, дашборды и fixture-наборы.
+
+Для технических деталей и карты hook-скриптов смотрите `src/modules/npc/README.md`.
+
 ## Структура репозитория
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
