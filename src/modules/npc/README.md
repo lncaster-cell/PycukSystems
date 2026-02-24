@@ -35,6 +35,7 @@ Tick/degraded telemetry в runtime включает:
   - `NpcBhvrActivityAdapterNormalizeRoute`,
   - `NpcBhvrActivityMapRouteHint`,
   - `NpcBhvrActivityResolveRouteProfile`,
+  - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty`,
   - `NpcBhvrActivityAdapterStampTransition`.
 
 - Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
@@ -52,6 +53,7 @@ Tick/degraded telemetry в runtime включает:
   4) `npc_route_profile_slot_<slot>` на area;
   5) `npc_route_profile_default` на area;
   6) `default_route`.
+- `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями.
 - Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
   - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
   - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
@@ -70,7 +72,7 @@ Tick/degraded telemetry в runtime включает:
   - `last=spawn_ready`,
   - `last_ts` обновлён,
   - `cooldown >= 0`.
-- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (будут нормализованы).
+- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (slot нормализуется, невалидный route отбрасывается и заменяется fallback-резолвом).
 - **Выход `NpcBhvrActivityOnIdleTick`:**
   - при `cooldown > 0` выполняется только декремент cooldown на 1 и early-return;
   - при `cooldown == 0` выполняется ровно одна ветка диспетчера:

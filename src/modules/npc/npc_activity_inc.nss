@@ -29,6 +29,28 @@ string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
 }
 
+int NpcBhvrActivityIsSupportedRoute(string sRouteId)
+{
+    return sRouteId == NPC_BHVR_ACTIVITY_ROUTE_DEFAULT
+        || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY
+        || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
+}
+
+string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId)
+{
+    if (sRouteId == "")
+    {
+        return "";
+    }
+
+    if (!NpcBhvrActivityIsSupportedRoute(sRouteId))
+    {
+        return "";
+    }
+
+    return NpcBhvrActivityAdapterNormalizeRoute(sRouteId);
+}
+
 string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 {
     object oArea;
@@ -39,22 +61,24 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
     }
 
-    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE));
     if (sRoute != "")
     {
-        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+        return sRoute;
     }
 
-    sRoute = GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot));
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot))
+    );
     if (sRoute != "")
     {
-        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+        return sRoute;
     }
 
-    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT);
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT));
     if (sRoute != "")
     {
-        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+        return sRoute;
     }
 
     oArea = GetArea(oNpc);
@@ -63,16 +87,18 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
     }
 
-    sRoute = GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot));
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot))
+    );
     if (sRoute != "")
     {
-        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+        return sRoute;
     }
 
-    sRoute = GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT);
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT));
     if (sRoute != "")
     {
-        return NpcBhvrActivityAdapterNormalizeRoute(sRoute);
+        return sRoute;
     }
 
     return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
@@ -174,11 +200,9 @@ void NpcBhvrActivityOnSpawn(object oNpc)
 
     // Обязательная spawn-инициализация profile-state в npc_* namespace.
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT));
-    sRouteConfigured = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
-    if (sRouteConfigured != "")
-    {
-        sRouteConfigured = NpcBhvrActivityAdapterNormalizeRoute(sRouteConfigured);
-    }
+    sRouteConfigured = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE)
+    );
 
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
 
