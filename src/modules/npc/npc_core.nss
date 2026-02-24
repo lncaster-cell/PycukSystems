@@ -1038,7 +1038,7 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_EXIT_COUNT);
 
     nPlayers = NpcBhvrCountPlayersInArea(oArea);
-    if (GetIsPC(oExiting) && nPlayers <= 1)
+    if (GetIsPC(oExiting) && nPlayers <= 0)
     {
         NpcBhvrAreaPause(oArea);
     }
