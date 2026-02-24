@@ -1189,7 +1189,9 @@ void NpcBhvrQueueMarkDeferredHead(object oArea)
         oSubject = NpcBhvrQueuePeekFromPriority(oArea, nPriority);
         if (GetIsObjectValid(oSubject))
         {
+            // Deferred must be mirrored both in area queue metadata and NPC-local state.
             NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED);
+            NpcBhvrPendingSetStatus(oSubject, NPC_BHVR_PENDING_STATUS_DEFERRED);
             return;
         }
 
