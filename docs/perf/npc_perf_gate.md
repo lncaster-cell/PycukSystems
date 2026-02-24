@@ -55,7 +55,7 @@
 
 ## 3) Silent degradation diagnostics guardrail *(future/blocked)*
 
-**Статус:** BLOCKED до внедрения reason-specific degradation telemetry (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`) в runtime-код.
+**Статус:** PARTIAL — базовая reason-specific degradation telemetry внедрена в runtime (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`); full fault-injection matrix остаётся в работе.
 
 **Цель:** убедиться, что деградационные ветки не остаются «тихими».
 
@@ -80,7 +80,7 @@
 
 - [ ] Overflow сценарий добавлен в perf-прогон NPC Bhvr.
 - [ ] Warmup/rescan сценарий добавлен в perf-прогон NPC Bhvr *(BLOCKED: route cache ещё не внедрён)*.
-- [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон NPC Bhvr *(BLOCKED: нет reason-specific degradation telemetry в runtime)*.
+- [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон NPC Bhvr *(PARTIAL: telemetry готова, отсутствует полный набор fault-fixtures и прогон).*
 - [ ] Automated fairness checks добавлены в perf-прогон NPC Bhvr.
 - [ ] Tick budget/degraded-mode сценарий добавлен в perf-прогон NPC Bhvr.
 - [ ] Итоговый отчёт содержит явный pass/fail по каждому guardrail.
