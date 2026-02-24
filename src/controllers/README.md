@@ -3,13 +3,12 @@
 ## Что будет размещаться
 - Area-tick контроллеры и планировщики выполнения (bucketization, jitter, step-based execution).
 - Политики распределения нагрузки между «hot/cold» наборами NPC.
-- Контроллеры lifecycle уровня area (`RUNNING/PAUSED/STOPPED`) и их runtime-конфиги.
+- Экспериментальные/будущие runtime-контроллеры, которые ещё не включены в боевой контур.
 
-
-## Реализовано (Phase 1, Task 3.2/3.3)
-- `lifecycle_controller.nss` — state machine для area lifecycle: `RUNNING/PAUSED/STOPPED`.
-- Контракт совместимости: при смене lifecycle синхронизируется legacy-флаг `nb_area_active` для существующих проверок.
-- Экспортируемое API контроллера: `NpcControllerAreaGetLifecycleState` и `NpcControllerAreaSetLifecycleState` (runtime timer-loop обрабатывается внутри `npc_core.nss`).
+## Текущее состояние
+- `lifecycle_controller.nss` сохранён как legacy-placeholder без экспортируемого API.
+- Единственный источник истины для area lifecycle (`RUNNING/PAUSED/STOPPED`) находится в `src/modules/npc/npc_core.nss`.
+- Runtime timer-loop, state-переходы и queue lifecycle не должны дублироваться в `src/controllers/*`.
 
 ## Критерий готовности
 Каталог считается готовым к первой фазе, когда:
