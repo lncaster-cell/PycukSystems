@@ -194,6 +194,10 @@ def main() -> int:
     for b in buckets:
         worst[b] = max(worst[b], streak[b])
 
+    if running_ticks == 0:
+        print("[FAIL] no RUNNING rows in input")
+        return 2
+
     if args.max_post_resume_drain_ticks >= 0 and resume_window_tick >= 0:
         resume_window_tick, resume_window_violations = evaluate_post_resume_window(
             args,
