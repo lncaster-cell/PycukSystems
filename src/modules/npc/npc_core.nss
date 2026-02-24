@@ -73,6 +73,8 @@ const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
+const string NPC_BHVR_VAR_PLAYER_COUNT = "npc_player_count";
+const string NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED = "npc_player_count_initialized";
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
 const int NPC_BHVR_PENDING_STATUS_RUNNING = 2;
 const int NPC_BHVR_PENDING_STATUS_PROCESSED = 3;
@@ -1249,6 +1251,32 @@ int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
     return nPlayers;
 }
 
+int NpcBhvrGetCachedPlayerCount(object oArea)
+{
+    int nPlayers;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    nPlayers = GetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT);
+    if (nPlayers < 0)
+    {
+        nPlayers = 0;
+    }
+
+    // Self-heal only: rebuild cache on first use (cold areas/module boot) or when value is suspicious.
+    if (!GetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED) || nPlayers > 1024)
+    {
+        nPlayers = NpcBhvrCountPlayersInArea(oArea);
+        SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+        SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+    }
+
+    return nPlayers;
+}
+
 int NpcBhvrQueuePickPriority(object oArea)
 {
     int nCriticalDepth;
@@ -1644,8 +1672,8 @@ void NpcBhvrOnAreaTick(object oArea)
             NpcSqliteWriteBehindFlush(NpcBhvrPendingNow(), NPC_SQLITE_WB_BATCH_SIZE_DEFAULT);
         }
 
-        // Auto-idle-stop: если в области нет игроков и нет pending, останавливаем loop.
-        nPlayers = NpcBhvrCountPlayersInArea(oArea);
+        // Auto-idle-stop: используем cached player-counter; full scan только в self-heal сценариях.
+        nPlayers = NpcBhvrGetCachedPlayerCount(oArea);
         if (nPlayers <= 0 && nPendingAfter <= 0)
         {
             NpcBhvrAreaStop(oArea);
@@ -1757,6 +1785,7 @@ void NpcBhvrOnDialogue(object oNpc)
 
 void NpcBhvrOnAreaEnter(object oArea, object oEntering)
 {
+    int nPlayers;
     int nEnteringType;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oEntering))
@@ -1777,6 +1806,15 @@ void NpcBhvrOnAreaEnter(object oArea, object oEntering)
         NpcBhvrRegistryInsert(oArea, oEntering);
         return;
     }
+
+    if (GetIsDM(oEntering))
+    {
+        return;
+    }
+
+    nPlayers = NpcBhvrGetCachedPlayerCount(oArea) + 1;
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
 
     if (!NpcBhvrAreaIsRunning(oArea))
     {
@@ -1802,9 +1840,26 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
         return;
     }
 
-    // Порядок событий движка: OnExit может сработать до фактического удаления oExiting
-    // из area-итерации, поэтому при подсчёте исключаем выходящий объект явно.
-    nPlayers = NpcBhvrCountPlayersInAreaExcluding(oArea, oExiting);
+    if (GetIsDM(oExiting))
+    {
+        return;
+    }
+
+    nPlayers = NpcBhvrGetCachedPlayerCount(oArea) - 1;
+    if (nPlayers < 0)
+    {
+        // Self-heal: clamp + rebuild on desync instead of allowing negative cached state.
+        nPlayers = NpcBhvrCountPlayersInAreaExcluding(oArea, oExiting);
+        if (nPlayers < 0)
+        {
+            nPlayers = 0;
+        }
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+
+    // Pause policy mirrors auto-idle-stop player definition: only non-DM PCs keep area active.
     if (nPlayers <= 0)
     {
         NpcBhvrAreaPause(oArea);
