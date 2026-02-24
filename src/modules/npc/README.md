@@ -48,6 +48,7 @@ Tick/degraded telemetry в runtime включает:
 - `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
 - `npc_metric_degradation_events_total`,
 - `npc_metric_maintenance_self_heal_count` (количество self-heal reconcile в maintenance loop),
+- `npc_metric_idle_budget_throttled_total` (сколько тиков idle-budget был снижен adaptive-throttling),
 - `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `EVENT_BUDGET|SOFT_BUDGET|OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
 
 - Tick budget-параметры (`npc_tick_max_events`, `npc_tick_soft_budget_ms`) нормализуются и фиксируются при `NpcBhvrAreaActivate` через `NpcBhvrSetTickMaxEvents/NpcBhvrSetTickSoftBudgetMs` (с hard-cap), после чего используются в `NpcBhvrOnAreaTick`.
@@ -57,6 +58,8 @@ Tick/degraded telemetry в runtime включает:
 - Runtime-пределы тика (`max events` и `soft budget ms`) применяются через `NpcBhvrApplyTickRuntimeConfig`.
 - Источники конфигурации (по приоритету): area-local (`npc_cfg_tick_max_events`, `npc_cfg_tick_soft_budget_ms`) -> module-local (те же ключи на `GetModule()`) -> встроенные defaults (`NPC_BHVR_TICK_MAX_EVENTS_DEFAULT`, `NPC_BHVR_TICK_SOFT_BUDGET_MS_DEFAULT`).
 - Точка применения в lifecycle: bootstrap всех областей на module-load и каждое `NpcBhvrAreaActivate`, чтобы настройки оставались консистентными после pause/resume.
+
+- Idle broadcast budget адаптивный: при queue-pressure (`pending_total` выше runtime-порога от `npc_tick_max_events`, `npc_tick_soft_budget_ms` и `npc_tick_carryover_events`) применяется throttling `NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT`, при нормализации очереди budget автоматически возвращается к базовому значению.
 
 
 ## Activity primitives runtime-контракт
