@@ -53,12 +53,19 @@
 ## Локальный запуск
 
 ```bash
+# One-step baseline run (генерация run_*.csv + пост-анализ + summary.md)
 bash scripts/run_npc_bench.sh steady
-python3 scripts/analyze_npc_fairness.py \
-  --input docs/perf/fixtures/npc/steady.csv
+
+# Audit-derived one-step profiles из npc_perf_gate.md
+bash scripts/run_npc_bench.sh overflow-guardrail
+bash scripts/run_npc_bench.sh tick-budget
+bash scripts/run_npc_bench.sh fairness-checks
 ```
 
-Для регрессии удобно прогонять все три fixture-файла и сверять итоговый pass/fail по gate-метрикам.
+`run_npc_bench.sh` теперь автоматически:
+- запускает `scripts/analyze_npc_fairness.py` для каждого `run_*.csv`;
+- запускает `scripts/analyze_area_queue_fairness.py` там, где fixture содержит `processed_*` колонки, и всегда передаёт обязательные флаги (`--max-starvation-window`, `--enforce-pause-zero`, `--max-post-resume-drain-ticks`, `--min-resume-transitions`);
+- формирует `summary.md` с явным PASS/FAIL по guardrail-проверкам.
 
 ## Audit-derived guardrails
 
