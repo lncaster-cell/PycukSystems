@@ -47,8 +47,8 @@ jobs:
             throw "This workflow requires windows-latest. Current RUNNER_OS: $env:RUNNER_OS"
           }
 
-          if (-not (Test-Path -Path 'tools/NWNScriptCompiler.exe' -PathType Leaf)) {
-            throw "NWNScriptCompiler.exe not found at tools/NWNScriptCompiler.exe."
+          if (-not (Test-Path -Path 'third_party/toolchain/NWNScriptCompiler.exe' -PathType Leaf)) {
+            throw "NWNScriptCompiler.exe not found at third_party/toolchain/NWNScriptCompiler.exe."
           }
 
       - name: Prepare stock includes for CI
@@ -83,10 +83,9 @@ jobs:
         shell: pwsh
         run: |
           $mode = '${{ matrix.mode }}'
-          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
+          $compiler = Join-Path $PWD 'third_party/toolchain/NWNScriptCompiler.exe'
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $sourceRootIncludePath = Join-Path $PWD 'src'
-          $npcBehaviorIncludePath = Join-Path $PWD 'tools/npc_behavior_system'
           $npcIncludePath = Join-Path $PWD 'src/modules/npc'
           $projectIncludePath = Join-Path $PWD 'scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
@@ -94,7 +93,7 @@ jobs:
             Select-Object -ExpandProperty DirectoryName -Unique |
             Sort-Object
 
-          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
           foreach ($moduleIncludeDir in $moduleIncludeDirs) {
             $includeArgs += @('-i', $moduleIncludeDir)
           }
@@ -112,10 +111,9 @@ jobs:
 
           $files = @(
             Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss'
-            Get-ChildItem -Path 'tools/npc_behavior_system' -Recurse -File -Filter '*.nss'
           ) | Sort-Object FullName
           if ($files.Count -eq 0) {
-            "No .nss files found under src/ or tools/npc_behavior_system/." | Tee-Object -FilePath $logPath -Append
+            "No .nss files found under src/." | Tee-Object -FilePath $logPath -Append
             "MODE=$mode" | Tee-Object -FilePath $logPath -Append
             "SCRIPTS=0" | Tee-Object -FilePath $logPath -Append
             "WARNINGS=0" | Tee-Object -FilePath $logPath -Append
@@ -311,8 +309,8 @@ jobs:
             throw "This workflow requires windows-latest. Current RUNNER_OS: $env:RUNNER_OS"
           }
 
-          if (-not (Test-Path -Path 'tools/NWNScriptCompiler.exe' -PathType Leaf)) {
-            throw "NWNScriptCompiler.exe not found at tools/NWNScriptCompiler.exe."
+          if (-not (Test-Path -Path 'third_party/toolchain/NWNScriptCompiler.exe' -PathType Leaf)) {
+            throw "NWNScriptCompiler.exe not found at third_party/toolchain/NWNScriptCompiler.exe."
           }
 
       - name: Prepare stock includes for CI
@@ -343,10 +341,9 @@ jobs:
         shell: pwsh
         run: |
           $mode = '${{ github.event.inputs.mode }}'
-          $compiler = Join-Path $PWD 'tools/NWNScriptCompiler.exe'
+          $compiler = Join-Path $PWD 'third_party/toolchain/NWNScriptCompiler.exe'
           $stockIncludePath = Join-Path $PWD '.ci/nwn2_stock_scripts'
           $sourceRootIncludePath = Join-Path $PWD 'src'
-          $npcBehaviorIncludePath = Join-Path $PWD 'tools/npc_behavior_system'
           $npcIncludePath = Join-Path $PWD 'src/modules/npc'
           $projectIncludePath = Join-Path $PWD 'scripts'
           $nwnxIncludePath = Join-Path $PWD 'third_party/nwnx_includes'
@@ -354,7 +351,7 @@ jobs:
             Select-Object -ExpandProperty DirectoryName -Unique |
             Sort-Object
 
-          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $npcBehaviorIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
+          $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
           foreach ($moduleIncludeDir in $moduleIncludeDirs) {
             $includeArgs += @('-i', $moduleIncludeDir)
           }
@@ -372,10 +369,9 @@ jobs:
 
           $files = @(
             Get-ChildItem -Path 'src' -Recurse -File -Filter '*.nss'
-            Get-ChildItem -Path 'tools/npc_behavior_system' -Recurse -File -Filter '*.nss'
           ) | Sort-Object FullName
           if ($files.Count -eq 0) {
-            "No .nss files found under src/ or tools/npc_behavior_system/." | Tee-Object -FilePath $logPath -Append
+            "No .nss files found under src/." | Tee-Object -FilePath $logPath -Append
             "MODE=$mode" | Tee-Object -FilePath $logPath -Append
             "SCRIPTS=0" | Tee-Object -FilePath $logPath -Append
             "WARNINGS=0" | Tee-Object -FilePath $logPath -Append

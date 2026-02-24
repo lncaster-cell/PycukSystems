@@ -25,14 +25,12 @@
 ## Структура репозитория
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
-- `tools/` — **legacy/reference-контур** (исторические реализации, материалы для сравнения и миграции, не active runtime).
-- `tools/al_system/` — reference-материалы по Ambient Life system.
-- `tools/npc_behavior_system/` — reference-реализация NPC behavior для сравнительного анализа и переноса решений.
+- `docs/legacy/tools_reference/` — архив перенесённых legacy/reference-материалов (бывший `tools/*`) для сравнительного анализа и миграции.
 - `src/modules/npc/` — **единственный active runtime-контур** для текущей разработки и execution backlog (core + includes + thin entrypoints).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - Source of truth для активной разработки runtime NPC: `src/modules/npc/`.
-- Код в `tools/*` не рассматривается как production runtime и не должен подключаться в active hook-цепочки/namespace без явного migration-task в backlog.
+- Код из `docs/legacy/tools_reference/*` является архивным reference и не должен подключаться в active hook-цепочки/namespace без явного migration-task в backlog.
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
@@ -48,11 +46,11 @@
 
 ## Legacy cleanup milestone (`tools/*`)
 
-Очистка `tools/*` выполняется отдельным milestone после завершения миграции в `src/modules/npc/`.
+Milestone закрыт: содержимое `tools/*` перенесено в `docs/legacy/tools_reference/`, а каталог `tools/` очищен.
 
 Каталог legacy-модулей может быть удалён только при одновременном выполнении критериев:
 - все runtime entrypoints и include-зависимости в active-контуре ссылаются только на `src/modules/npc/*`;
-- в execution backlog нет открытых задач, требующих исполнения кода из `tools/*`;
+- в execution backlog нет открытых задач, требующих исполнения кода из legacy-reference архива;
 - parity-проверки и perf-gate (`docs/perf/npc_perf_gate.md`) пройдены на текущем baseline;
 - для каждого удаляемого legacy-каталога есть краткая миграционная заметка в `docs/` (что перенесено/что осознанно отброшено).
 
@@ -67,14 +65,14 @@ bash scripts/setup_env.sh
 
 Запуск компилятора выполняется **только** в GitHub Actions на `windows-latest` через workflow `.github/workflows/compile.yml`.
 
-Локальный запуск `tools/NWNScriptCompiler.exe` в Linux/WSL окружении не поддерживается.
+Локальный запуск `third_party/toolchain/NWNScriptCompiler.exe` в Linux/WSL окружении не поддерживается.
 
 Поддерживаемые режимы workflow: `check`, `build`, `optimize`, `bugscan`.
 
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
 - Для диагностики падений используйте артефакты **logs-${mode}** и исправляйте ошибки только по конкретным строкам (`file:line`, `NSCxxxx`) из `logs-${mode}.log`.
 - После успешного запуска `build`/`optimize` скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
-- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `tools/npc_behavior_system/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
+- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
 
 ### Где лежат NWNX include-файлы и зачем
 
@@ -84,7 +82,7 @@ NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
 
 ## Observability contract (Phase 1)
 
-Для модуля `tools/npc_behavior_system` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
+Для active runtime-модуля `src/modules/npc` метрики Phase 1 пишутся через единый helper в `npc_core.nss`, а ключи подготовлены под будущий write-behind sink.
 
 Ключи `NPC_VAR_METRIC_*` (полное соответствие `npc_behavior_core.nss`):
 

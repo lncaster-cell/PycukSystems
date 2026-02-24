@@ -7,7 +7,7 @@
 ## Source of truth
 
 - Active runtime-контур: `src/modules/npc/` (единственный source of truth для исполнения и backlog).
-- Legacy/reference источники для точечной миграции: `tools/npc_behavior_system/`, `tools/al_system/`.
+- Legacy/reference источники для точечной миграции: `docs/legacy/tools_reference/npc_behavior_system/`, `docs/legacy/tools_reference/al_system/`.
 - Стратегическая матрица решений для NPC Bhvr: `docs/npc_al_vs_npc_behavior_matrix.md`.
 
 ---
@@ -106,12 +106,12 @@
 
 _Примечание: perf-gate (`docs/perf/npc_perf_gate.md`), фикстуры `docs/perf/fixtures/npc/*` и
 fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*lifecycle_contract.sh`) готовы,
-но часть checklist-документов всё ещё ссылается на legacy-пути `tools/*` и требует отдельного обновления._
+чеклисты обновлены под canonical paths; legacy-пути сохранены только в исторических отчётах._
 
 
 ---
 
-## Phase D — Legacy cleanup (`tools/*`)
+## Phase D — Legacy cleanup (`tools/*`) ✅ completed
 
 ### Task D1 — Cleanup readiness gate
 - **Артефакты:**
@@ -124,7 +124,7 @@ fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*l
 
 ### Task D2 — Удаление legacy-каталогов
 - **Артефакты:**
-  - PR(ы) на удаление `tools/al_system/*`, `tools/npc_behavior_system/*` (или их части)
+  - перенос legacy-контента в `docs/legacy/tools_reference/*`
   - migration notes в `docs/`
 - **Definition of Done:**
   - удаляются только каталоги, для которых есть зафиксированная миграционная заметка (перенесено/отброшено);
