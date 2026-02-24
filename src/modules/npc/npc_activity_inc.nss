@@ -578,7 +578,6 @@ int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId)
 {
     int nCount;
     object oArea;
-    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -608,7 +607,6 @@ int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
 {
     object oArea;
     int nLoopFlag;
-    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -727,7 +725,6 @@ int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int n
 {
     int nActivity;
     object oArea;
-    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc) || nWpIndex < 0)
     {
@@ -904,7 +901,6 @@ int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
 {
     int nPause;
     object oArea;
-    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
