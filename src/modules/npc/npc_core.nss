@@ -631,11 +631,6 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
     }
 }
 
-int NpcBhvrPendingNowTs()
-{
-    return GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
-}
-
 void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus)
 {
     string sNpcKey;
@@ -652,7 +647,7 @@ void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int n
     SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
     SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nReasonCode);
     SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), NpcBhvrPendingStatusToString(nStatus));
-    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), NpcBhvrPendingNowTs());
+    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), NpcBhvrPendingNow());
 }
 
 void NpcBhvrPendingAreaClear(object oArea, object oSubject)
