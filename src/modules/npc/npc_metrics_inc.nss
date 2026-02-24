@@ -27,6 +27,8 @@ const string NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL = "npc_metric_tick_budge
 const string NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL = "npc_metric_degraded_mode_total";
 // pending_age_ms: интегральный возраст хвоста pending (pending_count * tick_ms surrogate).
 const string NPC_BHVR_METRIC_PENDING_AGE_MS = "npc_metric_pending_age_ms";
+// paused_watchdog_tick_count: редкий watchdog-тик в PAUSED, отдельный от RUNNING tick-loop.
+const string NPC_BHVR_METRIC_PAUSED_WATCHDOG_TICK_COUNT = "npc_metric_paused_watchdog_tick_count";
 
 void NpcBhvrMetricAdd(object oScope, string sMetric, int nDelta)
 {

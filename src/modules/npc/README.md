@@ -6,6 +6,7 @@
 
 - Реализован lifecycle area-controller: `RUNNING/PAUSED/STOPPED`.
 - Добавлены auto-start и auto-idle-stop механики area-loop.
+- RUNNING loop рескейджулится только в состоянии `RUNNING`; в `PAUSED` используется отдельный редкий watchdog-тик (`30s`) с отдельной метрикой.
 - Реализована bounded queue (`NPC_BHVR_QUEUE_MAX=64`) с bucket-приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
 - Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
 - CRITICAL события обрабатываются через bypass fairness-бюджета.
