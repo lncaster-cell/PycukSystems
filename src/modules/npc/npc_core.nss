@@ -1999,7 +1999,9 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
 
     nPendingAfter = NpcBhvrTickStatePendingAfter(nTickState);
 
-    nDeferredCount = NpcBhvrQueueGetDeferredTotalReconciled(oArea);
+    // Hot-path guard only: expensive full walk выполняется только если счётчик
+    // deferred выглядит рассинхронизированным.
+    nDeferredCount = NpcBhvrQueueGetDeferredTotalReconciledOnDemand(oArea);
     if (nDeferredCount < 0)
     {
         nDeferredCount = 0;
@@ -2098,7 +2100,11 @@ void NpcBhvrOnAreaTick(object oArea)
 
     if (nAreaState == NPC_BHVR_AREA_STATE_RUNNING)
     {
-        // Tick orchestration: heavy path (queue budget/degradation/reconcile) then light path (flush/schedule).
+        // Tick orchestration split into staged helpers:
+        // 1) budgeted queue processing,
+        // 2) degradation/carryover policy,
+        // 3) deferred trim/reconcile.
+        // Это удерживает OnAreaTick тонким и выносит тяжёлую логику в малые функции.
         nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
         if (nPendingBefore <= 0)
         {
@@ -2129,94 +2135,9 @@ void NpcBhvrOnAreaTick(object oArea)
             nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
         }
 
-        nSpentEvents = 0;
-        nSpentBudgetMs = 0;
-        while (TRUE)
-        {
-            nEventsBudgetLeft = (nMaxEvents + nCarryoverEvents) - nSpentEvents;
-            if (nEventsBudgetLeft <= 0)
-            {
-                nEventBudgetReached = TRUE;
-                break;
-            }
-
-            if (nSpentBudgetMs + NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS > nSoftBudgetMs)
-            {
-                nSoftBudgetReached = TRUE;
-                break;
-            }
-
-            if (!NpcBhvrQueueProcessOne(oArea))
-            {
-                break;
-            }
-
-            nSpentEvents = nSpentEvents + 1;
-            nSpentBudgetMs = nSpentBudgetMs + NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS;
-        }
-
-        nProcessedThisTick = nSpentEvents;
-
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_PROCESSED, nProcessedThisTick);
-        NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PROCESSED_TOTAL, nProcessedThisTick);
-        nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
-
-        // Deterministic tail-carryover: unprocessed queue head remains in-order and is drained on next ticks.
-        nBudgetExceeded = (nSoftBudgetReached || nEventBudgetReached) && nPendingBefore > nProcessedThisTick && nPendingAfter > 0;
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
-
-        nCarryoverEvents = 0;
-        if (nBudgetExceeded)
-        {
-            nDegradationReason = NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE;
-            if (nEventBudgetReached)
-            {
-                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
-            }
-            else if (nSoftBudgetReached)
-            {
-                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
-            }
-
-            nCarryoverEvents = nPendingAfter;
-            if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
-            {
-                nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
-            }
-
-            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
-            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
-            NpcBhvrRecordDegradationEvent(oArea, nDegradationReason);
-            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
-            NpcBhvrQueueMarkDeferredHead(oArea);
-            SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK) + 1);
-            SetLocalInt(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL) + 1);
-            SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL) + 1);
-        }
-        else
-        {
-            SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, 0);
-            SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, NPC_BHVR_DEGRADATION_REASON_NONE);
-        }
-
-        // Lightweight guard only: full deferred reconcile moved to maintenance entrypoint.
-        nDeferredCount = NpcBhvrQueueGetDeferredTotalReconciledOnDemand(oArea);
-        if (nDeferredCount > NPC_BHVR_TICK_DEFERRED_CAP)
-        {
-            nDeferredOverflow = nDeferredCount - NPC_BHVR_TICK_DEFERRED_CAP;
-            if (nDeferredOverflow > 0)
-            {
-                nDeferredOverflow = NpcBhvrQueueTrimDeferredOverflow(oArea, nDeferredOverflow);
-                nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
-                nCarryoverEvents = nCarryoverEvents - nDeferredOverflow;
-                if (nCarryoverEvents < 0)
-                {
-                    nCarryoverEvents = 0;
-                }
-            }
-        }
-
-        SetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
+        nTickState = NpcBhvrTickProcessBudgetedWork(oArea, nPendingBefore, nMaxEvents, nSoftBudgetMs, nCarryoverEvents);
+        nCarryoverEvents = NpcBhvrTickApplyDegradationAndCarryover(oArea, nTickState);
+        nPendingAfter = NpcBhvrTickReconcileDeferredAndTrim(oArea, nTickState, nCarryoverEvents);
 
         if (nPendingAfter > 0)
         {
