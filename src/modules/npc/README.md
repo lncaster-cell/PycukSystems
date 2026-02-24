@@ -54,6 +54,10 @@ Tick/degraded telemetry в runtime включает:
   5) `npc_route_profile_default` на area;
   6) `default_route`.
 - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями.
+- При отбрасывании невалидного route-id инкрементируются диагностические метрики:
+  - `npc_metric_activity_invalid_route_total` — любой невалидный route в activity fallback-цепочке;
+  - `npc_metric_activity_invalid_route_npc_local_total` — невалидный route найден в `NPC-local` источнике (`npc_activity_route`, `npc_route_profile_slot_<slot>`, `npc_route_profile_default` на NPC);
+  - `npc_metric_activity_invalid_route_area_local_total` — невалидный route найден в `area-local` источнике (`npc_route_profile_slot_<slot>`, `npc_route_profile_default` на area).
 - Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
   - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
   - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
