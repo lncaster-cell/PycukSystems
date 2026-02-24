@@ -85,6 +85,11 @@ const string NPC_BHVR_VAR_PENDING_REASON = "npc_pending_reason";
 const string NPC_BHVR_VAR_PENDING_STATUS = "npc_pending_status";
 const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 
+// Internal helper API (forward declarations).
+// Актуальный публичный набор внутренних helper-функций деградации/очереди:
+// NpcBhvrRecordDegradationEvent, NpcBhvrQueueDropTailFromPriority,
+// NpcBhvrQueueApplyOverflowGuardrail, NpcBhvrQueueCountDeferred,
+// NpcBhvrQueueTrimDeferredOverflow.
 string NpcBhvrQueueDepthKey(int nPriority);
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
@@ -104,7 +109,6 @@ int NpcBhvrRegistryInsert(object oArea, object oNpc);
 int NpcBhvrRegistryRemove(object oArea, object oNpc);
 void NpcBhvrRegistryBroadcastIdleTick(object oArea);
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
-void NpcBhvrRecordDegradationReason(object oArea, int nReason);
 int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority);
 int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
 int NpcBhvrQueueCountDeferred(object oArea);
