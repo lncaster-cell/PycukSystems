@@ -297,7 +297,8 @@ int NpcBhvrQueueProcessOne(object oArea, int nNow)
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason)
 {
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_EVENTS_TOTAL);
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nReason);
+    // Hot-path optimization: avoid redundant area-local writes while keeping event semantics unchanged.
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nReason);
 }
 
 int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEvents, int nSoftBudgetMs, int nCarryoverEvents)
