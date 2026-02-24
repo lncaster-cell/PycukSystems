@@ -43,6 +43,8 @@ const string NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK = "npc_metric_idle_processe
 const string NPC_BHVR_METRIC_IDLE_REMAINING = "npc_metric_idle_remaining";
 const string NPC_BHVR_METRIC_IDLE_BUDGET_THROTTLED_TOTAL = "npc_metric_idle_budget_throttled_total";
 const string NPC_BHVR_METRIC_IDLE_SKIPPED_QUEUE_PRESSURE_TOTAL = "npc_metric_idle_skipped_queue_pressure_total";
+const string NPC_BHVR_METRIC_REGISTRY_COMPACTION_REMOVED_TOTAL = "registry_compaction_removed_total";
+const string NPC_BHVR_METRIC_REGISTRY_COMPACTION_RUNS_TOTAL = "registry_compaction_runs_total";
 
 void NpcBhvrMetricSet(object oScope, string sMetric, int nValue)
 {

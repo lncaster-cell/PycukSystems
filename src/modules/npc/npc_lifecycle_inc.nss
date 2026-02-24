@@ -339,6 +339,7 @@ void NpcBhvrOnAreaMaintenanceImpl(object oArea)
     }
 
     NpcBhvrQueueReconcileDeferredTotal(oArea, TRUE);
+    NpcBhvrRegistryCompactInvalidEntries(oArea, NPC_BHVR_REGISTRY_COMPACTION_BATCH_CAP_DEFAULT);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 

@@ -144,12 +144,81 @@ int NpcBhvrRegistryRemove(object oArea, object oNpc)
     return TRUE;
 }
 
+int NpcBhvrRegistryCompactInvalidEntries(object oArea, int nBatchCap)
+{
+    int nCount;
+    int nIndex;
+    int nRemoved;
+    object oNpc;
+    object oTail;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_COMPACTION_RUNS_TOTAL);
+
+    nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    if (nCount <= 0)
+    {
+        NpcBhvrRegistryResetIdleCursor(oArea);
+        return 0;
+    }
+
+    if (nBatchCap <= 0)
+    {
+        nBatchCap = nCount;
+    }
+
+    nIndex = 1;
+    nRemoved = 0;
+
+    while (nIndex <= nCount && nRemoved < nBatchCap)
+    {
+        oNpc = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
+        if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea)
+        {
+            if (GetIsObjectValid(oNpc))
+            {
+                DeleteLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc));
+            }
+
+            oTail = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
+            if (nIndex != nCount)
+            {
+                SetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex), oTail);
+                if (GetIsObjectValid(oTail))
+                {
+                    SetLocalInt(oArea, NpcBhvrRegistryIndexKey(oTail), nIndex);
+                }
+            }
+
+            DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
+            nCount = nCount - 1;
+            nRemoved = nRemoved + 1;
+            continue;
+        }
+
+        nIndex = nIndex + 1;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount);
+    NpcBhvrRegistryClampIdleCursor(oArea, nCount);
+
+    if (nRemoved > 0)
+    {
+        NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_REGISTRY_COMPACTION_REMOVED_TOTAL, nRemoved);
+    }
+    return nRemoved;
+}
+
 void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick)
 {
     int nIndex;
     int nCount;
     int nProcessed;
-    object oTail;
+    int nScanned;
     object oNpc;
 
     if (!GetIsObjectValid(oArea))
@@ -174,8 +243,9 @@ void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick)
     NpcBhvrRegistryClampIdleCursor(oArea, nCount);
     nIndex = GetLocalInt(oArea, NPC_BHVR_VAR_IDLE_CURSOR);
     nProcessed = 0;
+    nScanned = 0;
 
-    while (nCount > 0 && nProcessed < nMaxNpcPerTick)
+    while (nCount > 0 && nProcessed < nMaxNpcPerTick && nScanned < nCount)
     {
         if (nIndex > nCount)
         {
@@ -183,32 +253,10 @@ void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick)
         }
 
         oNpc = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
+        nScanned = nScanned + 1;
         if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea)
         {
-            // NpcBhvrRegistryRemove requires valid oNpc and cannot be used with OBJECT_INVALID.
-            if (GetIsObjectValid(oNpc))
-            {
-                NpcBhvrRegistryRemove(oArea, oNpc);
-            }
-            else
-            {
-                oTail = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
-                if (nIndex != nCount)
-                {
-                    SetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex), oTail);
-                    if (GetIsObjectValid(oTail))
-                    {
-                        SetLocalInt(oArea, NpcBhvrRegistryIndexKey(oTail), nIndex);
-                    }
-                }
-
-                DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
-                nCount = nCount - 1;
-                SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount);
-                NpcBhvrRegistryClampIdleCursor(oArea, nCount);
-            }
-
-            nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+            nIndex = nIndex + 1;
             continue;
         }
 
