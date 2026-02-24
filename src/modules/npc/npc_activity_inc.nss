@@ -127,6 +127,7 @@ int ReadRouteRuntimeIntWithFallback(object oNpc, string sRouteId, string sRuntim
 string ReadRouteRuntimeStringWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, string sFallback);
 int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag);
 string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurrentSlot, int bScheduleEnabled, int nResolvedHour);
+string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 void NpcBhvrActivityRefreshProfileState(object oNpc);
 void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow);
 int NpcBhvrActivityIsCooldownActive(object oNpc, int nNow);
