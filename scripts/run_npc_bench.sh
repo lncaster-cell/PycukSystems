@@ -100,7 +100,7 @@ path = pathlib.Path(sys.argv[1])
 short_sha = sys.argv[2]
 full_sha = sys.argv[3]
 text = path.read_text(encoding="utf-8")
-pattern = r"- Commit SHA:\\s*\\*\\*(.+?)\\*\\*\\.?"
+pattern = r"- Commit SHA:\s*\*\*(.+?)\*\*\.?"  # Targets markdown: - Commit SHA: **short** (`full`).
 match = re.search(pattern, text)
 if not match:
     raise SystemExit(0)
