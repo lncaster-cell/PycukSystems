@@ -346,6 +346,7 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea)
 {
     int nIndex;
     int nCount;
+    object oTail;
     object oNpc;
 
     if (!GetIsObjectValid(oArea))
@@ -360,7 +361,27 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea)
         oNpc = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
         if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea)
         {
-            NpcBhvrRegistryRemove(oArea, oNpc);
+            // NpcBhvrRegistryRemove requires valid oNpc and cannot be used with OBJECT_INVALID.
+            if (GetIsObjectValid(oNpc))
+            {
+                NpcBhvrRegistryRemove(oArea, oNpc);
+            }
+            else
+            {
+                oTail = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
+                if (nIndex != nCount)
+                {
+                    SetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex), oTail);
+                    if (GetIsObjectValid(oTail))
+                    {
+                        SetLocalInt(oArea, NpcBhvrRegistryIndexKey(oTail), nIndex);
+                    }
+                }
+
+                DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
+                SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount - 1);
+            }
+
             nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
             continue;
         }
