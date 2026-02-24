@@ -113,7 +113,9 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
     int nTrimmed;
     int nPriority;
     int nDepth;
+    int nHead;
     int nIndex;
+    int nSlot;
     object oSubject;
 
     if (nTrimCount <= 0)
@@ -130,13 +132,25 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
     while (nPriority >= NPC_BHVR_PRIORITY_CRITICAL && nTrimmed < nTrimCount)
     {
         nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
+        nHead = GetLocalInt(oArea, NpcBhvrQueueHeadKey(nPriority));
+        if (nHead < 1 || nHead > NPC_BHVR_QUEUE_MAX)
+        {
+            nHead = 1;
+        }
+
         nIndex = nDepth;
         while (nIndex >= 1 && nTrimmed < nTrimCount)
         {
-            oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nPriority, nIndex)));
+            nSlot = nHead + nIndex - 1;
+            while (nSlot > NPC_BHVR_QUEUE_MAX)
+            {
+                nSlot = nSlot - NPC_BHVR_QUEUE_MAX;
+            }
+
+            oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nSlot));
             if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
             {
-                oSubject = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, NpcBhvrQueueRingLogicalToSlot(oArea, nPriority, nIndex));
+                oSubject = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nSlot);
                 NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
                 NpcBhvrPendingNpcClear(oSubject);
