@@ -43,12 +43,16 @@
 - Gate:
   - `budget_overrun_rate <= 0.10`
 
+## Scenario IDs (single naming convention)
+
+Во всех скриптах/отчётах используется единый набор scenario ID: `steady`, `burst`, `starvation-risk` (как в `scripts/run_npc_bench.sh`).
+
 ## Fixture-профили
 
 - `docs/perf/fixtures/npc/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
 - `docs/perf/fixtures/npc/steady_decimal_latency.csv` — стабильная нагрузка с дробным latency/queue_depth; ожидаемый результат анализатора: `[OK]`.
 - `docs/perf/fixtures/npc/burst.csv` — кратковременные всплески очереди и латентности.
-- `docs/perf/fixtures/npc/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
+- `docs/perf/fixtures/npc/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun (scenario ID: `starvation-risk`).
 
 ## Локальный запуск
 
