@@ -520,7 +520,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
 
     if (!NpcBhvrQueueEnqueueRaw(oArea, oSubject, nPriority))
     {
-        NpcBhvrPendingSet(oSubject, nPriority, sReason, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingClear(oArea, oSubject);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
         return FALSE;
     }
