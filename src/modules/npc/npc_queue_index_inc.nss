@@ -29,6 +29,7 @@ int NpcBhvrQueueIndexPosition(object oArea, object oSubject)
 {
     string sNpcKey;
     int nPacked;
+    int nSlot;
 
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     if (sNpcKey == "")
@@ -42,7 +43,13 @@ int NpcBhvrQueueIndexPosition(object oArea, object oSubject)
         return 0;
     }
 
-    return nPacked - (nPacked / 1000) * 1000;
+    nSlot = nPacked - (nPacked / 1000) * 1000;
+    if (nSlot < 1 || nSlot > NPC_BHVR_QUEUE_MAX)
+    {
+        return 0;
+    }
+
+    return nSlot;
 }
 
 void NpcBhvrQueueIndexClear(object oArea, object oSubject)
@@ -67,7 +74,7 @@ void NpcBhvrQueueIndexSet(object oArea, object oSubject, int nPriority, int nInd
 {
     string sNpcKey;
 
-    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject) || nIndex <= 0)
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject) || nIndex <= 0 || nIndex > NPC_BHVR_QUEUE_MAX)
     {
         return;
     }
@@ -83,11 +90,10 @@ void NpcBhvrQueueIndexSet(object oArea, object oSubject, int nPriority, int nInd
 
 int NpcBhvrQueuePackLocation(int nPriority, int nIndex)
 {
-    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW || nIndex <= 0)
+    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW || nIndex <= 0 || nIndex > NPC_BHVR_QUEUE_MAX)
     {
         return 0;
     }
 
     return nPriority * 1000 + nIndex;
 }
-
