@@ -188,6 +188,8 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 - Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC).
 - `area-local` (`npc_queue_pending_*` на area) — диагностическое/наблюдаемое зеркало последнего состояния, обновляется через `NpcBhvrPendingAreaTouch`.
+- Временная модель (`*_updated_at`) едина для обоих хранилищ: используется `NpcBhvrPendingNow()` (секундный timestamp на базе календарного дня + `HH:MM:SS`).
+- Для `NPC-local` timestamp дополнительно поддерживает монотонность при частых апдейтах (минимум `+1` при коллизии секунды); `area-local` пишет то же текущее значение времени без отдельного источника часов.
 - `deferred` при `GetArea(oSubject) != oArea` фиксируется **в обоих хранилищах** и не очищается неявно в этом же шаге.
 - Очистка pending (`NpcBhvrPendingNpcClear` и `NpcBhvrPendingAreaClear`) допустима только на явных terminal-переходах (`processed`, `dropped`, удаление/смерть NPC, очистка очереди/area shutdown).
 - Следствие: deferred является краткоживущим состоянием до следующего события/terminal-перехода, но в течение этого окна наблюдается консистентно и в NPC-local, и в area-local.
