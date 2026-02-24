@@ -117,11 +117,24 @@ int NpcBhvrPendingNow()
 {
     int nYear;
     int nMonth;
+    int nCalendarYear;
+    int nCalendarDay;
+    int nHour;
+    int nMinute;
+    int nSecond;
     int nDays;
     int bLeapYear;
 
-    nYear = GetCalendarYear() - 2000;
+    // Snapshot calendar/time components once to avoid rollover races while
+    // building the pending timestamp (e.g. midnight/year transitions).
+    nCalendarYear = GetCalendarYear();
     nMonth = GetCalendarMonth();
+    nCalendarDay = GetCalendarDay();
+    nHour = GetTimeHour();
+    nMinute = GetTimeMinute();
+    nSecond = GetTimeSecond();
+
+    nYear = nCalendarYear - 2000;
 
     if (nYear < 0)
     {
@@ -175,14 +188,14 @@ int NpcBhvrPendingNow()
         nDays += 30;
     }
 
-    bLeapYear = (GetCalendarYear() % 400 == 0) || (GetCalendarYear() % 4 == 0 && GetCalendarYear() % 100 != 0);
+    bLeapYear = (nCalendarYear % 400 == 0) || (nCalendarYear % 4 == 0 && nCalendarYear % 100 != 0);
     if (bLeapYear && nMonth > 2)
     {
         nDays += 1;
     }
 
-    nDays += GetCalendarDay() - 1;
-    return nDays * 86400 + GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
+    nDays += nCalendarDay - 1;
+    return nDays * 86400 + nHour * 3600 + nMinute * 60 + nSecond;
 }
 
 void NpcBhvrPendingNpcTouch(object oNpc)
