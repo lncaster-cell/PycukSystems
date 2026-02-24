@@ -12,7 +12,7 @@ is_hour_in_window() {
   fi
 
   if (( start == end )); then
-    echo 1
+    echo 0
     return 0
   fi
 
@@ -32,6 +32,19 @@ is_hour_in_window() {
   fi
 }
 
+is_slot_window_active() {
+  local hour="$1"
+  local start_raw="$2"
+  local end_raw="$3"
+
+  if [[ -z "$start_raw" || -z "$end_raw" ]]; then
+    echo 0
+    return 0
+  fi
+
+  echo "$(is_hour_in_window "$hour" "$start_raw" "$end_raw")"
+}
+
 resolve_scheduled_slot() {
   local schedule_enabled="$1"
   local hour="$2"
@@ -46,12 +59,12 @@ resolve_scheduled_slot() {
     return 0
   fi
 
-  if [[ "$(is_hour_in_window "$hour" "$critical_start" "$critical_end")" == "1" ]]; then
+  if [[ "$(is_slot_window_active "$hour" "$critical_start" "$critical_end")" == "1" ]]; then
     echo "critical"
     return 0
   fi
 
-  if [[ "$(is_hour_in_window "$hour" "$priority_start" "$priority_end")" == "1" ]]; then
+  if [[ "$(is_slot_window_active "$hour" "$priority_start" "$priority_end")" == "1" ]]; then
     echo "priority"
     return 0
   fi
@@ -90,6 +103,9 @@ assert_case "schedule disabled keeps runtime slot" 0 12 22 6 8 18 "priority" "pr
 assert_case "critical window overrides" 1 23 22 6 8 18 "default" "critical"
 assert_case "priority window picked when critical not active" 1 10 22 6 8 18 "default" "priority"
 assert_case "outside all windows falls back to default" 1 7 22 6 8 18 "critical" "default"
-assert_case "full-day priority window works" 1 3 -1 -1 0 0 "default" "priority"
+assert_case "invalid equal bounds do not activate slot" 1 3 -1 -1 0 0 "default" "default"
+assert_case "missing critical end does not activate critical slot" 1 23 22 "" 8 18 "default" "default"
+assert_case "missing priority start does not activate priority slot" 1 10 22 6 "" 18 "default" "default"
+assert_case "missing both priority bounds does not activate priority slot" 1 10 22 6 "" "" "default" "default"
 
 echo "[OK] npc_activity schedule contract tests passed"

@@ -21,6 +21,7 @@ const string NPC_BHVR_METRIC_QUEUE_STARVATION_GUARD_TRIPS = "npc_metric_queue_st
 const string NPC_BHVR_METRIC_REGISTRY_OVERFLOW_TOTAL = "npc_metric_registry_overflow_total";
 const string NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL = "npc_metric_registry_reject_total";
 const string NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL = "npc_metric_activity_invalid_slot_total";
+const string NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL = "npc_metric_activity_schedule_window_invalid_total";
 
 // Tick-budget/degraded-mode metrics.
 const string NPC_BHVR_METRIC_PROCESSED_TOTAL = "npc_metric_processed_total";
