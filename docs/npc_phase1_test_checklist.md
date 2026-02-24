@@ -12,15 +12,15 @@
 **Цель:** подтвердить, что файлы модуля NPC и точки входа событий присутствуют и согласованы со структурой event-driven ядра.
 
 **DoD:**
-- В наличии `npc_behavior_core.nss` и event-файлы (`spawn`, `perception`, `damaged`, `death`, `dialogue`).
+- В наличии `npc_core.nss` и event-файлы (`spawn`, `perception`, `damaged`, `death`, `dialogue`).
 - Для каждого On\* entrypoint есть явный handler/роутинг в core.
 - Нет «висячих» entrypoints без реализации в модуле.
 
 **Минимальные команды:**
 ```bash
-rg --files tools/npc_behavior_system
-rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" tools/npc_behavior_system
+rg --files src/modules/npc
+rg -n "void main\(" src/modules/npc/npc_behavior_*.nss
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" src/modules/npc
 ```
 
 **Тип проверки:** **Blocking (merge gate)**.
@@ -29,7 +29,7 @@ rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|Sp
 
 ## Этап 2. Маршрутизация всех On\* в core
 
-**Цель:** проверить, что все On\* события проходят через единый `npc_behavior_core` (единая точка оркестрации и деградации).
+**Цель:** проверить, что все On\* события проходят через единый `npc_core` (единая точка оркестрации и деградации).
 
 **DoD:**
 - Каждый On\* entrypoint в event-файлах вызывает функцию в core (прямо или через единый routing-wrapper).
@@ -38,8 +38,8 @@ rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|Sp
 
 **Минимальные команды:**
 ```bash
-rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
-rg -n "npc_behavior_core|NpcBehaviorOn" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "void main\(" src/modules/npc/npc_behavior_*.nss
+rg -n "npc_core|NpcBhvrOn|NpcBehaviorOn" src/modules/npc/npc_behavior_*.nss
 rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" docs/design.md docs/npc_runtime_orchestration.md
 ```
 
@@ -79,8 +79,8 @@ rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" 
 **Минимальные команды (репрезентативный набор):**
 ```bash
 # 1) статическая проверка наличия On* и маршрутизации
-rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" tools/npc_behavior_system
-rg -n "core|Dispatch|Route|Handle" tools/npc_behavior_system/npc_behavior_*.nss
+rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" src/modules/npc
+rg -n "core|Dispatch|Route|Handle" src/modules/npc/npc_behavior_*.nss
 
 # 2) логовый smoke в рантайме сервера (пример)
 # tail -f /path/to/server.log | rg "npc_behavior|spawn|perception|damaged|death|dialogue|defer|dropped"
@@ -109,10 +109,10 @@ rg -n "core|Dispatch|Route|Handle" tools/npc_behavior_system/npc_behavior_*.nss
 
 ### Stage 1 — files
 
-**Goal:** подтвердить, что файлы нового модуля размещены в `tools/npc_behavior_system/` (для NPC Bhvr замените на `tools/<module_name>/`) и не указывают на legacy-пути.
+**Goal:** подтвердить, что файлы нового модуля размещены в `src/modules/npc/` (для NPC Bhvr используйте canonical path `src/modules/<module_name>/`) и не указывают на legacy-пути.
 
 ```bash
-MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for NPC Bhvr
+MODULE_DIR="src/modules/npc" # replace with src/modules/<module_name> for NPC Bhvr
 rg --files "$MODULE_DIR"
 ```
 
@@ -121,7 +121,7 @@ rg --files "$MODULE_DIR"
 **Goal:** подтвердить, что все event entrypoints объявлены отдельными thin-hook скриптами и содержат `void main()`.
 
 ```bash
-MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for NPC Bhvr
+MODULE_DIR="src/modules/npc" # replace with src/modules/<module_name> for NPC Bhvr
 rg -n "void main\(" "$MODULE_DIR"/*.nss
 rg -n "On[A-Za-z]+|Area(Enter|Exit)|ModuleLoad|Tick" "$MODULE_DIR"
 ```
@@ -131,7 +131,7 @@ rg -n "On[A-Za-z]+|Area(Enter|Exit)|ModuleLoad|Tick" "$MODULE_DIR"
 **Goal:** убедиться, что entrypoints маршрутизируют вызовы через единый core include/handler слой.
 
 ```bash
-MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for NPC Bhvr
+MODULE_DIR="src/modules/npc" # replace with src/modules/<module_name> for NPC Bhvr
 rg -n "#include \".*core\"|#include \"<module_name>_core\"" "$MODULE_DIR"/*.nss
 rg -n "(NpcBehavior|<ModuleName>)On|(NpcBehavior|<ModuleName>)Area(Activate|Pause|Resume)|(NpcBehavior|<ModuleName>)Bootstrap" "$MODULE_DIR"/*.nss
 ```
@@ -141,7 +141,7 @@ rg -n "(NpcBehavior|<ModuleName>)On|(NpcBehavior|<ModuleName>)Area(Activate|Paus
 **Goal:** выполнить базовый статический smoke по ключевым событиям и, при наличии стенда, логовый smoke.
 
 ```bash
-MODULE_DIR="tools/npc_behavior_system" # replace with tools/<module_name> for NPC Bhvr
+MODULE_DIR="src/modules/npc" # replace with src/modules/<module_name> for NPC Bhvr
 rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue|On[A-Za-z]+" "$MODULE_DIR"
 # tail -f /path/to/server.log | rg "<module_name>|spawn|perception|damaged|death|dialogue|defer|dropped"
 ```
@@ -162,7 +162,7 @@ RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 
 ```bash
 bash scripts/check_lifecycle_contract.sh \
-  tools/npc_behavior_system/npc_behavior_core.nss \
+  src/modules/npc/npc_core.nss \
   src/controllers/lifecycle_controller.nss \
   npc_behavior
 ```
@@ -184,9 +184,9 @@ bash scripts/check_lifecycle_contract.sh \
 - **Результат:** статические merge-gate проверки пройдены; runtime/perf-пункты остаются в статусе pending до прогона на стенде.
 
 ```bash
-rg --files tools/npc_behavior_system
-rg -n "void main\(" tools/npc_behavior_system/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" tools/npc_behavior_system
+rg --files src/modules/npc
+rg -n "void main\(" src/modules/npc/npc_behavior_*.nss
+rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" src/modules/npc
 # RUNS должен быть целым числом >= 1 (например, RUNS=3).
 RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 ```

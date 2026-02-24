@@ -1,11 +1,11 @@
-# NPC behavior module moved
+# NPC behavior module redirect
 
-Скрипты модуля поведения NPC перенесены в:
+Канонический runtime-код модуля поведения NPC ведётся в `src/modules/npc/`.
 
-- `tools/npc_behavior_system/`
+Для текущих entrypoints и include-файлов используйте:
 
-Используйте новую документацию и entrypoints там:
+- `src/modules/npc/README.md`
+- `src/modules/npc/npc_behavior_*.nss`
+- `src/modules/npc/npc_core.nss`
 
-- `tools/npc_behavior_system/README.md`
-
-Каталог `src/modules/npc_behavior/` оставлен как переадресация для обратной совместимости ссылок в документации.
+Legacy-референсы перенесены в `docs/legacy/tools_reference/npc_behavior_system/`.

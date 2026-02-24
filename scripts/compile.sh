@@ -3,13 +3,12 @@ set -euo pipefail
 
 MODE="${1:-check}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPILER_REL="tools/NWNScriptCompiler.exe"
+COMPILER_REL="third_party/toolchain/NWNScriptCompiler.exe"
 COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
 # Project-level shared include scripts/helpers (.nss), used by compiler -i lookup.
 INCLUDE_PATH="$ROOT_DIR/scripts"
 NWNX_INCLUDE_PATH="$ROOT_DIR/third_party/nwnx_includes"
 SOURCE_ROOT_INCLUDE_PATH="$ROOT_DIR/src"
-NPC_BEHAVIOR_INCLUDE_PATH="$ROOT_DIR/tools/npc_behavior_system"
 NPC_INCLUDE_PATH="$ROOT_DIR/src/modules/npc"
 STOCK_INCLUDE_SOURCE_PATH="$ROOT_DIR/third_party/nwn2_stock_scripts"
 STOCK_INCLUDE_PATH="$ROOT_DIR/.ci/nwn2_stock_scripts"
@@ -18,7 +17,6 @@ INCLUDE_CANDIDATES=(
   "$STOCK_INCLUDE_PATH"
   "$SOURCE_ROOT_INCLUDE_PATH"
   "$NPC_INCLUDE_PATH"
-  "$NPC_BEHAVIOR_INCLUDE_PATH"
   "$INCLUDE_PATH"
   "$NWNX_INCLUDE_PATH"
 )
@@ -88,12 +86,11 @@ done
 mapfile -t FILES < <(
   {
     find "$ROOT_DIR/src" -type f -name '*.nss'
-    find "$ROOT_DIR/tools/npc_behavior_system" -type f -name '*.nss'
   } | LC_ALL=C sort
 )
 
 if [[ "${#FILES[@]}" -eq 0 ]]; then
-  echo "[INFO] No .nss files found under src/ or tools/npc_behavior_system/; nothing to compile."
+  echo "[INFO] No .nss files found under src/; nothing to compile."
   exit 0
 fi
 

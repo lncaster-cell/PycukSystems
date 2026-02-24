@@ -3,7 +3,7 @@
 ## Scope
 Удалены переменные и код, связанные с внутренними NPC Toolset-свойствами (Decays/Lootable/DialogInterruptible/Hidden AI disable/Plot) из runtime-модуля поведения NPC.
 
-> Примечание по структуре: `src/modules/npc_behavior/` является redirect/документационным слоем. Production runtime-скрипты находятся в `tools/npc_behavior_system/`.
+> Примечание по структуре (исторический контекст отчёта): в момент cleanup source of truth находился в `tools/npc_behavior_system/`. Текущий production runtime-контур ведётся в `src/modules/npc/`; `tools/npc_behavior_system/` сохранён как legacy/reference.
 
 ## Files changed
 
