@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANALYZER="$ROOT_DIR/scripts/analyze_area_queue_fairness.py"
 PASS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_sample.csv"
+PARTIAL_PROCESSED_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_zero_partial_processed.csv"
 PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_violation.csv"
 PARTIAL_PROCESSED_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_zero_partial_processed.csv"
 LONG_BURST_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_long_burst.csv"
@@ -27,6 +28,8 @@ python3 "$ANALYZER" \
   --buckets LOW,NORMAL \
   --enforce-pause-zero
 
+# Этот fixture должен проходить: инвариант pause-zero разрешает частичную обработку
+# только до входа в pause, а при paused=true processed_sum обязан оставаться нулём.
 python3 "$ANALYZER" \
   --input "$PARTIAL_PROCESSED_FIXTURE" \
   --max-starvation-window 10 \
