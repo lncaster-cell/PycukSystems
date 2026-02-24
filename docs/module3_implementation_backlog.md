@@ -81,7 +81,7 @@
 - **Definition of Done:**
   - формализованы pass/fail пороги;
   - есть минимум 4 сценария (steady/burst/pause-resume stress + tick-budget degraded-mode);
-  - tick-budget сценарий проверяет `module3_tick_max_events`, `module3_tick_soft_budget_ms`, `tick_budget_exceeded_total`, `degraded_mode_total`, `processed_total`, `pending_age_ms`;
+  - tick-budget сценарий проверяет `module3_tick_max_events` (max events per tick), `module3_tick_soft_budget_ms` (soft tick budget), `tick_budget_exceeded_total`, `degraded_mode_total`, `processed_total`, `pending_age_ms`;
   - baseline зафиксирован и не старше 14 дней для сравнения.
 
 ### Task C3 — Автоматизированные fairness/lifecycle проверки

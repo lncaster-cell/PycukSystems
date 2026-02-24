@@ -21,6 +21,8 @@ const int MODULE3_STARVATION_STREAK_LIMIT = 3;
 const int MODULE3_TICK_MAX_EVENTS_DEFAULT = 4;
 const int MODULE3_TICK_SOFT_BUDGET_MS_DEFAULT = 25;
 const int MODULE3_TICK_SIMULATED_EVENT_COST_MS = 8;
+const int MODULE3_TICK_MAX_EVENTS_HARD_CAP = 64;
+const int MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP = 1000;
 
 const string MODULE3_VAR_AREA_STATE = "module3_area_state";
 const string MODULE3_VAR_AREA_TIMER_RUNNING = "module3_area_timer_running";
@@ -313,6 +315,26 @@ int Module3GetTickMaxEvents(object oArea)
     return nValue;
 }
 
+void Module3SetTickMaxEvents(object oArea, int nValue)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (nValue <= 0)
+    {
+        nValue = MODULE3_TICK_MAX_EVENTS_DEFAULT;
+    }
+
+    if (nValue > MODULE3_TICK_MAX_EVENTS_HARD_CAP)
+    {
+        nValue = MODULE3_TICK_MAX_EVENTS_HARD_CAP;
+    }
+
+    SetLocalInt(oArea, MODULE3_VAR_TICK_MAX_EVENTS, nValue);
+}
+
 int Module3GetTickSoftBudgetMs(object oArea)
 {
     int nValue;
@@ -324,6 +346,26 @@ int Module3GetTickSoftBudgetMs(object oArea)
     }
 
     return nValue;
+}
+
+void Module3SetTickSoftBudgetMs(object oArea, int nValue)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (nValue <= 0)
+    {
+        nValue = MODULE3_TICK_SOFT_BUDGET_MS_DEFAULT;
+    }
+
+    if (nValue > MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP)
+    {
+        nValue = MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP;
+    }
+
+    SetLocalInt(oArea, MODULE3_VAR_TICK_SOFT_BUDGET_MS, nValue);
 }
 
 int Module3QueueProcessOne(object oArea)
@@ -368,10 +410,13 @@ void Module3OnAreaTick(object oArea)
     int nProcessedThisTick;
     int nPendingAfter;
     int nSoftBudgetMs;
-    int nSoftBudgetReached;
     int nBudgetExceeded;
     int nMaxEvents;
-    int nSpentMs;
+    int nEventsBudgetLeft;
+    int nSpentBudgetMs;
+    int nSpentEvents;
+    int nEventBudgetReached;
+    int nSoftBudgetReached;
     int nBacklogAgeTicks;
 
     if (!GetIsObjectValid(oArea))
@@ -388,27 +433,49 @@ void Module3OnAreaTick(object oArea)
     if (Module3AreaGetState(oArea) == MODULE3_AREA_STATE_RUNNING)
     {
         nMaxEvents = Module3GetTickMaxEvents(oArea);
-        nSoftBudgetMs = Module3GetTickSoftBudgetMs(oArea);
-        while (nProcessedThisTick < nMaxEvents)
+        if (nMaxEvents > MODULE3_TICK_MAX_EVENTS_HARD_CAP)
         {
+            nMaxEvents = MODULE3_TICK_MAX_EVENTS_HARD_CAP;
+        }
+
+        nSoftBudgetMs = Module3GetTickSoftBudgetMs(oArea);
+        if (nSoftBudgetMs > MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP)
+        {
+            nSoftBudgetMs = MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP;
+        }
+
+        nSpentEvents = 0;
+        nSpentBudgetMs = 0;
+        while (TRUE)
+        {
+            nEventsBudgetLeft = nMaxEvents - nSpentEvents;
+            if (nEventsBudgetLeft <= 0)
+            {
+                nEventBudgetReached = TRUE;
+                break;
+            }
+
+            if (nSpentBudgetMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS > nSoftBudgetMs)
+            {
+                nSoftBudgetReached = TRUE;
+                break;
+            }
+
             if (!Module3QueueProcessOne(oArea))
             {
                 break;
             }
 
-            nProcessedThisTick = nProcessedThisTick + 1;
-            nSpentMs = nSpentMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS;
-            if (nSpentMs >= nSoftBudgetMs)
-            {
-                nSoftBudgetReached = TRUE;
-                break;
-            }
+            nSpentEvents = nSpentEvents + 1;
+            nSpentBudgetMs = nSpentBudgetMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS;
         }
+
+        nProcessedThisTick = nSpentEvents;
 
         SetLocalInt(oArea, MODULE3_VAR_TICK_PROCESSED, nProcessedThisTick);
         nPendingAfter = GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL);
 
-        nBudgetExceeded = nSoftBudgetReached && nPendingAfter > 0;
+        nBudgetExceeded = (nSoftBudgetReached || nEventBudgetReached) && nPendingAfter > 0;
         SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
 
         if (nBudgetExceeded)
