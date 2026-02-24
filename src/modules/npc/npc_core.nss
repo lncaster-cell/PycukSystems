@@ -92,6 +92,10 @@ string NpcBhvrRegistryIndexKey(object oNpc);
 string NpcBhvrRegistryLegacyIndexKey(object oNpc);
 int NpcBhvrRegistryGetIndex(object oArea, object oNpc);
 string NpcBhvrPendingLegacySubjectTag(object oSubject);
+string NpcBhvrPendingPriorityLegacyKey(string sNpcKey);
+string NpcBhvrPendingReasonCodeLegacyKey(string sNpcKey);
+string NpcBhvrPendingStatusLegacyKey(string sNpcKey);
+string NpcBhvrPendingUpdatedAtLegacyKey(string sNpcKey);
 void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcKey);
 int NpcBhvrRegistryInsert(object oArea, object oNpc);
 int NpcBhvrRegistryRemove(object oArea, object oNpc);
@@ -523,20 +527,40 @@ string NpcBhvrQueueSubjectKey(int nPriority, int nIndex)
 
 string NpcBhvrPendingPriorityKey(string sNpcKey)
 {
-    return "npc_queue_pending_priority_" + sNpcKey;
+    return NpcBhvrLocalKey("nb_pp_", sNpcKey);
 }
 
 string NpcBhvrPendingReasonCodeKey(string sNpcKey)
 {
-    return "npc_queue_pending_reason_" + sNpcKey;
+    return NpcBhvrLocalKey("nb_pr_", sNpcKey);
 }
 
 string NpcBhvrPendingStatusKey(string sNpcKey)
 {
-    return "npc_queue_pending_status_" + sNpcKey;
+    return NpcBhvrLocalKey("nb_ps_", sNpcKey);
 }
 
 string NpcBhvrPendingUpdatedAtKey(string sNpcKey)
+{
+    return NpcBhvrLocalKey("nb_pu_", sNpcKey);
+}
+
+string NpcBhvrPendingPriorityLegacyKey(string sNpcKey)
+{
+    return "npc_queue_pending_priority_" + sNpcKey;
+}
+
+string NpcBhvrPendingReasonCodeLegacyKey(string sNpcKey)
+{
+    return "npc_queue_pending_reason_" + sNpcKey;
+}
+
+string NpcBhvrPendingStatusLegacyKey(string sNpcKey)
+{
+    return "npc_queue_pending_status_" + sNpcKey;
+}
+
+string NpcBhvrPendingUpdatedAtLegacyKey(string sNpcKey)
 {
     return "npc_queue_pending_updated_ts_" + sNpcKey;
 }
@@ -595,44 +619,44 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
     nValue = GetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey));
     if (nValue == 0)
     {
-        nValue = GetLocalInt(oArea, NpcBhvrPendingPriorityKey(sLegacyKey));
+        nValue = GetLocalInt(oArea, NpcBhvrPendingPriorityLegacyKey(sLegacyKey));
         if (nValue != 0)
         {
             SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nValue);
-            DeleteLocalInt(oArea, NpcBhvrPendingPriorityKey(sLegacyKey));
+            DeleteLocalInt(oArea, NpcBhvrPendingPriorityLegacyKey(sLegacyKey));
         }
     }
 
     nValue = GetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey));
     if (nValue == 0)
     {
-        nValue = GetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sLegacyKey));
+        nValue = GetLocalInt(oArea, NpcBhvrPendingReasonCodeLegacyKey(sLegacyKey));
         if (nValue != 0)
         {
             SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nValue);
-            DeleteLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sLegacyKey));
+            DeleteLocalInt(oArea, NpcBhvrPendingReasonCodeLegacyKey(sLegacyKey));
         }
     }
 
     sStatus = GetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey));
     if (sStatus == "")
     {
-        sStatus = GetLocalString(oArea, NpcBhvrPendingStatusKey(sLegacyKey));
+        sStatus = GetLocalString(oArea, NpcBhvrPendingStatusLegacyKey(sLegacyKey));
         if (sStatus != "")
         {
             SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), sStatus);
-            DeleteLocalString(oArea, NpcBhvrPendingStatusKey(sLegacyKey));
+            DeleteLocalString(oArea, NpcBhvrPendingStatusLegacyKey(sLegacyKey));
         }
     }
 
     nValue = GetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey));
     if (nValue == 0)
     {
-        nValue = GetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sLegacyKey));
+        nValue = GetLocalInt(oArea, NpcBhvrPendingUpdatedAtLegacyKey(sLegacyKey));
         if (nValue != 0)
         {
             SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), nValue);
-            DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sLegacyKey));
+            DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtLegacyKey(sLegacyKey));
         }
     }
 }
@@ -680,10 +704,10 @@ void NpcBhvrPendingAreaClear(object oArea, object oSubject)
     DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey));
 
     sNpcKey = NpcBhvrPendingLegacySubjectTag(oSubject);
-    DeleteLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey));
-    DeleteLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey));
-    DeleteLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey));
-    DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey));
+    DeleteLocalInt(oArea, NpcBhvrPendingPriorityLegacyKey(sNpcKey));
+    DeleteLocalInt(oArea, NpcBhvrPendingReasonCodeLegacyKey(sNpcKey));
+    DeleteLocalString(oArea, NpcBhvrPendingStatusLegacyKey(sNpcKey));
+    DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtLegacyKey(sNpcKey));
 }
 
 int NpcBhvrPriorityEscalate(int nCurrentPriority, int nIncomingPriority, int nReasonCode)
