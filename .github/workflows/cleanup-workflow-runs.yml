@@ -1,0 +1,61 @@
+name: Cleanup workflow runs
+
+on:
+  workflow_run:
+    workflows: ["NWN Script Compiler"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      keep_runs:
+        description: "How many latest runs to keep"
+        required: false
+        default: "1"
+
+permissions:
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old runs for compile workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const workflowId = 'compile.yml';
+            const keepRuns = Math.max(Number(core.getInput('keep_runs') || 1), 1);
+
+            const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+              owner,
+              repo,
+              workflow_id: workflowId,
+              per_page: 100,
+            });
+
+            if (runs.length <= keepRuns) {
+              core.info(`Nothing to delete. Total runs: ${runs.length}, keep: ${keepRuns}`);
+              return;
+            }
+
+            const sortedRuns = runs
+              .slice()
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            const runsToDelete = sortedRuns.slice(keepRuns);
+
+            core.info(`Found ${runs.length} runs. Keeping ${keepRuns}, deleting ${runsToDelete.length}.`);
+
+            for (const run of runsToDelete) {
+              try {
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id,
+                });
+                core.info(`Deleted run #${run.run_number} (${run.id})`);
+              } catch (error) {
+                core.warning(`Failed to delete run #${run.run_number} (${run.id}): ${error.message}`);
+              }
+            }
