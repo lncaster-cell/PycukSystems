@@ -11,9 +11,4 @@ mkdir -p \
   src/integrations/nwnx_sqlite \
   benchmarks
 
-touch src/core/.gitkeep \
-      src/controllers/.gitkeep \
-      src/modules/npc/.gitkeep \
-      src/integrations/nwnx_sqlite/.gitkeep
-
 echo "[OK] Workspace подготовлен: создана базовая структура для NWN2 модульной системы"
