@@ -190,14 +190,15 @@ bash scripts/check_lifecycle_contract.sh \
 
 ## Статус последней валидации
 
-- **Дата:** 2026-02-20
+- **Дата:** 2026-02-24
 - **Ветка:** `work`
-- **Результат:** статические merge-gate проверки пройдены; runtime/perf-пункты остаются в статусе pending до прогона на стенде.
+- **Результат:** smoke/lifecycle/fairness проверки пройдены; perf/release статус остаётся `BLOCKED` до публикации свежего baseline-run.
 
 ```bash
 rg --files src/modules/npc
-rg -n "void main\(" src/modules/npc/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" src/modules/npc
+bash scripts/test_npc_smoke.sh
+bash scripts/check_npc_lifecycle_contract.sh
+bash scripts/test_npc_fairness.sh
 # RUNS должен быть целым числом >= 1 (например, RUNS=3).
-RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
+RUNS=3 bash scripts/run_npc_bench.sh steady
 ```

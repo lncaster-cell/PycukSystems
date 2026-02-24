@@ -7,11 +7,18 @@
 
 Подробности: `docs/design.md`.
 
-## Текущий фокус первой итерации
-Первый целевой модуль — **поведение NPC**:
-- реакция на события (вход в персепшен, бой, idle);
-- управление нагрузкой через area-tick и бакеты;
-- хранение долгоживущего состояния/метрик в SQLite (через NWNX).
+## Текущий этап разработки (Phase 1 snapshot)
+Текущий этап зафиксирован как **runtime foundation готов, release/perf gate заблокирован до нового baseline**:
+
+- ✅ runtime-контур NPC в `src/modules/npc/*` собран и используется как canonical source;
+- ✅ lifecycle/fairness/activity контрактные проверки автоматизированы и проходят локально;
+- ✅ legacy-cleanup milestone (`tools/*` -> `docs/legacy/tools_reference/*`) закрыт;
+- ⛔ perf/release gate остаётся `BLOCKED`, пока не опубликован свежий baseline (>=3 runs, не старше 14 дней).
+
+Операционный статус и readiness-детали:
+- runtime readiness: `src/modules/npc/README.md`;
+- execution backlog и этапы: `docs/npc_implementation_backlog.md`;
+- baseline/perf gate: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/npc_gate_summary_latest.md`.
 
 Детали по схеме и эксплуатационным правилам персистентности NPC: `docs/npc_persistence.md`.
 
