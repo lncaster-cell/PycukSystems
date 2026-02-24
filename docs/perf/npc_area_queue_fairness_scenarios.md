@@ -4,7 +4,7 @@
 
 ## Общие условия
 
-- Контрольный модуль: `src/modules/npc_behavior/*`.
+- Контрольный модуль: `src/modules/npc/*`.
 - Lifecycle area: `RUNNING/PAUSED/STOPPED` через module API `NpcBehaviorArea*` (backed by `NpcControllerArea*`).
 - Ключевые метрики:
   - `npc_area_metric_processed_count`

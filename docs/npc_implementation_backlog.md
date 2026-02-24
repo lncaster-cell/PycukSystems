@@ -1,14 +1,12 @@
 # NPC Bhvr Implementation Backlog
 
-Документ фиксирует **исполняемый** бэклог для старта третьего итогового модуля поведения NPC в active-контуре `src/modules/npc/*` с переносом нужных решений из legacy/reference `tools/*`.
+Документ фиксирует **исполняемый** бэклог для развития текущего модуля поведения NPC в active-контуре `src/modules/npc/*`.
 
 ---
 
 ## Source of truth
 
 - Active runtime-контур: `src/modules/npc/` (единственный source of truth для исполнения и backlog).
-- Legacy/reference источники для точечной миграции: `docs/legacy/tools_reference/npc_behavior_system/`, `docs/legacy/tools_reference/al_system/`.
-- Стратегическая матрица решений для NPC Bhvr: `docs/npc_al_vs_npc_behavior_matrix.md`.
 
 ---
 
@@ -114,35 +112,3 @@ fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*l
 
 ---
 
-## Phase D — Legacy cleanup (`tools/*`) ✅ completed
-
-### Task D1 — Cleanup readiness gate
-- **Артефакты:**
-  - `docs/npc_toolset_cleanup_report.md`
-  - `docs/npc_toolset_post_cleanup_validation.md`
-- **Definition of Done:**
-  - подтверждено отсутствие runtime hooks/include-зависимостей active-контура на `tools/*`;
-  - execution backlog не содержит открытых задач, требующих исполнения legacy-кода;
-  - parity/perf проверки пройдены относительно baseline на `src/modules/npc/*`.
-
-### Task D2 — Удаление legacy-каталогов
-- **Артефакты:**
-  - перенос legacy-контента в `docs/legacy/tools_reference/*`
-  - migration notes в `docs/`
-- **Definition of Done:**
-  - удаляются только каталоги, для которых есть зафиксированная миграционная заметка (перенесено/отброшено);
-  - после удаления проходят контрактные проверки и perf-gate;
-  - в README остаётся однозначный статус: `tools/*` не active runtime.
-
-
-### Task C4 — Guardrail run split + unified gate summary (выполнено)
-- **Артефакты:**
-  - `scripts/run_npc_bench.sh`
-  - `scripts/test_npc_fairness.sh`
-  - `scripts/test_area_queue_fairness_analyzer.sh`
-  - `docs/perf/reports/npc_gate_summary_latest.md`
-- **Definition of Done:**
-  - каждый guardrail имеет отдельный профиль прогона (`overflow-guardrail`, `tick-budget`, `tick-budget-degraded`, `fairness-checks`);
-  - для каждого прогона публикуются machine-readable итоги (`gate_summary.json`/`gate_summary.csv`);
-  - при stale/absent baseline итог автоматически помечается `BLOCKED`;
-  - M3-CHECK-01/03/04 отражены как фактически внедрённые в матрице.
