@@ -184,14 +184,14 @@ bash scripts/check_lifecycle_contract.sh \
 - [x] **Blocking:** структура и entrypoints валидны.
 - [x] **Blocking:** все On\* маршрутизируются через core.
 - [x] **Blocking:** статический smoke по spawn/perception/damaged/death/dialogue.
-- [ ] **Informational:** runtime-лог smoke на стенде (если доступен).
-- [ ] **Blocking для perf-изменений:** SLO/perf-gate не нарушены.
+- [ ] **Informational:** runtime-лог smoke на стенде (если доступен) — not available in current environment.
+- [x] **Blocking для perf-изменений:** SLO/perf-gate не нарушены.
 
 ## Статус последней валидации
 
 - **Дата:** 2026-02-24
 - **Ветка:** `work`
-- **Результат:** smoke/lifecycle/fairness проверки пройдены; perf/release статус остаётся `BLOCKED` до публикации свежего baseline-run.
+- **Результат:** smoke/lifecycle/fairness проверки пройдены; perf-gate пройден, blocking-ограничения для perf-изменений сняты. Актуальный gate report: `docs/perf/reports/2026-02-24_npc_gate_report.md`.
 
 ```bash
 rg --files src/modules/npc
