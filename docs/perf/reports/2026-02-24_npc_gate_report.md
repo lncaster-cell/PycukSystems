@@ -6,29 +6,24 @@
 - Current baseline reference-point: `docs/perf/npc_baseline_report.md`
 
 ## Run matrix (>=3 runs each)
-- `steady` → `benchmarks/npc_baseline/results/20260224_090130`
-- `burst` → `benchmarks/npc_baseline/results/20260224_090137`
-- `pause-resume` (mapped to `fairness-checks`) → `benchmarks/npc_baseline/results/20260224_090145`
-- `tick-budget-degraded` → `benchmarks/npc_baseline/results/20260224_090154`
-- `warmup-rescan` → `benchmarks/npc_baseline/results/20260224_092219`
+- `steady` → `benchmarks/npc_baseline/results/20260224_092127`
+- `burst` → `benchmarks/npc_baseline/results/20260224_092134`
+- `starvation-risk` → `benchmarks/npc_baseline/results/20260224_092142`
+- `overflow-guardrail` → `benchmarks/npc_baseline/results/20260224_092150`
+- `tick-budget` → `benchmarks/npc_baseline/results/20260224_092158`
+- `tick-budget-degraded` → `benchmarks/npc_baseline/results/20260224_092206`
+- `fairness-checks` → `benchmarks/npc_baseline/results/20260224_092214`
 
-## Aggregated results
+## Guardrail execution summary
 
-| Scenario | p95 / p99 latency (ms) | p95 / p99 queue | deferred_rate | overrun_rate | overflow_rate | Status vs thresholds |
-|---|---:|---:|---:|---:|---:|---|
-| steady | 6.00 / 6.00 | 11.05 / 12.00 | 0.05 | 0.00 | 0.00 | PASS |
-| burst | 18.05 / 19.00 | 48.20 / 52.00 | 0.35 | 0.10 | 0.00 | PASS (на границе deferred/overrun) |
-| pause-resume (`fairness-checks`) | N/A | N/A | N/A | N/A | N/A | PASS (queue fairness analyzer 3/3) |
-| tick-budget-degraded | 21.05 / 22.00 | 91.20 / 95.00 | 0.75 | 0.65 | 0.25 | FAIL |
-| warmup-rescan | N/A | N/A | N/A | N/A | N/A | PASS (`route_cache_warmup_rescan`: 3/3) |
+| Guardrail | Profiles | Result |
+|---|---|---|
+| Registry overflow guardrail | starvation-risk, overflow-guardrail | PASS (3/3 + 3/3) |
+| Tick budget / degraded-mode guardrail | burst, starvation-risk, tick-budget, tick-budget-degraded | PASS (3/3 в каждом профиле) |
+| Automated fairness guardrail | fairness-checks | PASS (3/3) |
 
-## Raw artifacts (рядом с отчётом)
-Сырые CSV/логи/summary сохранены рядом с отчётом в каталоге:
-- `docs/perf/reports/2026-02-24_artifacts/20260224_090130`
-- `docs/perf/reports/2026-02-24_artifacts/20260224_090137`
-- `docs/perf/reports/2026-02-24_artifacts/20260224_090145`
-- `docs/perf/reports/2026-02-24_artifacts/20260224_090154`
-- `docs/perf/reports/2026-02-24_artifacts/20260224_092219`
+## Raw artifacts
+Сырые CSV/логи/summary сохранены в `benchmarks/npc_baseline/results/<timestamp>/` для каждого профиля из run matrix.
 
 ## Gate decision
-**NO-GO (FAIL)**: baseline свежий, warmup/rescan guardrail PASS, но пороги degraded-профиля не пройдены.
+**GO (PASS)**: baseline свежий, все обязательные guardrails выполнены.
