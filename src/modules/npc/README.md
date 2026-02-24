@@ -1,4 +1,246 @@
-# NPC module (behavior runtime) — полная документация
+# NPC behavior runtime contour
+
+Каталог содержит официальный подготовительный runtime-контур для NPC.
+
+> Примечание по неймингу: префикс `NpcBhvr*` в именах функций и константа `NPC_BHVR_*`
+> сохранены как часть уже принятого API-контракта, но сам модуль в документации
+> далее именуется просто `NPC`.
+
+
+## Готовый модуль: что подключать в toolset
+
+Используйте модуль как готовый runtime-пакет из `src/modules/npc/`:
+
+1. Подключите event hooks к thin-entrypoint скриптам (таблица «Карта hook-скриптов» ниже).
+2. Убедитесь, что include `npc_core` доступен всем entrypoint-файлам `npc_*.nss`.
+3. Для приёмки запустите smoke/contract проверки:
+   - `bash scripts/test_npc_smoke.sh`
+   - `bash scripts/check_npc_lifecycle_contract.sh`
+   - `bash scripts/test_npc_fairness.sh`
+
+После этих шагов модуль считается готовым к интеграции в модуль NWN2 (при корректной привязке hook-скриптов).
+
+## Статус runtime foundation (Phase A)
+
+- Реализован lifecycle area-controller: `RUNNING/PAUSED/STOPPED`.
+- Добавлены auto-start и auto-idle-stop механики area-loop.
+- RUNNING loop рескейджулится только в состоянии `RUNNING`; в `PAUSED` используется отдельный редкий watchdog-тик (`30s`) с отдельной метрикой.
+- Тяжёлый deferred full-reconcile вынесен из hot-path `NpcBhvrOnAreaTick` в отдельный maintenance entrypoint `npc_area_maintenance` (редкий watchdog + state transitions pause/resume/stop).
+- Реализована bounded queue (`NPC_BHVR_QUEUE_MAX=64`) с bucket-приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
+- Coalesce повторных enqueue выполняется напрямую в `NpcBhvrQueueEnqueue`: существующий pending-subject не дублируется, а его приоритет пересчитывается через `NpcBhvrPriorityEscalate` (включая эскалацию `damage -> CRITICAL`).
+- Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
+- CRITICAL события обрабатываются через bypass fairness-бюджета.
+- `npc_pending_updated_at` хранится как `int`-timestamp с секундной точностью (на базе календарного дня и `HH:MM:SS`) и при частых обновлениях монотонно увеличивается минимум на 1.
+- Tick perf-budget runtime API (боевой путь): `NpcBhvrSetTickMaxEvents` и `NpcBhvrSetTickSoftBudgetMs` применяются через `NpcBhvrApplyTickRuntimeConfig` в bootstrap (`NpcBhvrBootstrapModuleAreas`) и при активации area (`NpcBhvrAreaActivate`), с override-цепочкой `area cfg -> module cfg -> defaults` по ключам `npc_cfg_tick_max_events` и `npc_cfg_tick_soft_budget_ms`.
+
+## Базовые include-файлы
+
+- `npc_core.nss` — lifecycle area-controller, bounded queue с приоритетами, routing хуков в core.
+- `npc_queue_inc.nss` — queue/pending/deferred internals (`NpcBhvrQueue*`, `NpcBhvrPending*`, overflow/deferred guardrails).
+- `npc_tick_inc.nss` — tick orchestration и бюджет/деградация (`NpcBhvrTick*`, runtime budget config, degraded carryover).
+- `npc_lifecycle_inc.nss` — area lifecycle/state-machine (`NpcBhvrArea*`, area tick/maintenance loop, module-area bootstrap).
+- `npc_registry_inc.nss` — registry и кеш игроков (`NpcBhvrRegistry*`, `NpcBhvrGetCachedPlayerCount`, recount helpers).
+- `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
+- `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
+
+Tick/degraded telemetry в runtime включает:
+- `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
+- `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
+- `npc_metric_degradation_events_total`,
+- `npc_metric_maintenance_self_heal_count` (количество self-heal reconcile в maintenance loop),
+- `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `EVENT_BUDGET|SOFT_BUDGET|OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
+
+- Tick budget-параметры (`npc_tick_max_events`, `npc_tick_soft_budget_ms`) нормализуются и фиксируются при `NpcBhvrAreaActivate` через `NpcBhvrSetTickMaxEvents/NpcBhvrSetTickSoftBudgetMs` (с hard-cap), после чего используются в `NpcBhvrOnAreaTick`.
+
+### Perf-budget runtime application
+
+- Runtime-пределы тика (`max events` и `soft budget ms`) применяются через `NpcBhvrApplyTickRuntimeConfig`.
+- Источники конфигурации (по приоритету): area-local (`npc_cfg_tick_max_events`, `npc_cfg_tick_soft_budget_ms`) -> module-local (те же ключи на `GetModule()`) -> встроенные defaults (`NPC_BHVR_TICK_MAX_EVENTS_DEFAULT`, `NPC_BHVR_TICK_SOFT_BUDGET_MS_DEFAULT`).
+- Точка применения в lifecycle: bootstrap всех областей на module-load и каждое `NpcBhvrAreaActivate`, чтобы настройки оставались консистентными после pause/resume.
+
+
+## Activity primitives runtime-контракт
+
+`npc_activity_inc.nss` теперь фиксирует минимальный runtime-layer поверх AL-подхода через `npc_*` keyspace (без прямого использования `al_*` locals в core-flow):
+
+- AL-понятия (`slot-group`, `route-profile`, `activity transition`) обязаны проходить через adapter-helpers include-файла:
+  - `NpcBhvrActivityAdapterNormalizeSlot`,
+  - `NpcBhvrActivityAdapterNormalizeRoute`,
+  - `NpcBhvrActivityMapRouteHint`,
+  - `NpcBhvrActivityResolveRouteProfile`,
+  - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty`,
+  - `NpcBhvrActivityAdapterStampTransition`.
+
+- Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
+  - `npc_activity_slot` (по умолчанию `default`),
+  - `npc_activity_route` (явно сконфигурированный route-profile на NPC; если пусто — используется fallback-цепочка),
+  - `npc_activity_route_effective` (диагностическое зеркало effective route-profile после fallback-резолва),
+  - `npc_activity_slot_fallback` (`0|1`, признак fallback в `default` при невалидном slot),
+  - `npc_activity_state` (начальное состояние `spawn_ready`),
+  - `npc_activity_cooldown` (неотрицательный cooldown/state gate),
+  - `npc_activity_last` (последняя activity transition),
+  - `npc_activity_last_ts` (timestamp последнего transition в секундах игрового времени),
+  - `npc_activity_wp_index|npc_activity_wp_count|npc_activity_wp_loop` (текущее состояние маршрута по waypoint-позициям),
+  - `npc_activity_route_tag` (идентификатор route-tag для state-композера),
+  - `npc_activity_slot_emote` (resolved ambient emote для активного slot, с fallback `NPC-slot -> area-slot -> area-global -> NPC-global`),
+  - `npc_activity_action` (resolved action-token для игрового runtime-dispatch: `guard_hold|patrol_move|patrol_scan|patrol_ready|ambient_*`).
+- Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
+  1) `npc_activity_route` на NPC (если явно задан);
+  2) `npc_route_profile_slot_<slot>` на NPC;
+  3) `npc_route_profile_default` на NPC;
+  4) area-level cache `npc_route_cache_slot_<slot>` (при первом обращении заполняется из area locals);
+  5) area-level cache `npc_route_cache_default`;
+  6) `default_route`.
+- Lifecycle area cache:
+  - `routes_cached` (`0|1`) — признак валидного area-level cache;
+  - `routes_cache_version` — монотонная версия cache (увеличивается на invalidate/warmup-cycle);
+  - `NpcBhvrAreaRouteCacheWarmup` выполняет первичный prewarm при активации area-loop и идемпотентен при повторных вызовах (без полного re-scan);
+  - `NpcBhvrAreaRouteCacheInvalidate` очищает cache и переводит следующий resolve в controlled rescan/warmup.
+- `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями, и завершает нормализацию через `NpcBhvrActivityAdapterNormalizeRoute` как канонический adapter-step.
+- При отбрасывании невалидного route-id инкрементируется `npc_metric_activity_invalid_route_total`.
+- Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
+  - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
+  - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
+  - fallback: `default_route` c состоянием `idle_default`.
+- Mapping-слой (`NpcBhvrActivityMapRouteHint`) выполняет трансляцию route-id -> activity hint, чтобы AL-семантика подключалась через адаптер, а не через прямой `al_*` namespace.
+- В `npc_activity_inc.nss` перенесён data-layer AmbientLiveV2 активностей (legacy `al_acts_inc.nss`) с полной линейкой activity-id и runtime metadata-резолверами:
+  - custom anims, numeric anims, waypoint-tag requirements, training/bar pair flags;
+  - route-point activity id читается через `npc_route_activity_<routeId>_<index>` (NPC-local -> area-local) и пробрасывается в locals `npc_activity_id|custom_anims|numeric_anims|waypoint_tag|requires_*`.
+- Примитивы `NpcBhvrActivityApplyCriticalSafeRoute/NpcBhvrActivityApplyPriorityRoute/NpcBhvrActivityApplyDefaultRoute` выполняются через единый helper `NpcBhvrActivityApplyRouteState` и теперь дополнительно обновляют waypoint/runtime locals.
+- Route-point/waypoint контракт задаётся через `npc_*`-locals (без `al_*` keyspace):
+  - `npc_route_count_<routeId>` — количество waypoint-узлов в route (NPC-local приоритетнее area-local);
+  - `npc_route_loop_<routeId>` — loop policy (`>0` loop enabled, `<0` loop disabled, `0` = default enabled);
+  - `npc_route_tag_<routeId>` — route-tag для генерации состояния формата `<base_state>_<tag>_<index>_of_<count>`;
+  - `npc_route_pause_ticks_<routeId>` — добавка к cooldown после dispatch для route-point pacing.
+
+### Контракт входных/выходных состояний activity primitives
+
+- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` и `npc_route_profile_default` на NPC/area; `npc_activity_cooldown` может быть отрицательным.
+- **Выход `NpcBhvrActivityOnSpawn`:**
+  - `slot` нормализован в поддерживаемые значения (`default|priority|critical`),
+  - `npc_activity_route` сохраняет только явно заданный route (или очищается, если route не задан),
+  - `npc_activity_route_effective` выставляется как effective route-profile (`default_route|priority_patrol|critical_safe`) после fallback-резолва,
+  - `state=spawn_ready`,
+  - `last=spawn_ready`,
+  - `last_ts` обновлён,
+  - `cooldown >= 0`,
+  - waypoint-runtime locals нормализованы и готовы к первому idle-dispatch.
+- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (slot нормализуется, невалидный route отбрасывается и заменяется fallback-резолвом).
+- **Допустимые значения `slot`:** только `default|priority|critical`. Любое другое значение (включая пустую строку) считается невалидным и принудительно нормализуется в `default`.
+- **Выход `NpcBhvrActivityOnIdleTick`:**
+  - при `cooldown > 0` выполняется только декремент cooldown на 1 и early-return;
+  - при невалидном `slot` выставляется `npc_activity_slot_fallback=1` и инкрементируется метрика `npc_metric_activity_invalid_slot_total`;
+  - при `cooldown == 0` выполняется ровно одна ветка диспетчера:
+    1) `critical_safe` -> `state/last=idle_critical_safe`, `cooldown=1`;
+    2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown=2`;
+    3) `default` -> `state/last=idle_default`, `cooldown=1`;
+  - если для route есть `npc_route_count_<routeId> > 0` и `npc_route_tag_<routeId>`, то `state/last` получают waypoint-суффикс (`..._<tag>_<i>_of_<N>`), а `npc_activity_wp_index` продвигается с учётом loop-policy;
+  - после dispatch `last_ts` всегда отражает момент последнего transition;
+  - `npc_activity_action` пересчитывается на каждом dispatch в зависимости от slot/route/waypoint parity и может использоваться внешним runtime для привязки анимаций/поведенческих команд.
+
+## Плановое "повседневное" поведение NPC (schedule-aware slot)
+
+Для подготовки модуля к тестам поведения "NPC живут по расписанию" добавлен schedule-aware выбор slot на `spawn` и `idle tick`:
+
+- Флаг включения: `npc_activity_schedule_enabled` на NPC или area (`1` включает планировщик).
+- Окна задаются локалами по слотам:
+  - `npc_schedule_start_critical` / `npc_schedule_end_critical`,
+  - `npc_schedule_start_priority` / `npc_schedule_end_priority`.
+- Правила интерпретации окна:
+  - `start == end` -> специальный «пустой» window (в `NpcBhvrActivityIsHourInWindow` возвращается `FALSE`, т.е. слот по этому окну никогда не активируется);
+  - `start < end` -> обычное дневное окно `[start, end)`;
+  - `start > end` -> ночное окно с переходом через полночь (например, `22 -> 6`).
+- Причина для `start == end`: защита от неявного always-on, когда ключи расписания отсутствуют и `GetLocalInt` даёт `0` для `start/end`.
+- Приоритет резолва slot по расписанию: `critical` -> `priority` -> `default`.
+- Если расписание выключено, сохраняется текущий runtime slot после нормализации.
+
+Smoke-композит теперь включает `scripts/test_npc_activity_schedule_contract.sh` для валидации этих инвариантов.
+
+## Identifier constraints
+
+Для route-идентификаторов и route-tag в `npc_activity_inc.nss` действует единая политика нормализации перед построением runtime key/state:
+
+- Допустимые символы: только `a-z`, `0-9`, `_`.
+- Пустые значения запрещены (`non-empty`).
+- `routeId`:
+  - минимальная длина: `1`;
+  - максимальная длина: `32`.
+- `routeTag`:
+  - минимальная длина: `1`;
+  - максимальная длина: `24`.
+- При нарушении ограничений инкрементируется `npc_metric_activity_invalid_route_total`, а runtime использует детерминированный fallback:
+  - `routeId` -> `default_route`;
+  - `routeTag` -> `default`.
+
+Примеры:
+
+- Допустимые `routeId`: `default_route`, `priority_patrol`, `critical_safe`.
+- Недопустимые `routeId`: `""` (empty), `priority-patrol` (символ `-`), `Priority` (верхний регистр), строка длиннее 32.
+- Допустимые `routeTag`: `market_lane`, `north_gate_2`, `default`.
+- Недопустимые `routeTag`: `""` (empty), `market lane` (пробел), `tag!` (символ `!`), строка длиннее 24.
+
+
+## Ограничения длины идентификаторов (NWN2) и safe-лимиты
+
+Перед интеграцией контента разделяйте **формальный engine-лимит** и **операционный safe-limit**:
+
+- **Engine/формальный лимит**: идентификаторы в NWN2 обычно проходят до `63` символов (байтов) без немедленной ошибки компиляции/сохранения.
+- **Operational safe-limit (рекомендуется для production-контента)**: держать длину в диапазоне `<= 35`.
+- **Риск-зона `36+`**: растёт вероятность проблем с читаемостью, коллизиями усечённых имён в toolset/скриптовых пайплайнах и сложностью отладки на поздних этапах.
+- **Roster-tag**: использовать более строгий лимит `<= 24` (в массовом контенте и UI/экспорте это снижает риск конфликтов и «шумных» сокращений).
+
+> Практическое правило: если идентификатор может попасть в roster, журнал, экспорт или составные state-ключи — проектируйте его сразу как short-safe (`<=24` для roster-tag, `<=35` для остальных content-tag).
+
+| Тип идентификатора | Engine / формальный лимит | Рекомендация (safe-limit) | Пример |
+| --- | --- | --- | --- |
+| NPC tag (`Tag`) | до `63` | `<=35` (риск выше на `36+`) | `npc_bg_blacklake_guard_a01` |
+| Route tag (`npc_route_tag_*`) | до `63` | `<=35` (учитывать суффиксы `_i_of_N`) | `market_day_patrol` |
+| Activity/slot id (`npc_activity_id`, route activity id) | до `63` | `<=35` | `idle_vendor_day` |
+| Roster tag / roster-facing id | до `63` | `<=24` (более строгий лимит) | `bg_guard_a01` |
+
+
+## Контракт pending-состояний (NPC-local и area-local)
+
+- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC); `NpcBhvrQueueEnqueue` явно выставляет `queued` через `NpcBhvrPendingSet`, а queue-processing переводит статус в `running/deferred/processed`.
+- `area-local` (`npc_queue_pending_*` на area) — диагностическое/наблюдаемое зеркало последнего состояния, обновляется через `NpcBhvrPendingAreaTouch`.
+- Временная модель (`*_updated_at`) едина для обоих хранилищ: используется `NpcBhvrPendingNow()` (секундный timestamp на базе календарного дня + `HH:MM:SS`).
+- Для `NPC-local` timestamp дополнительно поддерживает монотонность при частых апдейтах (минимум `+1` при коллизии секунды); `area-local` пишет то же текущее значение времени без отдельного источника часов.
+- `deferred` при `GetArea(oSubject) != oArea` фиксируется **в обоих хранилищах** и не очищается неявно в этом же шаге.
+- Очистка pending (`NpcBhvrPendingNpcClear` и `NpcBhvrPendingAreaClear`) допустима только на явных terminal-переходах (`processed`, `dropped`, удаление/смерть NPC, очистка очереди/area shutdown).
+- Следствие: deferred является краткоживущим состоянием до следующего события/terminal-перехода, но в течение этого окна наблюдается консистентно и в NPC-local, и в area-local.
+
+
+## Canonical runtime references
+
+- Runtime module: `src/modules/npc/*`
+- Runtime backlog: `docs/npc_implementation_backlog.md`
+- Runtime checklist: `docs/npc_phase1_test_checklist.md`
+- Perf gate: `docs/perf/npc_perf_gate.md`
+- Runtime dashboards: `docs/perf/dashboards/README.md`
+
+## Current readiness snapshot
+
+- **Runtime MVP:** `READY` — core lifecycle/queue/activity/metrics и thin-entrypoints подключены в `src/modules/npc/*`.
+- **Fairness/lifecycle self-check:** `READY` — автоматические проверки доступны через `scripts/test_npc_fairness.sh` и `scripts/check_npc_lifecycle_contract.sh`.
+- **Perf baseline/perf-gate:** `GO (PASS)` — baseline свежий и валидный (>=3 runs, <=14 days), активные guardrails в статусе PASS; см. `docs/perf/npc_baseline_report.md` и `docs/perf/reports/npc_gate_summary_latest.md`.
+- **Runtime dashboards:** `READY` — артефакты дашбордов зафиксированы в `docs/perf/dashboards/` (`tick_orchestration`, `db_flush`, `ai_step_cost`).
+
+Правило консистентности: при обновлении baseline в `docs/perf/npc_baseline_report.md` обязательно синхронизируйте status-блоки в `README.md` (раздел "Текущий этап разработки / Phase 1 snapshot") и в этой секции.
+
+## Карта hook-скриптов (thin entrypoints)
+
+| Hook | Script | Core handler |
+| --- | --- | --- |
+| OnSpawn | `npc_spawn.nss` | `NpcBhvrOnSpawn` |
+| OnPerception | `npc_perception.nss` | `NpcBhvrOnPerception` |
+| OnDamaged | `npc_damaged.nss` | `NpcBhvrOnDamaged` |
+| OnDeath | `npc_death.nss` | `NpcBhvrOnDeath` |
+| OnDialogue | `npc_dialogue.nss` | `NpcBhvrOnDialogue` |
+| Area OnEnter | `npc_area_enter.nss` | `NpcBhvrOnAreaEnter` |
+| Area OnExit | `npc_area_exit.nss` | `NpcBhvrOnAreaExit` |
+| OnModuleLoad | `npc_module_load.nss` | `NpcBhvrOnModuleLoad` |
+| Area tick loop | `npc_area_tick.nss` | `NpcBhvrOnAreaTick` |
+| Area maintenance loop | `npc_area_maintenance.nss` | `NpcBhvrOnAreaMaintenance` |
 
 Этот документ описывает **модуль поведения NPC** из `src/modules/npc/`: как он устроен, как работает в рантайме, как подключить и настроить его в тулсете (NWN2 Toolset), какие локальные переменные и контракты используются, и как проверять модуль после изменений.
 
