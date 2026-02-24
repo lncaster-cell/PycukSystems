@@ -25,14 +25,16 @@
 ## Структура репозитория
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
-- `tools/` — вспомогательные генераторы и валидаторы для development-пайплайнов.
-  - `tools/al_system/` — документация и материалы по Ambient Life system.
-  - `tools/npc_behavior_system/` — runtime-скрипты NPC behavior system (entrypoints + core).
-  - `src/modules/npc/` — официальный runtime-контур подготовки Module 3 (core + includes + thin entrypoints).
+- `tools/` — **legacy/reference-контур** (исторические реализации, материалы для сравнения и миграции, не active runtime).
+  - `tools/al_system/` — reference-материалы по Ambient Life system.
+  - `tools/npc_behavior_system/` — reference-реализация NPC behavior для сравнительного анализа и переноса решений.
+- `src/modules/npc/` — **единственный active runtime-контур** для текущей разработки и execution backlog (core + includes + thin entrypoints).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - `src/modules/npc_behavior/` — redirect-документация для модуля NPC behavior (скрипты перенесены в `tools/npc_behavior_system/`).
-- Source of truth для runtime-скриптов NPC behavior: `tools/npc_behavior_system/` (путь `src/modules/npc_behavior/` не используется как production runtime).
+- Source of truth для активной разработки runtime NPC: `src/modules/npc/`.
+- Каталог `src/modules/npc_behavior/` используется как redirect-документационный слой.
+- Код в `tools/*` не рассматривается как production runtime и не должен подключаться в active hook-цепочки/namespace без явного migration-task в backlog.
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
@@ -42,8 +44,19 @@
 
 ### Как не «утонуть» в сторонних файлах при поиске и ревью
 - Ищите по нашему коду прицельно: `rg "<query>" src scripts docs`.
+- Для активного NPC-контура используйте scoped-поиск: `rg "<query>" src/modules/npc docs/npc_* scripts`.
 - Для `git grep` исключайте архив: `git grep "<query>" -- . ':(exclude)third_party/nwn2_stock_scripts'`.
 - Для обзора изменений используйте pathspec: `git diff -- src scripts docs`.
+
+## Legacy cleanup milestone (`tools/*`)
+
+Очистка `tools/*` выполняется отдельным milestone после завершения миграции в `src/modules/npc/`.
+
+Каталог legacy-модулей может быть удалён только при одновременном выполнении критериев:
+- все runtime entrypoints и include-зависимости в active-контуре ссылаются только на `src/modules/npc/*`;
+- в execution backlog нет открытых задач, требующих исполнения кода из `tools/*`;
+- parity-проверки и perf-gate (`docs/perf/npc_perf_gate.md`) пройдены на текущем baseline;
+- для каждого удаляемого legacy-каталога есть краткая миграционная заметка в `docs/` (что перенесено/что осознанно отброшено).
 
 ## Быстрый старт (подготовка workspace)
 ```bash
