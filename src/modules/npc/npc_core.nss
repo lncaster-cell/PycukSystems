@@ -110,6 +110,14 @@ void NpcBhvrQueueIndexSet(object oArea, object oSubject, int nPriority, int nInd
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
 void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
 void NpcBhvrQueueSyncTotals(object oArea);
+int NpcBhvrQueuePackLocation(int nPriority, int nIndex);
+void NpcBhvrQueueApplyDepthAndTotals(object oArea, int nPriority, int nDepth);
+int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority);
+object NpcBhvrQueueSwapTailSubject(object oArea, int nPriority, int nIndex, int bClearRemovedIndex);
+int NpcBhvrQueueFindSubjectByPointChecks(object oArea, object oSubject, int nPriorityHint, int nPositionHint);
+int NpcBhvrQueueTryResolveIndexedSubject(object oArea, object oSubject);
+int NpcBhvrQueueFindSubjectSlowPath(object oArea, object oSubject);
+int NpcBhvrQueueCoalesceSubject(object oArea, object oSubject, int nFoundPriority, int nFoundIndex, int nRequestedPriority, int nReasonCode, int bWasPendingActive);
 string NpcBhvrRegistrySlotKey(int nIndex);
 string NpcBhvrRegistryIndexKey(object oNpc);
 string NpcBhvrRegistryLegacyIndexKey(object oNpc);
