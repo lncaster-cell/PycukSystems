@@ -147,6 +147,7 @@ void NpcBhvrAreaStop(object oArea)
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
     NpcBhvrAreaRouteCacheInvalidate(oArea);
+    NpcBhvrRegistryResetIdleCursor(oArea);
     NpcBhvrQueueClear(oArea);
 }
 
@@ -186,7 +187,7 @@ void NpcBhvrOnAreaTickImpl(object oArea)
         {
             // Idle broadcast runs only when queue is empty: keeps ambient NPC activity alive
             // without competing with queued event processing budget.
-            NpcBhvrRegistryBroadcastIdleTick(oArea);
+            NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT);
         }
 
         NpcBhvrTickPrepareBudgets(oArea);

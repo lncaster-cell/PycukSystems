@@ -15,6 +15,38 @@ string NpcBhvrRegistryLegacyIndexKey(object oNpc)
     return NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX + NpcBhvrPendingLegacySubjectTag(oNpc);
 }
 
+void NpcBhvrRegistryResetIdleCursor(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_IDLE_CURSOR, 1);
+}
+
+void NpcBhvrRegistryClampIdleCursor(object oArea, int nCount)
+{
+    int nCursor;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (nCount <= 0)
+    {
+        NpcBhvrRegistryResetIdleCursor(oArea);
+        return;
+    }
+
+    nCursor = GetLocalInt(oArea, NPC_BHVR_VAR_IDLE_CURSOR);
+    if (nCursor <= 0 || nCursor > nCount)
+    {
+        SetLocalInt(oArea, NPC_BHVR_VAR_IDLE_CURSOR, 1);
+    }
+}
+
 int NpcBhvrRegistryGetIndex(object oArea, object oNpc)
 {
     int nIndex;
@@ -70,6 +102,7 @@ int NpcBhvrRegistryInsert(object oArea, object oNpc)
     SetLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount), oNpc);
     SetLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc), nCount);
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount);
+    NpcBhvrRegistryClampIdleCursor(oArea, nCount);
     return TRUE;
 }
 
@@ -105,14 +138,17 @@ int NpcBhvrRegistryRemove(object oArea, object oNpc)
 
     DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
     DeleteLocalInt(oArea, NpcBhvrRegistryIndexKey(oNpc));
-    SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount - 1);
+    nCount = nCount - 1;
+    SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount);
+    NpcBhvrRegistryClampIdleCursor(oArea, nCount);
     return TRUE;
 }
 
-void NpcBhvrRegistryBroadcastIdleTick(object oArea)
+void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick)
 {
     int nIndex;
     int nCount;
+    int nProcessed;
     object oTail;
     object oNpc;
 
@@ -121,10 +157,31 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea)
         return;
     }
 
-    nIndex = 1;
     nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
-    while (nIndex <= nCount)
+    if (nCount <= 0)
     {
+        NpcBhvrRegistryResetIdleCursor(oArea);
+        NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK, 0);
+        NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_REMAINING, 0);
+        return;
+    }
+
+    if (nMaxNpcPerTick <= 0)
+    {
+        nMaxNpcPerTick = nCount;
+    }
+
+    NpcBhvrRegistryClampIdleCursor(oArea, nCount);
+    nIndex = GetLocalInt(oArea, NPC_BHVR_VAR_IDLE_CURSOR);
+    nProcessed = 0;
+
+    while (nCount > 0 && nProcessed < nMaxNpcPerTick)
+    {
+        if (nIndex > nCount)
+        {
+            nIndex = 1;
+        }
+
         oNpc = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
         if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea)
         {
@@ -146,7 +203,9 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea)
                 }
 
                 DeleteLocalObject(oArea, NpcBhvrRegistrySlotKey(nCount));
-                SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount - 1);
+                nCount = nCount - 1;
+                SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, nCount);
+                NpcBhvrRegistryClampIdleCursor(oArea, nCount);
             }
 
             nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
@@ -154,6 +213,35 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea)
         }
 
         NpcBhvrActivityOnIdleTick(oNpc);
+        nProcessed = nProcessed + 1;
         nIndex = nIndex + 1;
     }
+
+    NpcBhvrRegistryClampIdleCursor(oArea, nCount);
+    if (nCount > 0)
+    {
+        if (nIndex > nCount)
+        {
+            nIndex = 1;
+        }
+        SetLocalInt(oArea, NPC_BHVR_VAR_IDLE_CURSOR, nIndex);
+    }
+
+    NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK, nProcessed);
+    if (nCount > nProcessed)
+    {
+        NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_REMAINING, nCount - nProcessed);
+    }
+    else
+    {
+        NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_REMAINING, 0);
+    }
+}
+
+void NpcBhvrRegistryBroadcastIdleTick(object oArea)
+{
+    int nCount;
+
+    nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, nCount);
 }
