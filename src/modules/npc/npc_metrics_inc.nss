@@ -10,7 +10,7 @@ const string NPC_BHVR_METRIC_AREA_ENTER_COUNT = "npc_metric_area_enter_count";
 const string NPC_BHVR_METRIC_AREA_EXIT_COUNT = "npc_metric_area_exit_count";
 const string NPC_BHVR_METRIC_MODULE_LOAD_COUNT = "npc_metric_module_load_count";
 const string NPC_BHVR_METRIC_QUEUE_OVERFLOW_COUNT = "npc_metric_queue_overflow_count";
-// queue_deferred_count: запись завершена со статусом deferred (например, NPC покинул область до обработки).
+// queue_deferred_count: переход pending-статуса в deferred (дефир очереди, не размер backlog).
 const string NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT = "npc_metric_queue_deferred_count";
 // queue_dropped_count: запись завершена со статусом dropped (overflow или invalid subject).
 const string NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT = "npc_metric_queue_dropped_count";
