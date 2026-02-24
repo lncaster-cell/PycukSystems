@@ -147,7 +147,7 @@ int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
 
     if (nStart == nEnd)
     {
-        // Защита от неявного always-on при незаполненных окнах расписания
+        // Защита от неявного always-on при незаполненных/неполных окнах расписания
         // (GetLocalInt по отсутствующему ключу возвращает 0).
         return FALSE;
     }
@@ -162,15 +162,45 @@ int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
     return nHour >= nStart || nHour < nEnd;
 }
 
+int NpcBhvrActivityTryResolveScheduledSlot(object oNpc, int nHour, string sSlot)
+{
+    int nStart;
+    int nEnd;
+    int bStartPresent;
+    int bEndPresent;
+
+    bStartPresent = GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(sSlot)) != "";
+    bEndPresent = GetLocalString(oNpc, NpcBhvrActivityScheduleEndKey(sSlot)) != "";
+
+    if (!bStartPresent || !bEndPresent)
+    {
+        if (bStartPresent != bEndPresent)
+        {
+            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL);
+        }
+        return FALSE;
+    }
+
+    nStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(sSlot));
+    nEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(sSlot));
+
+    if (!NpcBhvrActivityIsHourInWindow(nHour, nStart, nEnd))
+    {
+        if (nStart < 0 || nStart > 23 || nEnd < 0 || nEnd > 23 || nStart == nEnd)
+        {
+            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL);
+        }
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 string NpcBhvrActivityResolveScheduledSlot(object oNpc, string sCurrentSlot)
 {
     object oArea;
     int bEnabled;
     int nHour;
-    int nPriorityStart;
-    int nPriorityEnd;
-    int nCriticalStart;
-    int nCriticalEnd;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -191,16 +221,12 @@ string NpcBhvrActivityResolveScheduledSlot(object oNpc, string sCurrentSlot)
 
     nHour = GetTimeHour();
 
-    nCriticalStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
-    nCriticalEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
-    if (NpcBhvrActivityIsHourInWindow(nHour, nCriticalStart, nCriticalEnd))
+    if (NpcBhvrActivityTryResolveScheduledSlot(oNpc, nHour, NPC_BHVR_ACTIVITY_SLOT_CRITICAL))
     {
         return NPC_BHVR_ACTIVITY_SLOT_CRITICAL;
     }
 
-    nPriorityStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
-    nPriorityEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
-    if (NpcBhvrActivityIsHourInWindow(nHour, nPriorityStart, nPriorityEnd))
+    if (NpcBhvrActivityTryResolveScheduledSlot(oNpc, nHour, NPC_BHVR_ACTIVITY_SLOT_PRIORITY))
     {
         return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
     }
