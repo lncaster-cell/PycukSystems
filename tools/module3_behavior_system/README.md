@@ -2,6 +2,14 @@
 
 Каталог содержит официальный подготовительный runtime-контур для Module 3.
 
+## Статус runtime foundation (Phase A)
+
+- Реализован lifecycle area-controller: `RUNNING/PAUSED/STOPPED`.
+- Добавлены auto-start и auto-idle-stop механики area-loop.
+- Реализована bounded queue (`MODULE3_QUEUE_MAX=64`) с bucket-приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
+- Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
+- CRITICAL события обрабатываются через bypass fairness-бюджета.
+
 ## Базовые include-файлы
 
 - `module3_core.nss` — lifecycle area-controller, bounded queue с приоритетами, routing хуков в core.

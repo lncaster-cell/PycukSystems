@@ -3,11 +3,11 @@
 ## Module 3 Preparation (execution backlog)
 
 ### Phase A — Runtime foundation
-- [ ] A1. Создать `tools/module3_behavior_system/` и базовые файлы (`module3_core.nss`, `module3_metrics_inc.nss`, `module3_activity_inc.nss`, `README.md`).
+- [x] A1. Создать `tools/module3_behavior_system/` и базовые файлы (`module3_core.nss`, `module3_metrics_inc.nss`, `module3_activity_inc.nss`, `README.md`).
   - **DoD:** есть thin-entrypoint контракт, namespace изолирован от `npc_behavior`/`al_`.
-- [ ] A2. Реализовать lifecycle `RUNNING/PAUSED/STOPPED` + auto-start/idle-stop.
+- [x] A2. Реализовать lifecycle `RUNNING/PAUSED/STOPPED` + auto-start/idle-stop.
   - **DoD:** pause/resume/stop не ломают queue depth и pending counters.
-- [ ] A3. Реализовать bounded queue и приоритеты (`CRITICAL/HIGH/NORMAL/LOW`) с overflow guardrails.
+- [x] A3. Реализовать bounded queue и приоритеты (`CRITICAL/HIGH/NORMAL/LOW`) с overflow guardrails.
   - **DoD:** есть starvation guard и CRITICAL bypass.
 
 ### Phase B — AL activity adaptation

@@ -17,11 +17,73 @@ const int MODULE3_PRIORITY_NORMAL = 2;
 const int MODULE3_PRIORITY_LOW = 3;
 
 const int MODULE3_QUEUE_MAX = 64;
+const int MODULE3_STARVATION_STREAK_LIMIT = 3;
 
 const string MODULE3_VAR_AREA_STATE = "module3_area_state";
 const string MODULE3_VAR_AREA_TIMER_RUNNING = "module3_area_timer_running";
 const string MODULE3_VAR_QUEUE_DEPTH = "module3_queue_depth";
+const string MODULE3_VAR_QUEUE_PENDING_TOTAL = "module3_queue_pending_total";
 const string MODULE3_VAR_QUEUE_CURSOR = "module3_queue_cursor";
+const string MODULE3_VAR_FAIRNESS_STREAK = "module3_fairness_streak";
+
+string Module3QueueDepthKey(int nPriority)
+{
+    return "module3_queue_depth_" + IntToString(nPriority);
+}
+
+string Module3QueueSubjectKey(int nPriority, int nIndex)
+{
+    return "module3_queue_subject_" + IntToString(nPriority) + "_" + IntToString(nIndex);
+}
+
+int Module3QueueGetDepthForPriority(object oArea, int nPriority)
+{
+    return GetLocalInt(oArea, Module3QueueDepthKey(nPriority));
+}
+
+void Module3QueueSetDepthForPriority(object oArea, int nPriority, int nDepth)
+{
+    SetLocalInt(oArea, Module3QueueDepthKey(nPriority), nDepth);
+}
+
+void Module3QueueSyncTotals(object oArea)
+{
+    int nTotal;
+
+    nTotal = Module3QueueGetDepthForPriority(oArea, MODULE3_PRIORITY_CRITICAL)
+        + Module3QueueGetDepthForPriority(oArea, MODULE3_PRIORITY_HIGH)
+        + Module3QueueGetDepthForPriority(oArea, MODULE3_PRIORITY_NORMAL)
+        + Module3QueueGetDepthForPriority(oArea, MODULE3_PRIORITY_LOW);
+
+    SetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH, nTotal);
+    SetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL, nTotal);
+}
+
+void Module3QueueClear(object oArea)
+{
+    int nPriority;
+    int nDepth;
+    int nIndex;
+
+    nPriority = MODULE3_PRIORITY_CRITICAL;
+    while (nPriority <= MODULE3_PRIORITY_LOW)
+    {
+        nDepth = Module3QueueGetDepthForPriority(oArea, nPriority);
+        nIndex = 1;
+        while (nIndex <= nDepth)
+        {
+            DeleteLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex));
+            nIndex = nIndex + 1;
+        }
+
+        Module3QueueSetDepthForPriority(oArea, nPriority, 0);
+        nPriority = nPriority + 1;
+    }
+
+    SetLocalInt(oArea, MODULE3_VAR_QUEUE_CURSOR, MODULE3_PRIORITY_HIGH);
+    SetLocalInt(oArea, MODULE3_VAR_FAIRNESS_STREAK, 0);
+    Module3QueueSyncTotals(oArea);
+}
 
 int Module3AreaGetState(object oArea)
 {
@@ -72,6 +134,7 @@ void Module3AreaPause(object oArea)
         return;
     }
 
+    // Pause only toggles lifecycle state; queue/pending counters remain untouched.
     Module3AreaSetState(oArea, MODULE3_AREA_STATE_PAUSED);
 }
 
@@ -83,34 +146,70 @@ void Module3AreaStop(object oArea)
     }
 
     Module3AreaSetState(oArea, MODULE3_AREA_STATE_STOPPED);
+    Module3QueueClear(oArea);
 }
 
 int Module3QueueEnqueue(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
-    int nSlot;
+    int nTotal;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
         return FALSE;
     }
 
-    nDepth = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
-    if (nDepth >= MODULE3_QUEUE_MAX)
+    if (nPriority < MODULE3_PRIORITY_CRITICAL || nPriority > MODULE3_PRIORITY_LOW)
+    {
+        nPriority = MODULE3_PRIORITY_NORMAL;
+    }
+
+    nTotal = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
+    if (nTotal >= MODULE3_QUEUE_MAX)
     {
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_OVERFLOW_COUNT);
         return FALSE;
     }
 
-    nSlot = nDepth + 1;
-    SetLocalObject(oArea, "module3_queue_subject_" + IntToString(nSlot), oSubject);
-    SetLocalInt(oArea, "module3_queue_priority_" + IntToString(nSlot), nPriority);
-    SetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH, nSlot);
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority) + 1;
+    SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth), oSubject);
+    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth);
 
+    Module3QueueSyncTotals(oArea);
     Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
 }
 
+object Module3QueueDequeueFromPriority(object oArea, int nPriority)
+{
+    int nDepth;
+    int nIndex;
+    object oSubject;
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority);
+    if (nDepth <= 0)
+    {
+        return OBJECT_INVALID;
+    }
+
+    oSubject = GetLocalObject(oArea, Module3QueueSubjectKey(nPriority, 1));
+
+    nIndex = 1;
+    while (nIndex < nDepth)
+    {
+        SetLocalObject(
+            oArea,
+            Module3QueueSubjectKey(nPriority, nIndex),
+            GetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex + 1))
+        );
+        nIndex = nIndex + 1;
+    }
+
+    DeleteLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth));
+    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+    Module3QueueSyncTotals(oArea);
+    return oSubject;
+}
 
 int Module3CountPlayersInArea(object oArea)
 {
@@ -135,10 +234,67 @@ int Module3CountPlayersInArea(object oArea)
     return nPlayers;
 }
 
+int Module3QueuePickPriority(object oArea)
+{
+    int nCriticalDepth;
+    int nCursor;
+    int nStreak;
+    int nPriority;
+    int nAttempts;
+
+    nCriticalDepth = Module3QueueGetDepthForPriority(oArea, MODULE3_PRIORITY_CRITICAL);
+    if (nCriticalDepth > 0)
+    {
+        // CRITICAL bypasses fairness budget.
+        SetLocalInt(oArea, MODULE3_VAR_FAIRNESS_STREAK, 0);
+        return MODULE3_PRIORITY_CRITICAL;
+    }
+
+    nCursor = GetLocalInt(oArea, MODULE3_VAR_QUEUE_CURSOR);
+    if (nCursor < MODULE3_PRIORITY_HIGH || nCursor > MODULE3_PRIORITY_LOW)
+    {
+        nCursor = MODULE3_PRIORITY_HIGH;
+    }
+
+    nStreak = GetLocalInt(oArea, MODULE3_VAR_FAIRNESS_STREAK);
+
+    if (nStreak >= MODULE3_STARVATION_STREAK_LIMIT)
+    {
+        nCursor = nCursor + 1;
+        if (nCursor > MODULE3_PRIORITY_LOW)
+        {
+            nCursor = MODULE3_PRIORITY_HIGH;
+        }
+        nStreak = 0;
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_STARVATION_GUARD_TRIPS);
+    }
+
+    nPriority = nCursor;
+    nAttempts = 0;
+    while (nAttempts < 3)
+    {
+        if (Module3QueueGetDepthForPriority(oArea, nPriority) > 0)
+        {
+            SetLocalInt(oArea, MODULE3_VAR_QUEUE_CURSOR, nPriority);
+            SetLocalInt(oArea, MODULE3_VAR_FAIRNESS_STREAK, nStreak + 1);
+            return nPriority;
+        }
+
+        nPriority = nPriority + 1;
+        if (nPriority > MODULE3_PRIORITY_LOW)
+        {
+            nPriority = MODULE3_PRIORITY_HIGH;
+        }
+        nAttempts = nAttempts + 1;
+    }
+
+    return -1;
+}
+
 void Module3QueueProcessOne(object oArea)
 {
-    int nDepth;
-    int nCursor;
+    int nTotalDepth;
+    int nPriority;
     object oSubject;
 
     if (!GetIsObjectValid(oArea) || !Module3AreaIsRunning(oArea))
@@ -146,33 +302,33 @@ void Module3QueueProcessOne(object oArea)
         return;
     }
 
-    nDepth = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
-    if (nDepth <= 0)
+    nTotalDepth = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
+    if (nTotalDepth <= 0)
+    {
+        SetLocalInt(oArea, MODULE3_VAR_FAIRNESS_STREAK, 0);
+        return;
+    }
+
+    nPriority = Module3QueuePickPriority(oArea);
+    if (nPriority < MODULE3_PRIORITY_CRITICAL)
     {
         return;
     }
 
-    nCursor = GetLocalInt(oArea, MODULE3_VAR_QUEUE_CURSOR) + 1;
-    if (nCursor > nDepth)
-    {
-        nCursor = 1;
-    }
-
-    oSubject = GetLocalObject(oArea, "module3_queue_subject_" + IntToString(nCursor));
+    oSubject = Module3QueueDequeueFromPriority(oArea, nPriority);
     if (!GetIsObjectValid(oSubject))
     {
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
-        SetLocalInt(oArea, MODULE3_VAR_QUEUE_CURSOR, nCursor);
         return;
     }
 
-    // TODO(module3): CRITICAL/HIGH/NORMAL/LOW scheduler with fairness guarantees.
     Module3ActivityOnIdleTick(oSubject);
-    SetLocalInt(oArea, MODULE3_VAR_QUEUE_CURSOR, nCursor);
 }
 
 void Module3OnAreaTick(object oArea)
 {
+    int nPlayers;
+
     if (!GetIsObjectValid(oArea))
     {
         return;
@@ -187,6 +343,13 @@ void Module3OnAreaTick(object oArea)
     if (Module3AreaGetState(oArea) == MODULE3_AREA_STATE_RUNNING)
     {
         Module3QueueProcessOne(oArea);
+
+        // Auto-idle-stop: если в области нет игроков и нет pending, останавливаем loop.
+        nPlayers = Module3CountPlayersInArea(oArea);
+        if (nPlayers <= 0 && GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL) <= 0)
+        {
+            Module3AreaStop(oArea);
+        }
     }
 
     DelayCommand(1.0, ExecuteScript("module3_behavior_area_tick", oArea));
