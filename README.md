@@ -74,7 +74,7 @@ bash scripts/setup_env.sh
 - Результаты и статус сборки смотрите в разделе **Actions** вашего репозитория.
 - Для диагностики падений используйте артефакты **logs-${mode}** и исправляйте ошибки только по конкретным строкам (`file:line`, `NSCxxxx`) из `logs-${mode}.log`.
 - После успешного запуска `build`/`optimize` скачайте артефакт **compiled-ncs-${mode}** (содержимое папки `output/` с `.ncs` файлами).
-- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `tools/npc_behavior_system/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
+- Include-пути для компилятора берутся из `third_party/nwn2_stock_scripts/`, `src/`, `scripts/` и `third_party/nwnx_includes/` (см. `scripts/compile.sh`).
 
 ### Где лежат NWNX include-файлы и зачем
 
@@ -84,7 +84,7 @@ NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
 
 ## Observability contract (Phase 1)
 
-Для модуля `tools/npc_behavior_system` метрики Phase 1 пишутся через единый helper в `npc_behavior_core.nss`, а ключи подготовлены под будущий write-behind sink.
+Для active runtime-модуля `src/modules/npc` метрики Phase 1 пишутся через единый helper в `npc_core.nss`, а ключи подготовлены под будущий write-behind sink.
 
 Ключи `NPC_VAR_METRIC_*` (полное соответствие `npc_behavior_core.nss`):
 
