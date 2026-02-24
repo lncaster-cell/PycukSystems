@@ -121,6 +121,17 @@ string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
+int NpcBhvrActivityResolveRouteRuntimeReadContext(
+    object oNpc,
+    int nOwnerIndex,
+    string sRouteId,
+    string sRuntimeKeyVar,
+    string sRouteKeyPrefix,
+    object oMetricScope,
+    object &oOwnerResolved,
+    string &sRouteIdNormalized,
+    string &sKey
+);
 int ReadRouteRuntimeIntWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, int nFallback);
 string ReadRouteRuntimeStringWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, string sFallback);
 int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag);
@@ -423,34 +434,38 @@ int ReadRouteRuntimeIntWithFallback(
 )
 {
     int nValue;
-    object oArea;
+    object oOwner;
     string sKey;
     string sRouteIdNormalized;
+    int nOwnerIndex;
 
     if (!GetIsObjectValid(oNpc))
     {
         return nFallback;
     }
 
-    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oNpc);
-    nValue = NpcBhvrActivityReadMigratedRouteInt(oNpc, sRouteIdNormalized, sKey, sLegacyPrefix);
-    if (nValue != 0)
+    for (nOwnerIndex = 0; nOwnerIndex <= 1; nOwnerIndex++)
     {
-        return nValue;
-    }
+        if (!NpcBhvrActivityResolveRouteRuntimeReadContext(
+            oNpc,
+            nOwnerIndex,
+            sRouteId,
+            sRuntimeKeyVar,
+            sRouteKeyPrefix,
+            oNpc,
+            oOwner,
+            sRouteIdNormalized,
+            sKey
+        ))
+        {
+            continue;
+        }
 
-    oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return nFallback;
-    }
-
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oArea);
-    nValue = NpcBhvrActivityReadMigratedRouteInt(oArea, sRouteIdNormalized, sKey, sLegacyPrefix);
-    if (nValue != 0)
-    {
-        return nValue;
+        nValue = NpcBhvrActivityReadMigratedRouteInt(oOwner, sRouteIdNormalized, sKey, sLegacyPrefix);
+        if (nValue != 0)
+        {
+            return nValue;
+        }
     }
 
     return nFallback;
@@ -465,38 +480,90 @@ string ReadRouteRuntimeStringWithFallback(
     string sFallback
 )
 {
-    object oArea;
+    object oOwner;
     string sKey;
     string sValue;
     string sRouteIdNormalized;
+    int nOwnerIndex;
 
     if (!GetIsObjectValid(oNpc))
     {
         return sFallback;
     }
 
-    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oNpc);
-    sValue = NpcBhvrActivityReadMigratedRouteString(oNpc, sRouteIdNormalized, sKey, sLegacyPrefix);
-    if (sValue != "")
+    for (nOwnerIndex = 0; nOwnerIndex <= 1; nOwnerIndex++)
     {
-        return sValue;
-    }
+        if (!NpcBhvrActivityResolveRouteRuntimeReadContext(
+            oNpc,
+            nOwnerIndex,
+            sRouteId,
+            sRuntimeKeyVar,
+            sRouteKeyPrefix,
+            oNpc,
+            oOwner,
+            sRouteIdNormalized,
+            sKey
+        ))
+        {
+            continue;
+        }
 
-    oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return sFallback;
-    }
-
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oArea);
-    sValue = NpcBhvrActivityReadMigratedRouteString(oArea, sRouteIdNormalized, sKey, sLegacyPrefix);
-    if (sValue != "")
-    {
-        return sValue;
+        sValue = NpcBhvrActivityReadMigratedRouteString(oOwner, sRouteIdNormalized, sKey, sLegacyPrefix);
+        if (sValue != "")
+        {
+            return sValue;
+        }
     }
 
     return sFallback;
+}
+
+int NpcBhvrActivityResolveRouteRuntimeReadContext(
+    object oNpc,
+    int nOwnerIndex,
+    string sRouteId,
+    string sRuntimeKeyVar,
+    string sRouteKeyPrefix,
+    object oMetricScope,
+    object &oOwnerResolved,
+    string &sRouteIdNormalized,
+    string &sKey
+)
+{
+    object oArea;
+
+    // Единый порядок fallback-источников для route-runtime чтения: NPC -> Area.
+    // Пустые значения НЕ останавливают fallback: int(0) и string("") трактуются как "не найдено".
+    // Typed-wrapper`ы сохраняют этот общий маршрут и лишь типизировано читают migrated-key.
+    oOwnerResolved = OBJECT_INVALID;
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oMetricScope);
+
+    if (nOwnerIndex == 0)
+    {
+        oOwnerResolved = oNpc;
+    }
+    else
+    {
+        oArea = GetArea(oNpc);
+        if (GetIsObjectValid(oArea))
+        {
+            oOwnerResolved = oArea;
+        }
+    }
+
+    if (!GetIsObjectValid(oOwnerResolved))
+    {
+        return FALSE;
+    }
+
+    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(
+        oOwnerResolved,
+        sRouteIdNormalized,
+        sRuntimeKeyVar,
+        sRouteKeyPrefix,
+        oOwnerResolved
+    );
+    return TRUE;
 }
 
 
