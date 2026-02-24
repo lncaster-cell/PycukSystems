@@ -56,12 +56,20 @@ int NpcBhvrTickPendingCarryoverCarryoverEvents(int nPackedState)
 int NpcBhvrQueuePickPriority(object oArea)
 {
     int nCriticalDepth;
+    int nHighDepth;
+    int nNormalDepth;
+    int nLowDepth;
+    int nDepth;
     int nCursor;
     int nStreak;
     int nPriority;
     int nAttempts;
 
     nCriticalDepth = NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_CRITICAL);
+    nHighDepth = NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_HIGH);
+    nNormalDepth = NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_NORMAL);
+    nLowDepth = NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_LOW);
+
     if (nCriticalDepth > 0)
     {
         // CRITICAL bypasses fairness budget.
@@ -92,7 +100,21 @@ int NpcBhvrQueuePickPriority(object oArea)
     nAttempts = 0;
     while (nAttempts < 3)
     {
-        if (NpcBhvrQueueGetDepthForPriority(oArea, nPriority) > 0)
+        nDepth = 0;
+        if (nPriority == NPC_BHVR_PRIORITY_HIGH)
+        {
+            nDepth = nHighDepth;
+        }
+        else if (nPriority == NPC_BHVR_PRIORITY_NORMAL)
+        {
+            nDepth = nNormalDepth;
+        }
+        else if (nPriority == NPC_BHVR_PRIORITY_LOW)
+        {
+            nDepth = nLowDepth;
+        }
+
+        if (nDepth > 0)
         {
             NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_CURSOR, nPriority);
             NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, nStreak + 1);
