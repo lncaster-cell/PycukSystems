@@ -68,6 +68,15 @@ Tick/degraded telemetry в runtime включает:
     3) `default` -> `state/last=idle_default`, `cooldown=1`;
   - после dispatch `last_ts` всегда отражает момент последнего transition.
 
+
+## Контракт pending-состояний (NPC-local и area-local)
+
+- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC).
+- `area-local` (`npc_queue_pending_*` на area) — диагностическое/наблюдаемое зеркало последнего состояния, обновляется через `NpcBhvrPendingAreaTouch`.
+- `deferred` при `GetArea(oSubject) != oArea` фиксируется **в обоих хранилищах** и не очищается неявно в этом же шаге.
+- Очистка pending (`NpcBhvrPendingNpcClear` и `NpcBhvrPendingAreaClear`) допустима только на явных terminal-переходах (`processed`, `dropped`, удаление/смерть NPC, очистка очереди/area shutdown).
+- Следствие: deferred является краткоживущим состоянием до следующего события/terminal-перехода, но в течение этого окна наблюдается консистентно и в NPC-local, и в area-local.
+
 ## Карта hook-скриптов (thin entrypoints)
 
 | Hook | Script | Core handler |

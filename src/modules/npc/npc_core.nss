@@ -218,6 +218,8 @@ void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
         return;
     }
 
+    // NPC-local pending status is authoritative for current NPC event-state and
+    // must only be reset by explicit terminal clear-paths.
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS, nStatus);
     NpcBhvrPendingNpcTouch(oNpc);
 }
@@ -259,6 +261,8 @@ void NpcBhvrPendingNpcClear(object oNpc)
         return;
     }
 
+    // Clear only on explicit terminal transitions (processed/dropped/death),
+    // never as part of non-terminal deferred transitions.
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY);
     DeleteLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
@@ -639,6 +643,8 @@ void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int n
         return;
     }
 
+    // Area-local cache mirrors the last visible queue-state for diagnostics and
+    // should stay consistent with NPC-local status transitions.
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     NpcBhvrPendingAreaMigrateLegacy(oArea, oSubject, sNpcKey);
     SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
@@ -656,6 +662,8 @@ void NpcBhvrPendingAreaClear(object oArea, object oSubject)
         return;
     }
 
+    // Area-local clear is explicit/terminal and must not be used to drop
+    // deferred state implicitly.
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     NpcBhvrPendingAreaMigrateLegacy(oArea, oSubject, sNpcKey);
     DeleteLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey));
@@ -1194,8 +1202,8 @@ int NpcBhvrQueueProcessOne(object oArea)
     if (GetArea(oSubject) != oArea)
     {
         NpcBhvrPendingSetStatus(oSubject, NPC_BHVR_PENDING_STATUS_DEFERRED);
+        NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
-        NpcBhvrPendingNpcClear(oSubject);
         return TRUE;
     }
 
