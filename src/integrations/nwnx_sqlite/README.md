@@ -13,17 +13,18 @@
   - `NpcSqliteSafeRead(string sQuery)` / `NpcSqliteSafeWrite(string sQuery)`;
   - `NpcSqliteNormalizeError(string sErrorRaw)`;
   - `NpcSqliteLogDbError(string sOperation, int nCode, string sErrorRaw, string sQuery)`.
-- `npc_repo_inc.nss` — repository-слой с SQL-константами и thin-функциями:
+- `npc_repo_runtime_inc.nss` — runtime repository-слой с SQL-константами и thin-функциями:
   - `NpcRepoUpsertNpcState()`;
+- `npc_repo_contract_inc.nss` — contract-only repository API (не для production runtime):
   - `NpcRepoFetchUnprocessedEvents()`;
   - `NpcRepoMarkEventProcessed()`;
   - `NpcRepoFetchDueSchedules()`.
 
-> ⚠️ Статус подключения к runtime: сейчас в рабочем тике используется только
-> `NpcRepoUpsertNpcState()` (через write-behind flush). Функции
-> `NpcRepoFetchUnprocessedEvents()`, `NpcRepoMarkEventProcessed()` и
-> `NpcRepoFetchDueSchedules()` пока являются **contract-only** (API + SQL в repo,
-> без вызовов из lifecycle/worker NPC).
+- `npc_repo_inc.nss` — compatibility alias на `npc_repo_runtime_inc.nss`.
+
+> ⚠️ В production runtime подключается только runtime-репозиторий:
+> `npc_repo_runtime_inc.nss` (или legacy alias `npc_repo_inc.nss`).
+> Contract-only include `npc_repo_contract_inc.nss` в runtime-контуре не подключается.
 - `npc_wb_inc.nss` — минимальный write-behind контракт:
   - dirty-очередь: `NpcSqliteWriteBehindMarkDirty()`, `NpcSqliteWriteBehindDirtyCount()`;
   - flush-trigger: `NpcSqliteWriteBehindShouldFlush(int nNowTs, int nBatchSize, int nFlushIntervalSec)`;
@@ -36,6 +37,7 @@
 В каталоге сохранены два shim-include для обратной совместимости со старыми путями include:
 
 - `npc_sqlite_api_inc.nss` -> `npc_sql_api_inc.nss`;
+- `npc_repo_inc.nss` -> `npc_repo_runtime_inc.nss`;
 - `npc_writebehind_inc.nss` -> `npc_wb_inc.nss`.
 
 Причина существования: дать существующим скриптам время на миграцию без немедленного breaking change.
@@ -59,12 +61,13 @@
 2. Любая DB-ошибка логируется только через `NpcSqliteLogDbError`.
 3. Healthcheck обязан использовать `SELECT 1;` через `NpcSqliteHealthcheck()`.
 4. При серии write-ошибок (`>=3`) write-behind переводится в degraded-mode (`npc_sqlite_wb_degraded_mode=TRUE`).
-5. SQL-строки для NPC persistence хранятся в repository include (`npc_repo_inc.nss`), а не в `npc_core.nss`.
+5. SQL-строки для NPC persistence разделены по назначению: runtime — `npc_repo_runtime_inc.nss`, contract-only — `npc_repo_contract_inc.nss`; в `npc_core.nss` SQL не хранится.
 
 ## Точки интеграции с NPC runtime
 
 - `src/modules/npc/npc_core.nss`:
   - включает `npc_sql_api_inc` и `npc_wb_inc`;
+  - через `npc_wb_inc` использует только `npc_repo_runtime_inc`;
   - на `NpcBhvrOnModuleLoad()` вызывает `NpcSqliteInit()` + `NpcSqliteHealthcheck()`;
   - на enqueue-событиях помечает dirty через `NpcSqliteWriteBehindMarkDirty()`;
   - в area tick запускает flush по таймеру/батчу через `NpcSqliteWriteBehindShouldFlush(...)`.

@@ -1,7 +1,7 @@
 // NPC write-behind minimal contract API.
 
 #include "npc_sql_api_inc"
-#include "npc_repo_inc"
+#include "npc_repo_runtime_inc"
 
 const string NPC_SQLITE_WB_DIRTY_COUNT = "npc_sqlite_wb_dirty_count";
 const string NPC_SQLITE_WB_FLUSH_LAST_TS = "npc_sqlite_wb_flush_last_ts";
