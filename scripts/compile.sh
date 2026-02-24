@@ -89,24 +89,23 @@ for include_dir in "${INCLUDE_CANDIDATES[@]}"; do
   append_include_dir "$include_dir"
 done
 
-mapfile -t SRC_INCLUDE_DIRS < <(
-  find "$ROOT_DIR/src" -type f -name "*.nss" -printf "%h\n" | LC_ALL=C sort -u
-)
-
-for include_dir in "${SRC_INCLUDE_DIRS[@]}"; do
-  append_include_dir "$include_dir"
-done
-
 mapfile -t FILES < <(
-  {
-    find "$ROOT_DIR/src" -type f -name '*.nss'
-  } | LC_ALL=C sort
+  find "$ROOT_DIR/src" -type f -name '*.nss' | LC_ALL=C sort
 )
 
 if [[ "${#FILES[@]}" -eq 0 ]]; then
   echo "[INFO] No .nss files found under src/; nothing to compile."
   exit 0
 fi
+
+# Reuse a single .nss file scan to reduce I/O and speed up CI on large source trees.
+mapfile -t SRC_INCLUDE_DIRS < <(
+  printf '%s\n' "${FILES[@]}" | xargs -r -n1 dirname | LC_ALL=C sort -u
+)
+
+for include_dir in "${SRC_INCLUDE_DIRS[@]}"; do
+  append_include_dir "$include_dir"
+done
 
 
 run_compiler() {
