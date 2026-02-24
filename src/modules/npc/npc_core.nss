@@ -99,6 +99,7 @@ string NpcBhvrRegistryIndexKey(object oNpc);
 string NpcBhvrRegistryLegacyIndexKey(object oNpc);
 int NpcBhvrRegistryGetIndex(object oArea, object oNpc);
 string NpcBhvrPendingLegacySubjectTag(object oSubject);
+string NpcBhvrPendingSubjectTag(object oSubject);
 string NpcBhvrPendingPriorityLegacyKey(string sNpcKey);
 string NpcBhvrPendingReasonCodeLegacyKey(string sNpcKey);
 string NpcBhvrPendingStatusLegacyKey(string sNpcKey);
@@ -112,6 +113,16 @@ int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority);
 int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
 int NpcBhvrQueueCountDeferred(object oArea);
 int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount);
+
+int NpcBhvrPendingIsActive(object oNpc);
+void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus);
+void NpcBhvrAreaRouteCacheWarmup(object oArea);
+void NpcBhvrAreaRouteCacheInvalidate(object oArea);
+int NpcBhvrGetTickMaxEvents(object oArea);
+void NpcBhvrSetTickMaxEvents(object oArea, int nValue);
+int NpcBhvrGetTickSoftBudgetMs(object oArea);
+void NpcBhvrSetTickSoftBudgetMs(object oArea, int nValue);
+void NpcBhvrApplyTickRuntimeConfig(object oArea);
 
 int NpcBhvrPendingNow()
 {
@@ -229,6 +240,53 @@ void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
     // must only be reset by explicit terminal clear-paths.
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS, nStatus);
     NpcBhvrPendingNpcTouch(oNpc);
+}
+
+int NpcBhvrPendingIsActive(object oNpc)
+{
+    int nStatus;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return FALSE;
+    }
+
+    nStatus = GetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
+    return nStatus == NPC_BHVR_PENDING_STATUS_QUEUED
+        || nStatus == NPC_BHVR_PENDING_STATUS_RUNNING
+        || nStatus == NPC_BHVR_PENDING_STATUS_DEFERRED;
+}
+
+void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
+    SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+    NpcBhvrPendingSetStatus(oNpc, nStatus);
+}
+
+void NpcBhvrAreaRouteCacheWarmup(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, "npc_route_cache_warm", TRUE);
+}
+
+void NpcBhvrAreaRouteCacheInvalidate(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    DeleteLocalInt(oArea, "npc_route_cache_warm");
 }
 
 string NpcBhvrPendingStatusToString(int nStatus)

@@ -21,6 +21,9 @@ const string NPC_SQLITE_VAR_LAST_OPERATION = "npc_sqlite_last_operation";
 const string NPC_SQLITE_OP_READ = "read";
 const string NPC_SQLITE_OP_WRITE = "write";
 
+int NpcSqliteSafeRead(string sQuery);
+int NpcSqliteSafeWrite(string sQuery);
+
 int NpcSqliteNormalizeError(string sErrorRaw)
 {
     string sError;
