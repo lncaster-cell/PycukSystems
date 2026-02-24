@@ -1996,8 +1996,10 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
     int nPendingAfter;
     int nDeferredCount;
     int nDeferredOverflow;
+    int bQueueMutated;
 
     nPendingAfter = NpcBhvrTickStatePendingAfter(nTickState);
+    bQueueMutated = FALSE;
 
     // Hot-path guard only: expensive full walk выполняется только если счётчик
     // deferred выглядит рассинхронизированным.
@@ -2006,6 +2008,7 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
     {
         nDeferredCount = 0;
         NpcBhvrQueueSetDeferredTotal(oArea, 0);
+        bQueueMutated = TRUE;
     }
 
     if (nDeferredCount > NPC_BHVR_TICK_DEFERRED_CAP)
@@ -2014,7 +2017,10 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
         if (nDeferredOverflow > 0)
         {
             nDeferredOverflow = NpcBhvrQueueTrimDeferredOverflow(oArea, nDeferredOverflow);
-            nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+            if (nDeferredOverflow > 0)
+            {
+                bQueueMutated = TRUE;
+            }
             nCarryoverEvents = nCarryoverEvents - nDeferredOverflow;
             if (nCarryoverEvents < 0)
             {
@@ -2029,9 +2035,13 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
     }
 
     // Invariants: deferred-total must be non-negative and pending totals must be
-    // synchronized with per-priority depths before final carryover commit.
-    NpcBhvrQueueSyncTotals(oArea);
-    nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    // synchronized with per-priority depths before final carryover commit only
+    // when queue data was mutated in this reconcile pass.
+    if (bQueueMutated)
+    {
+        NpcBhvrQueueSyncTotals(oArea);
+        nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    }
 
     SetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
     return nPendingAfter;
