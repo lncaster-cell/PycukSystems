@@ -1076,6 +1076,7 @@ void NpcBhvrAreaActivate(object oArea)
     NpcBhvrApplyTickRuntimeConfig(oArea);
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrAreaRouteCacheWarmup(oArea);
+    NpcBhvrActivityOnAreaActivate(oArea);
     NpcBhvrSetTickMaxEvents(oArea, NpcBhvrGetTickMaxEvents(oArea));
     NpcBhvrSetTickSoftBudgetMs(oArea, NpcBhvrGetTickSoftBudgetMs(oArea));
 
