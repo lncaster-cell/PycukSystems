@@ -9,6 +9,9 @@ STARVATION_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/starvation_risk.csv"
 WARMUP_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/warmup_rescan.csv"
 FAIRNESS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_pass.csv"
 
+GUARDRAIL_ANALYZER="$ROOT_DIR/scripts/analyze_guardrails.py"
+MISSING_LIFECYCLE_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/guardrails_missing_lifecycle_state.csv"
+
 assert_status() {
   local output="$1"
   local section="$2"
@@ -69,6 +72,16 @@ assert_status "$output_fairness" fairness PASS
 assert_status "$output_fairness" overflow NA
 assert_status "$output_fairness" budget NA
 assert_status "$output_fairness" warmup NA
+
+output_missing_lifecycle="$(python3 "$GUARDRAIL_ANALYZER" --input "$MISSING_LIFECYCLE_FIXTURE" --format json)"
+python3 - <<'PY' "$output_missing_lifecycle"
+import json
+import sys
+payload = json.loads(sys.argv[1])
+expected = {"overflow": "PASS", "budget": "PASS", "warmup": "NA"}
+if payload != expected:
+    raise SystemExit(f"[FAIL] expected {expected}, got {payload}")
+PY
 
 TMP_BAD="$(mktemp)"
 cat > "$TMP_BAD" <<'CSV'

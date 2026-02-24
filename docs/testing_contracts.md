@@ -35,3 +35,13 @@ bash scripts/check_npc_lifecycle_contract.sh
 ```
 
 `check_npc_lifecycle_contract.sh` использует профиль `scripts/contracts/npc.contract`.
+
+
+## Контракт guardrail-анализатора CSV
+
+Для `scripts/analyze_guardrails.py` поле `lifecycle_state` считается опциональным.
+Если колонка отсутствует или значение пустое, состояние по умолчанию интерпретируется как `RUNNING`
+(эквивалентно `row.get("lifecycle_state") or "RUNNING"` c последующей нормализацией `strip().upper()`).
+
+Контракт закреплён в `scripts/test_guardrail_analyzer.sh` через fixture
+`docs/perf/fixtures/npc/guardrails_missing_lifecycle_state.csv`.
