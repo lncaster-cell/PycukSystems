@@ -13,6 +13,9 @@ RESUME_DRAIN_EOF_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_
 NO_RUNNING_ROWS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_no_running_rows.csv"
 
 RESULTS=()
+LOG_FILE="/tmp/area_queue_check.log"
+RUN_RC=0
+RUN_LAST_LINE=""
 
 record_result() {
   local guardrail="$1"
@@ -23,27 +26,55 @@ record_result() {
 }
 
 run_expect_pass() {
-  local guardrail="$1"
-  local scenario_id="$2"
-  shift 2
-  if "$@" >/tmp/area_queue_check.log 2>&1; then
-    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 /tmp/area_queue_check.log || echo ok)"
-  else
-    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 /tmp/area_queue_check.log || echo failed)"
-    cat /tmp/area_queue_check.log
-    return 1
-  fi
+  run_expect "pass" "$@"
 }
 
 run_expect_fail() {
-  local guardrail="$1"
-  local scenario_id="$2"
-  shift 2
-  if "$@" >/tmp/area_queue_check.log 2>&1; then
-    record_result "${guardrail}" "${scenario_id}" "FAIL" "expected failure but command passed"
+  run_expect "fail" "$@"
+}
+
+run_and_capture() {
+  local log_file="$1"
+  shift
+
+  set +e
+  "$@" >"$log_file" 2>&1
+  RUN_RC=$?
+  set -e
+
+  RUN_LAST_LINE="$(tail -n1 "$log_file" 2>/dev/null || true)"
+  if [[ -z "$RUN_LAST_LINE" ]]; then
+    RUN_LAST_LINE="(no output)"
+  fi
+}
+
+run_expect() {
+  local mode="$1"
+  local guardrail="$2"
+  local scenario_id="$3"
+  shift 3
+
+  run_and_capture "$LOG_FILE" "$@"
+
+  if [[ "$mode" == "pass" ]]; then
+    if [[ $RUN_RC -eq 0 ]]; then
+      record_result "$guardrail" "$scenario_id" "PASS" "$RUN_LAST_LINE"
+      return 0
+    fi
+
+    record_result "$guardrail" "$scenario_id" "FAIL" "$RUN_LAST_LINE"
+    cat "$LOG_FILE"
     return 1
   fi
-  record_result "${guardrail}" "${scenario_id}" "PASS" "expected failure observed"
+
+  if [[ $RUN_RC -ne 0 ]]; then
+    record_result "$guardrail" "$scenario_id" "PASS" "expected failure observed: $RUN_LAST_LINE"
+    return 0
+  fi
+
+  record_result "$guardrail" "$scenario_id" "FAIL" "expected failure but command passed"
+  cat "$LOG_FILE"
+  return 1
 }
 
 run_expect_pass "automated_fairness" "steady" \
