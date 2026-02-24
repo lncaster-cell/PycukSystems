@@ -18,6 +18,12 @@
   - `NpcRepoFetchUnprocessedEvents()`;
   - `NpcRepoMarkEventProcessed()`;
   - `NpcRepoFetchDueSchedules()`.
+
+> ⚠️ Статус подключения к runtime: сейчас в рабочем тике используется только
+> `NpcRepoUpsertNpcState()` (через write-behind flush). Функции
+> `NpcRepoFetchUnprocessedEvents()`, `NpcRepoMarkEventProcessed()` и
+> `NpcRepoFetchDueSchedules()` пока являются **contract-only** (API + SQL в repo,
+> без вызовов из lifecycle/worker NPC).
 - `npc_wb_inc.nss` — минимальный write-behind контракт:
   - dirty-очередь: `NpcSqliteWriteBehindMarkDirty()`, `NpcSqliteWriteBehindDirtyCount()`;
   - flush-trigger: `NpcSqliteWriteBehindShouldFlush(int nNowTs, int nBatchSize, int nFlushIntervalSec)`;

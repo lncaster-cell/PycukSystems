@@ -6,6 +6,9 @@ SQLITE_API_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_sql_api_inc.nss"
 REPO_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_repo_inc.nss"
 WB_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_wb_inc.nss"
 NPC_CORE_FILE="$ROOT_DIR/src/modules/npc/npc_core.nss"
+NPC_LIFECYCLE_FILE="$ROOT_DIR/src/modules/npc/npc_lifecycle_inc.nss"
+NPC_QUEUE_FILE="$ROOT_DIR/src/modules/npc/npc_queue_inc.nss"
+NPC_TICK_FILE="$ROOT_DIR/src/modules/npc/npc_tick_inc.nss"
 
 assert_has() {
   local pattern="$1"
@@ -62,9 +65,45 @@ assert_has "NPC_SQLITE_WB_DEGRADED_MODE" "$WB_FILE"
 # NPC runtime integration points.
 assert_has "#include \"npc_sql_api_inc\"" "$NPC_CORE_FILE"
 assert_has "#include \"npc_wb_inc\"" "$NPC_CORE_FILE"
-assert_has "NpcSqliteInit\(\);" "$NPC_CORE_FILE"
-assert_has "NpcSqliteHealthcheck\(\);" "$NPC_CORE_FILE"
-assert_has "NpcSqliteWriteBehindMarkDirty\(\);" "$NPC_CORE_FILE"
-assert_has "NpcSqliteWriteBehindShouldFlush\(" "$NPC_CORE_FILE"
+assert_has "NpcSqliteInit\(\);" "$NPC_LIFECYCLE_FILE"
+assert_has "NpcSqliteHealthcheck\(\);" "$NPC_LIFECYCLE_FILE"
+assert_has "NpcSqliteWriteBehindMarkDirty\(\);" "$NPC_QUEUE_FILE"
+assert_has "NpcSqliteWriteBehindShouldFlush\(" "$NPC_TICK_FILE"
 
+
+# Runtime wiring status for repo API (audit clarity).
+# Current expected mode: only state upsert is runtime-wired via write-behind.
+assert_has "NpcRepoUpsertNpcState\(" "$WB_FILE"
+
+count_runtime_calls() {
+  local pattern="$1"
+  local matches
+
+  matches=$(rg -n "$pattern" "$ROOT_DIR/src/modules/npc"/*.nss || true)
+  if [[ -z "$matches" ]]; then
+    echo "0"
+    return
+  fi
+
+  printf "%s\n" "$matches" | wc -l | tr -d " "
+}
+
+assert_runtime_call_count() {
+  local pattern="$1"
+  local expected="$2"
+  local actual
+
+  actual=$(count_runtime_calls "$pattern")
+  if [[ "$actual" != "$expected" ]]; then
+    echo "[FAIL] runtime wiring mismatch for '$pattern': expected $expected call(s) in src/modules/npc, got $actual"
+    exit 1
+  fi
+}
+
+assert_runtime_call_count "NpcRepoUpsertNpcState\(" "0"
+assert_runtime_call_count "NpcRepoFetchUnprocessedEvents\(" "0"
+assert_runtime_call_count "NpcRepoMarkEventProcessed\(" "0"
+assert_runtime_call_count "NpcRepoFetchDueSchedules\(" "0"
+
+echo "[OK] runtime wiring status: NpcRepoUpsertNpcState is used via write-behind include; events/schedules repo methods are contract-only"
 echo "[OK] NWNX SQLite contract checks passed"
