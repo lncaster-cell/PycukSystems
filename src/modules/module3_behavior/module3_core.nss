@@ -35,6 +35,174 @@ const string MODULE3_VAR_TICK_DEGRADED_STREAK = "module3_tick_degraded_streak";
 const string MODULE3_VAR_TICK_PROCESSED = "module3_tick_processed";
 const string MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS = "module3_queue_backlog_age_ticks";
 
+const int MODULE3_PENDING_STATUS_NONE = 0;
+const int MODULE3_PENDING_STATUS_QUEUED = 1;
+const int MODULE3_PENDING_STATUS_RUNNING = 2;
+const int MODULE3_PENDING_STATUS_PROCESSED = 3;
+const int MODULE3_PENDING_STATUS_DEFERRED = 4;
+const int MODULE3_PENDING_STATUS_DROPPED = 5;
+
+const string MODULE3_VAR_PENDING_PRIORITY = "module3_pending_priority";
+const string MODULE3_VAR_PENDING_REASON = "module3_pending_reason";
+const string MODULE3_VAR_PENDING_STATUS = "module3_pending_status";
+const string MODULE3_VAR_PENDING_UPDATED_TS = "module3_pending_updated_ts";
+
+string Module3QueueDepthKey(int nPriority);
+string Module3QueueSubjectKey(int nPriority, int nIndex);
+int Module3QueueGetDepthForPriority(object oArea, int nPriority);
+void Module3QueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
+void Module3QueueSyncTotals(object oArea);
+
+int Module3PendingNow()
+{
+    return GetCalendarYear() * 1000000 + GetCalendarMonth() * 10000 + GetCalendarDay() * 100 + GetTimeHour();
+}
+
+int Module3PendingIsActive(object oNpc)
+{
+    int nStatus;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return FALSE;
+    }
+
+    nStatus = GetLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS);
+    return nStatus == MODULE3_PENDING_STATUS_QUEUED
+        || nStatus == MODULE3_PENDING_STATUS_RUNNING
+        || nStatus == MODULE3_PENDING_STATUS_DEFERRED;
+}
+
+void Module3PendingTouch(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_TS, Module3PendingNow());
+}
+
+void Module3PendingSet(object oNpc, int nPriority, string sReason, int nStatus)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_PRIORITY, nPriority);
+    SetLocalString(oNpc, MODULE3_VAR_PENDING_REASON, sReason);
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS, nStatus);
+    Module3PendingTouch(oNpc);
+}
+
+void Module3PendingSetStatus(object oNpc, int nStatus)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS, nStatus);
+    Module3PendingTouch(oNpc);
+}
+
+void Module3PendingClear(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_PRIORITY);
+    DeleteLocalString(oNpc, MODULE3_VAR_PENDING_REASON);
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS);
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_TS);
+}
+
+int Module3QueueFindSubjectIndex(object oArea, int nPriority, object oSubject)
+{
+    int nDepth;
+    int nIndex;
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority);
+    nIndex = 1;
+    while (nIndex <= nDepth)
+    {
+        if (GetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex)) == oSubject)
+        {
+            return nIndex;
+        }
+        nIndex = nIndex + 1;
+    }
+
+    return -1;
+}
+
+void Module3QueueRemoveAt(object oArea, int nPriority, int nIndex)
+{
+    int nDepth;
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority);
+    if (nIndex < 1 || nIndex > nDepth)
+    {
+        return;
+    }
+
+    while (nIndex < nDepth)
+    {
+        SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex), GetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex + 1)));
+        nIndex = nIndex + 1;
+    }
+
+    DeleteLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth));
+    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+}
+
+int Module3QueueEnqueueRaw(object oArea, object oSubject, int nPriority)
+{
+    int nDepth;
+    int nTotal;
+
+    nTotal = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
+    if (nTotal >= MODULE3_QUEUE_MAX)
+    {
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_OVERFLOW_COUNT);
+        return FALSE;
+    }
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority) + 1;
+    SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth), oSubject);
+    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth);
+    Module3QueueSyncTotals(oArea);
+    return TRUE;
+}
+
+int Module3QueueCoalescePriority(int nExistingPriority, int nIncomingPriority, string sReason)
+{
+    int nPriority;
+
+    nPriority = nExistingPriority;
+    if (nIncomingPriority < nPriority)
+    {
+        nPriority = nIncomingPriority;
+    }
+
+    if (sReason == "damage")
+    {
+        if (nPriority == MODULE3_PRIORITY_NORMAL)
+        {
+            nPriority = MODULE3_PRIORITY_HIGH;
+        }
+        else if (nPriority == MODULE3_PRIORITY_HIGH)
+        {
+            nPriority = MODULE3_PRIORITY_CRITICAL;
+        }
+    }
+
+    return nPriority;
+}
+
 string Module3QueueDepthKey(int nPriority)
 {
     return "module3_queue_depth_" + IntToString(nPriority);
@@ -158,10 +326,13 @@ void Module3AreaStop(object oArea)
     Module3QueueClear(oArea);
 }
 
-int Module3QueueEnqueue(object oArea, object oSubject, int nPriority)
+int Module3QueueEnqueue(object oArea, object oSubject, int nPriority, string sReason)
 {
-    int nDepth;
-    int nTotal;
+    int nPendingStatus;
+    int nPendingPriority;
+    int nCoalescedPriority;
+    int nIndex;
+    int nNextStatus;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
@@ -173,18 +344,50 @@ int Module3QueueEnqueue(object oArea, object oSubject, int nPriority)
         nPriority = MODULE3_PRIORITY_NORMAL;
     }
 
-    nTotal = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
-    if (nTotal >= MODULE3_QUEUE_MAX)
+    nPendingStatus = GetLocalInt(oSubject, MODULE3_VAR_PENDING_STATUS);
+    if (Module3PendingIsActive(oSubject))
     {
-        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_OVERFLOW_COUNT);
+        nPendingPriority = GetLocalInt(oSubject, MODULE3_VAR_PENDING_PRIORITY);
+        nCoalescedPriority = Module3QueueCoalescePriority(nPendingPriority, nPriority, sReason);
+        nNextStatus = nPendingStatus;
+
+        if (nPendingStatus == MODULE3_PENDING_STATUS_QUEUED)
+        {
+            nIndex = Module3QueueFindSubjectIndex(oArea, nPendingPriority, oSubject);
+            if (nIndex > 0)
+            {
+                if (nCoalescedPriority != nPendingPriority)
+                {
+                    Module3QueueRemoveAt(oArea, nPendingPriority, nIndex);
+                    if (!Module3QueueEnqueueRaw(oArea, oSubject, nCoalescedPriority))
+                    {
+                        Module3PendingSet(oSubject, nCoalescedPriority, sReason, MODULE3_PENDING_STATUS_DROPPED);
+                        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
+                        return FALSE;
+                    }
+                }
+            }
+            else if (!Module3QueueEnqueueRaw(oArea, oSubject, nCoalescedPriority))
+            {
+                Module3PendingSet(oSubject, nCoalescedPriority, sReason, MODULE3_PENDING_STATUS_DROPPED);
+                Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
+                return FALSE;
+            }
+        }
+
+        Module3PendingSet(oSubject, nCoalescedPriority, sReason, nNextStatus);
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_COALESCED_COUNT);
+        return TRUE;
+    }
+
+    if (!Module3QueueEnqueueRaw(oArea, oSubject, nPriority))
+    {
+        Module3PendingSet(oSubject, nPriority, sReason, MODULE3_PENDING_STATUS_DROPPED);
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
         return FALSE;
     }
 
-    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority) + 1;
-    SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth), oSubject);
-    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth);
-
-    Module3QueueSyncTotals(oArea);
+    Module3PendingSet(oSubject, nPriority, sReason, MODULE3_PENDING_STATUS_QUEUED);
     Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
 }
@@ -353,13 +556,38 @@ int Module3QueueProcessOne(object oArea)
     oSubject = Module3QueueDequeueFromPriority(oArea, nPriority);
     if (!GetIsObjectValid(oSubject))
     {
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
+        return;
+    }
+
+    Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_RUNNING);
+
+    if (GetArea(oSubject) != oArea)
+    {
+        Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_DEFERRED);
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
-        return FALSE;
+
+        if (!Module3QueueEnqueueRaw(oArea, oSubject, nPriority))
+        {
+            Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_DROPPED);
+            Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
+            return;
+        }
+
+        Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_QUEUED);
+        return;
     }
 
     Module3ActivityOnIdleTick(oSubject);
-    Module3MetricInc(oArea, MODULE3_METRIC_PROCESSED_TOTAL);
-    return TRUE;
+    if (GetIsObjectValid(oSubject))
+    {
+        Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_PROCESSED);
+        Module3PendingClear(oSubject);
+        return;
+    }
+
+    Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_DROPPED);
+    Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
 }
 
 void Module3OnAreaTick(object oArea)
@@ -491,7 +719,7 @@ void Module3OnPerception(object oNpc)
 
     Module3MetricInc(oNpc, MODULE3_METRIC_PERCEPTION_COUNT);
     oArea = GetArea(oNpc);
-    Module3QueueEnqueue(oArea, oNpc, MODULE3_PRIORITY_HIGH);
+    Module3QueueEnqueue(oArea, oNpc, MODULE3_PRIORITY_HIGH, "perception");
 }
 
 void Module3OnDamaged(object oNpc)
@@ -505,7 +733,7 @@ void Module3OnDamaged(object oNpc)
 
     Module3MetricInc(oNpc, MODULE3_METRIC_DAMAGED_COUNT);
     oArea = GetArea(oNpc);
-    Module3QueueEnqueue(oArea, oNpc, MODULE3_PRIORITY_CRITICAL);
+    Module3QueueEnqueue(oArea, oNpc, MODULE3_PRIORITY_CRITICAL, "damage");
 }
 
 void Module3OnDeath(object oNpc)
