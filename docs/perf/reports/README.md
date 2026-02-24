@@ -35,3 +35,12 @@
 3. Псевдозначения (`WORKTREE`, `N/A`, `UNKNOWN`, `TBD`) запрещены для current baseline и archive baseline.
 4. Для минимизации ручных ошибок используйте `scripts/run_npc_bench.sh`: скрипт автоматически подставляет SHA в baseline-отчёт, если находит псевдозначение.
 
+## Правило синхронизации статус-блоков при обновлении baseline
+
+При любом обновлении `docs/perf/npc_baseline_report.md` обязательно в том же PR синхронизируйте status-блоки:
+- `docs/design.md` (раздел `7.4`, checklist `Perf-gate пороги не нарушены относительно baseline`),
+- `src/modules/npc/README.md` (раздел `Current readiness snapshot`, пункт `Perf baseline/perf-gate`).
+
+Source-of-truth для финального gate-статуса: `docs/perf/npc_baseline_report.md` (раздел `6. Вывод (go/no-go)`) + latest gate report (`docs/perf/reports/*_npc_gate_report.md` или `docs/perf/reports/npc_gate_summary_latest.md`).
+
+Статическая проверка контракта: `bash scripts/check_npc_perf_status_contract.sh` — скрипт должен проходить перед merge и падать при расхождении baseline vs design checklist.
