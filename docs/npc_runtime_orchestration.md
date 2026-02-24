@@ -1,193 +1,118 @@
 # NPC Runtime Orchestration
 
+Документ фиксирует **актуальный runtime-контракт** оркестрации NPC на текущей реализации в `src/modules/npc/`.
 
-Документ фиксирует runtime-контракт оркестрации NPC для area-local контроллеров: как они живут, как дозируют нагрузку, как обеспечивают fairness и как деградируют без потери критических событий.
+## 1. Архитектурный контур
 
-> Примечание по расположению кода: active production runtime-скрипты оркестрации находятся в `src/modules/npc/`; этот каталог является единственным source of truth для runtime-поведения NPC.
+- Area-local lifecycle controller (`RUNNING/PAUSED/STOPPED`).
+- Bounded priority queue (`CRITICAL/HIGH/NORMAL/LOW`).
+- Budgeted tick pipeline (event budget + soft time budget).
+- Registry-based idle fan-out для фонового поведения NPC.
+- Maintenance watchdog для reconcile/compaction вне hot-path.
 
-## 1. Жизненный цикл area-controller
+## 2. Lifecycle области
 
-Каждая область (area) обслуживается отдельным `area-controller`, который имеет три базовых состояния:
+### Состояния
 
-- `RUNNING` — активная обработка очередей и тиковых задач;
-- `PAUSED` — контроллер не диспатчит обычные задачи, не поддерживает частый tick-loop (`1s`), но сохраняет метрики/состояние и может принимать критичные события;
-- `STOPPED` — контроллер выгружен, состояние сброшено до минимально необходимого для восстановления.
+- `RUNNING` — рабочий тиковый цикл (интервал 1s), queue drain, activity dispatch, write-behind flush.
+- `PAUSED` — редкий watchdog-тик (30s), состояние/метрики сохраняются.
+- `STOPPED` — таймеры сняты, queue/registry очищены, область деактивирована.
 
-### Переходы состояний
+### Переходы
 
-- **Старт (`START`)**
-  - Триггер: в область входит первый игрок, либо область помечена как always-on (`npc_area_always_on = TRUE`).
-  - Действия:
-    - инициализация очередей и бакетов;
-    - восстановление минимального runtime-состояния NPC;
-    - запуск тикового цикла с warmup-ограничением.
+- `Activate`:
+  - применение runtime-budget конфигов (`area cfg -> module cfg -> defaults`),
+  - warmup route cache,
+  - запуск `npc_area_tick` и `npc_area_maintenance`.
+- `Pause`:
+  - перевод в `PAUSED`,
+  - запуск maintenance watchdog.
+- `Stop`:
+  - maintenance pass,
+  - state=`STOPPED`,
+  - сброс maintenance/tick flags,
+  - invalidate route cache,
+  - reset idle cursor,
+  - clear queue.
 
-- В `PAUSED` допускается только редкий watchdog-тик (отдельный интервал, по умолчанию `30s`) и отдельная метрика `paused_watchdog_tick_count`, чтобы не смешивать его с рабочим `RUNNING` loop.
-- Тяжёлый full-reconcile deferred-очереди выполняется в отдельном maintenance loop (`npc_area_maintenance`) по редкому watchdog-таймеру и на переходах состояния area (`pause/resume/stop`), а не в каждом runtime-цикле.
+## 3. Тиковая оркестрация (`npc_area_tick`)
 
-- **Пауза (`PAUSE`)**
-  - Триггер: в области нет игроков дольше `idlePauseAfter` (local `npc_area_idle_pause_after_sec`, default 30s); при обработке `OnAreaExit` пауза допускается только когда `active_pc_count == 0`.
-  - Действия:
-    - остановка heavy/non-critical dispatch;
-    - сохранение агрегированных метрик;
-    - перевод не-критичных входящих событий в defer-режим.
+В `RUNNING` применяется pipeline:
 
-- **Остановка (`STOP`)**
-  - Триггер: область в `PAUSED` дольше `idleStopAfter` (local `npc_area_idle_stop_after_sec`, default 180s) или инициирован unload/reload.
-  - Инвариант runtime-деактивации: area-controller переводится в `STOPPED` только при `active_pc_count == 0` (в т.ч. при обработке area `OnExit`).
-  - Действия:
-    - освобождение буферов и внутренних структур (очередь area и owner-slot state);
-    - reconciliation per-owner pending перед reset очереди, чтобы не оставлять dangling pending на NPC;
-    - нормализация degraded mode флага (`npc_area_degraded_mode = FALSE`), чтобы следующий `START` не наследовал stale-state;
-    - сохранение checkpoint состояния, достаточного для fast-resume;
-    - отписка от area-local таймеров.
+1. `Idle gate`: idle fan-out запускается только если `queue_pending_total <= 0`.
+2. `Budget prepare`: нормализация `tick_max_events`, `tick_soft_budget_ms`, `carryover`.
+3. `ProcessBudgetedWork`: dequeue/dispatch до исчерпания бюджетов.
+4. `ApplyDegradationAndCarryover`: фиксация degraded reason + carryover при pressure.
+5. `ReconcileDeferredAndTrim`: deferred reconcile и trim overflow.
+6. `Telemetry/flush/idle-stop`: метрики, write-behind flush, auto-stop при пустой очереди и отсутствии игроков.
 
-### Возобновление
+В `PAUSED` тикается watchdog, в `STOPPED` loop-флаг снимается.
 
-При новом входе игрока:
+## 4. Очередь, коалесc и fairness
 
-- `PAUSED -> RUNNING`: быстрый resume без полной реинициализации;
-- `STOPPED -> RUNNING`: cold start с восстановлением checkpoint и временным ограничением throughput, чтобы избежать startup-spike.
+### Queue
 
----
+- Capacity: `NPC_BHVR_QUEUE_MAX = 64`.
+- Duplicate enqueue не создаёт второй элемент: выполняется coalesce.
+- При coalesce приоритет пересчитывается через escalation.
+- Для `damage` действует форс-эскалация до `CRITICAL`.
 
-## 2. Batch dispatch модель
+### Overflow guardrails
 
-### Параметры
+- Для non-critical входящих событий возможен controlled drop хвоста низшего bucket.
+- Для критичных сигналов применяется более строгий путь (без обычного non-critical вытеснения).
 
-- `bucketSize` — количество сущностей/задач в одном bucket для равномерной нарезки работы.
-- `batchDelay` — минимальная пауза между пакетами dispatch в пределах одного area-controller.
-- `queueCapacity` — максимальная ёмкость входной очереди событий на область.
-- `tickProcessLimit` — верхний лимит обработок за тик (абсолютный budget cap).
+### Fairness
 
-### Модель обработки
+- `CRITICAL` обрабатывается первым.
+- `HIGH/NORMAL/LOW` обслуживаются по cursor rotation.
+- Starvation guard (`streak limit`) принудительно ротацирует курсор при длительной серии.
 
-1. Intake складывает события в bounded queue (`queueCapacity`).
-2. Coalesce схлопывает дубликаты/серии по ключам (`npcId`, `eventType`, `window`).
-3. Dispatch берёт порции:
-   - не больше `bucketSize` за один micro-batch;
-   - не чаще, чем раз в `batchDelay`;
-   - суммарно не больше `tickProcessLimit` за тик.
-4. Остаток остаётся в очереди до следующего тика/батча.
+## 5. Registry и idle-поведение
 
-### Переполнение очереди
+- Registry хранит валидных NPC области (slot/index).
+- Budgeted idle broadcast обходит registry по курсору.
+- При queue pressure idle broadcast отключается на текущий тик.
+- Maintenance периодически compact-ит invalid registry entries.
 
-При достижении `queueCapacity`:
+## 6. Activity runtime
 
-- критичные события не отбрасываются: используется owner-aware вытеснение реального pending-элемента (`LOW -> NORMAL -> HIGH`) из bounded queue с синхронным обновлением area depth/buckets и pending-счётчиков владельца;
-- non-critical события не вытесняют чужие элементы и переводятся в defer/coalesce вместо немедленного исполнения;
-- фиксируется метрика перегрузки (`queue_overflow_count`, `deferred_count`).
+`NpcBhvrActivityOnIdleTick` — единая точка применения игрового поведения NPC:
 
----
+- slot/route resolution,
+- schedule-aware выбор слота,
+- waypoint progression и loop-policy,
+- cooldown и last-transition timestamps,
+- action/emote/activity_id для внешней интеграции команд поведения.
 
-## 2.1 Контракт tick-интервалов NPC
+Валидаторы route/tag ограничивают допустимые значения и включают deterministic fallback (`default_route`, `default`) при нарушении.
 
-Для `NpcBehaviorOnHeartbeat` и связанной проверки `should-process` используется секундная шкала без дробной части:
+## 7. Maintenance watchdog (`npc_area_maintenance`)
 
-- `npc_tick_interval_idle_sec` и `npc_tick_interval_combat_sec` задаются в целых секундах;
-- минимально допустимое значение интервала — `1`;
-- значения `< 1` считаются невалидными и нормализуются к дефолтам состояния (`idle=6`, `combat=2`);
-- сравнение "пора ли обрабатывать" выполняется в одной шкале `elapsed_seconds >= interval_seconds`.
+Периодические задачи:
 
+- reconcile `deferred_total`,
+- compact invalid registry entries,
+- self-heal консистентности area-local runtime состояния.
 
-### Контракт idle broadcast
+Вынесено из hot-path для снижения стоимости рабочего тика.
 
-- На каждом `RUNNING` area-tick idle fan-out запускается только при `queue_pending_total <= 0`: вызывается budgeted broadcast (`NpcBhvrRegistryBroadcastIdleTickBudgeted`) с бюджетом из `NpcBhvrTickResolveIdleBudget`.
-- Idle broadcast обходит только валидных NPC текущей области и вызывает `NpcBhvrActivityOnIdleTick` для поддержания фонового поведения в отсутствие событий очереди.
-- Если pending-очередь не пуста, idle broadcast в этом тике пропускается (gate по queue pressure): бюджет полностью резервируется под drain очереди и не конкурирует с event processing.
-- При срабатывании gate инкрементируется метрика `npc_metric_idle_skipped_queue_pressure_total`, а per-tick снимки idle (`npc_metric_idle_processed_per_tick`, `npc_metric_idle_remaining`) принудительно выставляются в `0`, чтобы не переносить значения с предыдущего тика.
+## 8. Наблюдаемость и деградация
 
-## 3. Fairness между областями и hot-area streak
+Система фиксирует:
 
-### Базовая fairness-политика
+- processed/pending/deferred/dropped,
+- queue overflow/coalesce/fairness guard,
+- tick budget exceeded/degraded mode,
+- last degradation reason,
+- idle throttling/idle skipped under pressure,
+- paused watchdog ticks.
 
-Глобальный оркестратор распределяет бюджет между областями по round-robin/weighted round-robin:
+Это позволяет эксплуатировать модуль как наблюдаемый production runtime-контур, а не как «чёрный ящик».
 
-- каждая активная область получает минимум `minAreaQuota`;
-- дополнительный бюджет выдаётся по приоритету backlog и критичности;
-- ни одна область не может бесконечно удерживать глобальный тик-бюджет.
+## 9. Связанный полный аудит
 
-### Hot-area streak
+Для подробной карты «механизм → где используется в игре» и развёрнутого описания всех подсистем см.:
 
-`hot-area streak` — ситуация, когда одна область много тиков подряд имеет максимальный backlog.
+- `docs/npc_behavior_audit.md`.
 
-Поведение системы:
-
-- для hot-area вводится `streakCap`: верхняя граница подряд идущих тиков с повышенной квотой;
-- после достижения `streakCap` применяется cooling-window:
-  - hot-area получает только базовую квоту;
-  - освободившийся бюджет распределяется между другими активными областями;
-- критичные события hot-area продолжают обслуживаться вне очереди в пределах reserve-бюджета.
-
-Итог: система предотвращает starvation «тихих» областей и при этом не теряет важные сигналы из горячей зоны.
-
----
-
-## 4. Приоритеты событий и деградация
-
-### Классы приоритета
-
-- `CRITICAL`: боевые и safety-критичные события, влияющие на корректность состояния.
-- `HIGH`: важные игровые реакции с заметным UX-эффектом.
-- `NORMAL`: штатные обновления поведения.
-- `LOW`: косметические/второстепенные задачи.
-
-### Гарантии
-
-- `CRITICAL` **не дропаются** даже при перегрузке (допускается owner-aware вытеснение low/non-critical и emergency reserve budget).
-- Для `HIGH/NORMAL/LOW` применяется graceful degradation:
-  - coalesce (объединение/дедупликация в non-critical окне);
-  - defer (перенос на следующие тики);
-  - без вытеснения чужих pending-элементов при overflow.
-
-### Режим деградации
-
-Когда метрики перегрузки превышают пороги (`queueFillRatio`, `tickOverrun`, `streakCap`), контроллер автоматически переключается в degraded mode:
-
-- non-critical задачи не исполняются немедленно, а переводятся в defer-очередь;
-- частота тяжёлых обработчиков снижается;
-- при нормализации метрик выполняется плавный выход из деградации без burst-догона.
-
----
-
-## 5. Минимальный псевдокод цикла
-
-```pseudo
-onTick(area):
-  budget = computeTickBudget(area)
-
-  # intake
-  incoming = pollIncomingEvents(area)
-  enqueueBounded(area.queue, incoming, queueCapacity)
-
-  # coalesce
-  coalesced = coalesceByKey(area.queue, window=coalesceWindow)
-  prioritized = prioritize(coalesced)  # CRITICAL > HIGH > NORMAL > LOW
-
-  # dispatch
-  processed = 0
-  while processed < tickProcessLimit and budget.hasTime():
-    batch = takeNextBatch(
-      prioritized,
-      maxItems=bucketSize,
-      minDelay=batchDelay,
-      fairnessToken=acquireFairnessToken(area)
-    )
-    if batch.isEmpty():
-      break
-
-    runHandlers(batch)
-    processed += batch.size
-
-  # metering
-  updateMetrics(area,
-    queueDepth=area.queue.size,
-    processed=processed,
-    deferred=countDeferred(prioritized),
-    dropped=countDropped(prioritized),
-    overrun=budget.overrun())
-
-  maybeToggleDegradedMode(area)
-```
-
-Этот цикл обязателен как минимальный контракт; конкретные оптимизации (например, многоуровневые очереди или adaptive `bucketSize`) могут добавляться без нарушения описанных гарантий.
