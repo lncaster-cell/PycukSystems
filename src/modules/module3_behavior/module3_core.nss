@@ -58,7 +58,7 @@ const int MODULE3_PENDING_STATUS_DROPPED = 5;
 const string MODULE3_VAR_PENDING_PRIORITY = "module3_pending_priority";
 const string MODULE3_VAR_PENDING_REASON = "module3_pending_reason";
 const string MODULE3_VAR_PENDING_STATUS = "module3_pending_status";
-const string MODULE3_VAR_PENDING_UPDATED_TS = "module3_pending_updated_ts";
+const string MODULE3_VAR_PENDING_UPDATED_AT = "module3_pending_updated_at";
 
 string Module3QueueDepthKey(int nPriority);
 string Module3QueueSubjectKey(int nPriority, int nIndex);
@@ -93,7 +93,7 @@ void Module3PendingTouch(object oNpc)
         return;
     }
 
-    SetLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_TS, Module3PendingNow());
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_AT, Module3PendingNow());
 }
 
 void Module3PendingSet(object oNpc, int nPriority, string sReason, int nStatus)
@@ -130,7 +130,7 @@ void Module3PendingClear(object oNpc)
     DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_PRIORITY);
     DeleteLocalString(oNpc, MODULE3_VAR_PENDING_REASON);
     DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS);
-    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_TS);
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_AT);
 }
 
 int Module3QueueFindSubjectIndex(object oArea, int nPriority, object oSubject)
@@ -203,14 +203,7 @@ int Module3QueueCoalescePriority(int nExistingPriority, int nIncomingPriority, s
 
     if (sReason == "damage")
     {
-        if (nPriority == MODULE3_PRIORITY_NORMAL)
-        {
-            nPriority = MODULE3_PRIORITY_HIGH;
-        }
-        else if (nPriority == MODULE3_PRIORITY_HIGH)
-        {
-            nPriority = MODULE3_PRIORITY_CRITICAL;
-        }
+        nPriority = MODULE3_PRIORITY_CRITICAL;
     }
 
     return nPriority;
@@ -770,7 +763,7 @@ int Module3QueueProcessOne(object oArea)
     if (!GetIsObjectValid(oSubject))
     {
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
-        return;
+        return TRUE;
     }
 
     Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_RUNNING);
@@ -779,15 +772,21 @@ int Module3QueueProcessOne(object oArea)
     {
         Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_DEFERRED);
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
-        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
-        return FALSE;
+        Module3PendingClear(oSubject);
+        return TRUE;
     }
 
     Module3PendingTouch(oArea, oSubject, nPriority, MODULE3_REASON_UNSPECIFIED, MODULE3_PENDING_STATUS_RUNNING);
     Module3ActivityOnIdleTick(oSubject);
-    Module3MetricInc(oArea, MODULE3_METRIC_PROCESSED_TOTAL);
-    Module3PendingTouch(oArea, oSubject, nPriority, MODULE3_REASON_UNSPECIFIED, MODULE3_PENDING_STATUS_PROCESSED);
-    Module3PendingClear(oArea, oSubject);
+    if (GetIsObjectValid(oSubject))
+    {
+        Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_PROCESSED);
+        Module3PendingClear(oSubject);
+        Module3MetricInc(oArea, MODULE3_METRIC_PROCESSED_TOTAL);
+        return TRUE;
+    }
+
+    Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
     return TRUE;
 }
 

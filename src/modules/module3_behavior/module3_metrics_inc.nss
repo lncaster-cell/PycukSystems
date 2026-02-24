@@ -12,11 +12,12 @@ const string MODULE3_METRIC_AREA_ENTER_COUNT = "module3_metric_area_enter_count"
 const string MODULE3_METRIC_AREA_EXIT_COUNT = "module3_metric_area_exit_count";
 const string MODULE3_METRIC_MODULE_LOAD_COUNT = "module3_metric_module_load_count";
 const string MODULE3_METRIC_QUEUE_OVERFLOW_COUNT = "module3_metric_queue_overflow_count";
-const string MODULE3_METRIC_QUEUE_COALESCED_COUNT = "module3_metric_queue_coalesced_count";
+// queue_deferred_count: запись завершена со статусом deferred (например, NPC покинул область до обработки).
 const string MODULE3_METRIC_QUEUE_DEFERRED_COUNT = "module3_metric_queue_deferred_count";
+// queue_dropped_count: запись завершена со статусом dropped (overflow или invalid subject).
 const string MODULE3_METRIC_QUEUE_DROPPED_COUNT = "module3_metric_queue_dropped_count";
 const string MODULE3_METRIC_QUEUE_ENQUEUED_COUNT = "module3_metric_queue_enqueued_count";
-// queue_coalesced_count: повторное событие схлопнуто в существующую pending-запись без дубля в очереди.
+// queue_coalesced_count: повторное событие обновило существующую pending-запись (coalescing, без дубликата).
 const string MODULE3_METRIC_QUEUE_COALESCED_COUNT = "module3_metric_queue_coalesced_count";
 const string MODULE3_METRIC_QUEUE_STARVATION_GUARD_TRIPS = "module3_metric_queue_starvation_guard_trips";
 
