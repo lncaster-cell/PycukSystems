@@ -21,7 +21,6 @@ HAS_CORE_PATTERNS=(
 NOT_CORE_PATTERNS=(
   '#include "controllers/lifecycle_controller"'
   'string NPC_VAR_AREA_ACTIVE = "nb_area_active";'
-  'string NPC_VAR_AREA_TIMER_RUNNING = "nb_area_timer_running";'
 )
 
 NOT_CTRL_PATTERNS=(
