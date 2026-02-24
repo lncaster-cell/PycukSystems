@@ -8,6 +8,7 @@ void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow);
 void NpcBhvrPendingSetStatusTrackedAt(object oArea, object oNpc, int nStatus, int nNow);
 void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow);
 void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow);
+void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta);
 
 #include "npc_queue_pending_inc"
 #include "npc_queue_index_inc"
@@ -103,7 +104,7 @@ object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
 
     DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
-    NpcBhvrQueueSyncTotals(oArea);
+    NpcBhvrQueueApplyTotalsDelta(oArea, -1);
 
     return oRemoved;
 }
@@ -125,7 +126,7 @@ int NpcBhvrQueueEnqueueRaw(object oArea, object oSubject, int nPriority)
     SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth), oSubject);
     NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nDepth);
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth);
-    NpcBhvrQueueSyncTotals(oArea);
+    NpcBhvrQueueApplyTotalsDelta(oArea, 1);
     return TRUE;
 }
 
@@ -231,6 +232,20 @@ void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth)
     SetLocalInt(oArea, NpcBhvrQueueDepthKey(nPriority), nDepth);
 }
 
+void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta)
+{
+    int nTotal;
+
+    nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH) + nDelta;
+    if (nTotal < 0)
+    {
+        nTotal = 0;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
+    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
+}
+
 void NpcBhvrQueueSyncTotals(object oArea)
 {
     int nTotal;
@@ -240,6 +255,9 @@ void NpcBhvrQueueSyncTotals(object oArea)
         + NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_NORMAL)
         + NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_LOW);
 
+    // Invariant: full resync is a guardrail/self-heal path only (maintenance,
+    // migration, or explicit corruption recovery). Hot-path queue mutations
+    // must keep totals by delta (+1/-1/0) to avoid repeated full scans.
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
 }
@@ -292,14 +310,15 @@ void NpcBhvrQueueClear(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
     NpcBhvrRegistryResetIdleCursor(oArea);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
-    NpcBhvrQueueSyncTotals(oArea);
+    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, 0);
+    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, 0);
 }
 
 
-void NpcBhvrQueueApplyDepthAndTotals(object oArea, int nPriority, int nDepth)
+void NpcBhvrQueueApplyDepthAndTotalsDelta(object oArea, int nPriority, int nDepth, int nDelta)
 {
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth);
-    NpcBhvrQueueSyncTotals(oArea);
+    NpcBhvrQueueApplyTotalsDelta(oArea, nDelta);
 }
 
 int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
@@ -314,7 +333,7 @@ int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
     nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority) + 1;
     SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth), oSubject);
     NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nDepth);
-    NpcBhvrQueueApplyDepthAndTotals(oArea, nPriority, nDepth);
+    NpcBhvrQueueApplyDepthAndTotalsDelta(oArea, nPriority, nDepth, 1);
     return TRUE;
 }
 
@@ -348,7 +367,7 @@ object NpcBhvrQueueSwapTailSubject(object oArea, int nPriority, int nIndex, int 
         NpcBhvrQueueIndexClear(oArea, oRemoved);
     }
 
-    NpcBhvrQueueApplyDepthAndTotals(oArea, nPriority, nDepth - 1);
+    NpcBhvrQueueApplyDepthAndTotalsDelta(oArea, nPriority, nDepth - 1, -1);
     return oRemoved;
 }
 
@@ -585,7 +604,7 @@ object NpcBhvrQueueDequeueFromPriority(object oArea, int nPriority)
         NpcBhvrQueueIndexClear(oArea, oSubject);
     }
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
-    NpcBhvrQueueSyncTotals(oArea);
+    NpcBhvrQueueApplyTotalsDelta(oArea, -1);
     return oSubject;
 }
 
