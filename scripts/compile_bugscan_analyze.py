@@ -42,19 +42,19 @@ def parse_log(log_path: Path) -> dict[str, Any]:
     source = ""
     exit_code = 0
     output_start: int | None = None
-    saw_exit_prefix = False
+    invalid_exit_code: str | None = None
 
     for idx, line in enumerate(lines):
         if line.startswith(SOURCE_PREFIX):
             source = line[len(SOURCE_PREFIX) :].strip()
         elif line.startswith(EXIT_PREFIX):
-            saw_exit_prefix = True
             raw_exit = line[len(EXIT_PREFIX) :].strip()
             if raw_exit:
                 try:
                     exit_code = int(raw_exit)
                 except ValueError:
                     exit_code = 1
+                    invalid_exit_code = raw_exit
         elif line.strip() == OUTPUT_MARKER:
             output_start = idx + 1
             break
@@ -70,16 +70,8 @@ def parse_log(log_path: Path) -> dict[str, Any]:
     if output_start is None:
         errors.append(f"log format error: missing marker {OUTPUT_MARKER}")
 
-    if saw_exit_prefix:
-        for line in lines:
-            if line.startswith(EXIT_PREFIX):
-                raw_exit = line[len(EXIT_PREFIX) :].strip()
-                if raw_exit:
-                    try:
-                        int(raw_exit)
-                    except ValueError:
-                        errors.append(f"log format error: invalid exit code '{raw_exit}'")
-                break
+    if invalid_exit_code is not None:
+        errors.append(f"log format error: invalid exit code '{invalid_exit_code}'")
 
     for line in output_lines:
         if WARNING_RE.search(line):
