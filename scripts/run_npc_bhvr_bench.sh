@@ -3,11 +3,11 @@ set -euo pipefail
 
 SCENARIO="${1:-steady}"
 RUNS="${RUNS:-3}"
-OUTPUT_ROOT="benchmarks/module3_baseline/results"
+OUTPUT_ROOT="benchmarks/npc_bhvr_baseline/results"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 OUT_DIR="${OUTPUT_ROOT}/${TIMESTAMP}"
 RAW_DIR="${OUT_DIR}/raw"
-FIXTURE_ROOT="docs/perf/fixtures/module3"
+FIXTURE_ROOT="docs/perf/fixtures/npc_bhvr"
 
 mkdir -p "${RAW_DIR}"
 
@@ -32,7 +32,7 @@ if [[ ! -f "${SOURCE_FIXTURE}" ]]; then
   exit 2
 fi
 
-echo "[INFO] Running Module 3 benchmark scaffolding"
+echo "[INFO] Running NPC Bhvr benchmark scaffolding"
 echo "[INFO] Scenario: ${SCENARIO}"
 echo "[INFO] Runs: ${RUNS}"
 echo "[INFO] Output: ${OUT_DIR}"
@@ -43,7 +43,7 @@ for i in $(seq 1 "${RUNS}"); do
 done
 
 cat > "${OUT_DIR}/summary.md" <<MD
-# Module 3 Baseline Summary
+# NPC Bhvr Baseline Summary
 
 - Timestamp: ${TIMESTAMP}
 - Scenario: ${SCENARIO}
@@ -54,7 +54,7 @@ cat > "${OUT_DIR}/summary.md" <<MD
 Run gate check for each generated CSV:
 
 \`\`\`bash
-python3 scripts/analyze_module3_fairness.py --input ${RAW_DIR}/run_1.csv
+python3 scripts/analyze_npc_bhvr_fairness.py --input ${RAW_DIR}/run_1.csv
 \`\`\`
 
 ## Next steps

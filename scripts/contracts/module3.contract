@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-# Placeholder contract profile for future Module 3 lifecycle integration.
-
-CONTRACT_NAME="Module 3 lifecycle contract (placeholder)"
-
-HAS_CTRL_PATTERNS=()
-HAS_CORE_PATTERNS=()
-NOT_CTRL_PATTERNS=()
-NOT_CORE_PATTERNS=()

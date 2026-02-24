@@ -1,4 +1,4 @@
-# Module 3 Implementation Backlog
+# NPC Bhvr Implementation Backlog
 
 Документ фиксирует **исполняемый** бэклог для старта третьего итогового модуля поведения NPC, который собирает лучшие runtime-паттерны из `tools/npc_behavior_system` и контентные примитивы из `tools/al_system`.
 
@@ -8,18 +8,18 @@
 
 - Runtime-контур текущей системы NPC: `tools/npc_behavior_system/`.
 - AL-материалы и activity-примитивы: `tools/al_system/`.
-- Стратегическая матрица решений для Module 3: `docs/module3_al_vs_npc_behavior_matrix.md`.
+- Стратегическая матрица решений для NPC Bhvr: `docs/npc_bhvr_al_vs_npc_behavior_matrix.md`.
 
 ---
 
 ## Phase A — Runtime Core (обязательно до feature-разработки)
 
-### Task A1 — Скелет Module 3 в `tools/`
+### Task A1 — Скелет NPC Bhvr в `tools/`
 - **Артефакты:**
-  - `src/modules/module3_behavior/module3_core.nss`
-  - `src/modules/module3_behavior/module3_metrics_inc.nss`
-  - `src/modules/module3_behavior/module3_activity_inc.nss`
-  - `src/modules/module3_behavior/README.md`
+  - `src/modules/npc_bhvr/npc_bhvr_core.nss`
+  - `src/modules/npc_bhvr/npc_bhvr_metrics_inc.nss`
+  - `src/modules/npc_bhvr/npc_bhvr_activity_inc.nss`
+  - `src/modules/npc_bhvr/README.md`
 - **Definition of Done:**
   - директория и базовые include-файлы добавлены;
   - README фиксирует thin-entrypoint правило;
@@ -27,7 +27,7 @@
 
 ### Task A2 — Area lifecycle контракт
 - **Артефакты:**
-  - функции lifecycle в `module3_core.nss` (`RUNNING/PAUSED/STOPPED`);
+  - функции lifecycle в `npc_bhvr_core.nss` (`RUNNING/PAUSED/STOPPED`);
   - совместимый контракт auto-start/idle-stop.
 - **Definition of Done:**
   - lifecycle переходы покрывают startup, pause, resume, stop;
@@ -36,7 +36,7 @@
 
 ### Task A3 — Priority queue и guardrails
 - **Артефакты:**
-  - bounded queue + приоритеты `CRITICAL/HIGH/NORMAL/LOW` в `module3_core.nss`.
+  - bounded queue + приоритеты `CRITICAL/HIGH/NORMAL/LOW` в `npc_bhvr_core.nss`.
 - **Definition of Done:**
   - overflow guardrails реализованы;
   - starvation-window контролируется метриками;
@@ -48,7 +48,7 @@
 
 ### Task B1 — Порт activity primitives
 - **Артефакты:**
-  - `module3_activity_inc.nss` с адаптированными AL activity primitives.
+  - `npc_bhvr_activity_inc.nss` с адаптированными AL activity primitives.
 - **Definition of Done:**
   - поддержаны slot activities/route-driven activity;
   - нет прямого копирования legacy keyspace (`al_*`) в runtime API;
@@ -68,36 +68,36 @@
 
 ### Task C1 — Единый metrics API
 - **Артефакты:**
-  - `module3_metrics_inc.nss`.
+  - `npc_bhvr_metrics_inc.nss`.
 - **Definition of Done:**
   - handlers не пишут `SetLocalInt` напрямую в entrypoints;
   - инкременты/агрегация идут через единый helper API;
-  - ключи метрик документированы в README Module 3.
+  - ключи метрик документированы в README NPC Bhvr.
 
 ### Task C2 — Perf-plan и baseline
 - **Артефакты:**
-  - `docs/perf/module3_perf_gate.md`
-  - `docs/perf/fixtures/module3/*`
+  - `docs/perf/npc_bhvr_perf_gate.md`
+  - `docs/perf/fixtures/npc_bhvr/*`
 - **Definition of Done:**
   - формализованы pass/fail пороги;
   - есть минимум 4 сценария (steady/burst/pause-resume stress + tick-budget degraded-mode);
-  - tick-budget сценарий проверяет `module3_tick_max_events` (max events per tick), `module3_tick_soft_budget_ms` (soft tick budget), детерминированный tail-carryover между тиками, `tick_budget_exceeded_total`, `degraded_mode_total`, `processed_total`, `pending_age_ms`;
+  - tick-budget сценарий проверяет `npc_bhvr_tick_max_events` (max events per tick), `npc_bhvr_tick_soft_budget_ms` (soft tick budget), детерминированный tail-carryover между тиками, `tick_budget_exceeded_total`, `degraded_mode_total`, `processed_total`, `pending_age_ms`;
   - baseline зафиксирован и не старше 14 дней для сравнения.
 
 ### Task C3 — Автоматизированные fairness/lifecycle проверки
 - **Артефакты:**
-  - `scripts/test_module3_fairness.sh`
+  - `scripts/test_npc_bhvr_fairness.sh`
   - (опционально) универсальный `scripts/check_lifecycle_contract.sh`.
 - **Definition of Done:**
   - starvation/pause-zero/post-resume drain проверки запускаются в один шаг;
   - check возвращает non-zero при нарушении контракта;
-  - тестовые команды задокументированы в README Module 3.
+  - тестовые команды задокументированы в README NPC Bhvr.
 
 ---
 
 ## Release readiness checklist для старта разработки
 
-- [ ] Создан базовый runtime-каркас Module 3 в `src/modules/module3_behavior/`.
+- [ ] Создан базовый runtime-каркас NPC Bhvr в `src/modules/npc_bhvr/`.
 - [ ] Зафиксированы lifecycle/queue/metrics контракты.
 - [ ] Подготовлен perf-gate документ и фикстуры.
 - [ ] Автоматизирован fairness/lifecycle self-check.

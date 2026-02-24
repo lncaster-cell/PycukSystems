@@ -24,7 +24,7 @@ scripts/contracts/<module_prefix>.contract
 ## Профили контрактов
 
 - `scripts/contracts/npc_behavior.contract` — текущий профиль проверок NPC.
-- `scripts/contracts/module3.contract` — пустой шаблон для будущего `module3_core.nss`.
+- `scripts/contracts/npc_bhvr.contract` — пустой шаблон для будущего `npc_bhvr_core.nss`.
 
 ## Примеры запуска
 
@@ -43,13 +43,13 @@ bash scripts/check_lifecycle_contract.sh \
 bash scripts/check_area_lifecycle_contract.sh
 ```
 
-### Module 3 (заготовка)
+### NPC Bhvr (заготовка)
 
 ```bash
 bash scripts/check_lifecycle_contract.sh \
-  tools/module3/module3_core.nss \
+  src/modules/npc_bhvr/npc_bhvr_core.nss \
   src/controllers/lifecycle_controller.nss \
-  module3
+  npc_bhvr
 ```
 
-Пока профиль `module3.contract` пустой, проверка только подтверждает валидность путей и загрузку профиля.
+Пока профиль `npc_bhvr.contract` пустой, проверка только подтверждает валидность путей и загрузку профиля.
