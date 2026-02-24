@@ -146,8 +146,9 @@ int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
 
     if (nStart == nEnd)
     {
-        // Полные сутки для роли.
-        return TRUE;
+        // Защита от неявного always-on при незаполненных окнах расписания
+        // (GetLocalInt по отсутствующему ключу возвращает 0).
+        return FALSE;
     }
 
     // Non-wrapping window.
