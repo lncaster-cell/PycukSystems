@@ -10,6 +10,7 @@ LONG_BURST_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_long_burst.
 PAUSE_RESUME_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_resume_fault_injection.csv"
 RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_violation.csv"
 RESUME_DRAIN_EOF_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_eof_violation.csv"
+NO_RUNNING_ROWS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_no_running_rows.csv"
 
 expect_fail() {
   local description="$1"
@@ -81,5 +82,11 @@ expect_fail "post-resume drain latency threshold at EOF" \
     --enforce-pause-zero \
     --min-resume-transitions 1 \
     --max-post-resume-drain-ticks 0
+
+expect_fail "input without RUNNING rows" \
+  python3 "$ANALYZER" \
+    --input "$NO_RUNNING_ROWS_FIXTURE" \
+    --max-starvation-window 4 \
+    --buckets LOW,NORMAL
 
 echo "[OK] analyzer self-tests passed"

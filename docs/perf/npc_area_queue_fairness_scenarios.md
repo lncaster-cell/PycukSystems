@@ -73,6 +73,8 @@ python3 scripts/analyze_area_queue_fairness.py \
 
 Контракт CSV: все используемые числовые поля (`tick` и любые задействованные `processed_*`) должны быть валидными `int`. При нечисловом значении анализатор завершает работу fail-fast с кодом `2` и сообщением вида `[FAIL] invalid numeric value ...`.
 
+Контракт lifecycle-state: входной профиль обязан содержать хотя бы одну строку с `lifecycle_state=RUNNING`; если `RUNNING`-строки отсутствуют, анализатор завершает работу с кодом `2` и сообщением `[FAIL] no RUNNING rows in input`.
+
 ### Рекомендованные профили для «следующего шага» Task 3.2
 
 Два минимальных fixture-профиля покрывают длительный burst и fault-injection на pause/resume:
@@ -98,4 +100,4 @@ python3 scripts/analyze_area_queue_fairness.py \
 - `--min-resume-transitions` — гарантирует, что профиль действительно содержит нужное число циклов pause/resume.
 - `--max-post-resume-drain-ticks` — ограничивает число `RUNNING` тиков после resume до первой обработки отслеживаемых bucket.
 
-Для локальной регрессии CLI-проверок используйте `bash scripts/test_area_queue_fairness_analyzer.sh` — он проверяет как pass-профили, так и ожидаемые fail-кейсы (pause-zero, минимальные resume-переходы и post-resume drain latency).
+Для локальной регрессии CLI-проверок используйте `bash scripts/test_area_queue_fairness_analyzer.sh` — он проверяет как pass-профили, так и ожидаемые fail-кейсы (pause-zero, минимальные resume-переходы, post-resume drain latency и отсутствие `RUNNING`-строк).
