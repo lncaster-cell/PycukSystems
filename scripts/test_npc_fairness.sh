@@ -12,8 +12,9 @@ DECIMAL_LATENCY_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/steady_decimal_latency
 NON_FINITE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/non_finite_latency_fail.csv"
 
 RESULTS=()
-LOG_FILE="$(mktemp)"
-trap 'rm -f "$LOG_FILE"' EXIT
+LOG_FILE="/tmp/npc_fairness_check.log"
+RUN_RC=0
+RUN_LAST_LINE=""
 
 record_result() {
   local guardrail="$1"
@@ -23,31 +24,56 @@ record_result() {
   RESULTS+=("${guardrail}|${scenario_id}|${status}|${details}")
 }
 
-run_expect_pass() {
-  local guardrail="$1"
-  local scenario_id="$2"
-  shift 2
-  if "$@" >"$LOG_FILE" 2>&1; then
-    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 "$LOG_FILE" || echo ok)"
-  else
-    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 "$LOG_FILE" || echo failed)"
-    echo "[DEBUG] log file: $LOG_FILE"
-    cat "$LOG_FILE"
-    return 1
+run_and_capture() {
+  local log_file="$1"
+  shift
+
+  set +e
+  "$@" >"$log_file" 2>&1
+  RUN_RC=$?
+  set -e
+
+  RUN_LAST_LINE="$(tail -n1 "$log_file" 2>/dev/null || true)"
+  if [[ -z "$RUN_LAST_LINE" ]]; then
+    RUN_LAST_LINE="(no output)"
   fi
 }
 
+run_expect_pass() {
+  run_expect "pass" "$@"
+}
+
 run_expect_fail() {
-  local guardrail="$1"
-  local scenario_id="$2"
-  shift 2
-  if "$@" >"$LOG_FILE" 2>&1; then
-    record_result "${guardrail}" "${scenario_id}" "FAIL" "expected failure but command passed"
-    echo "[DEBUG] log file: $LOG_FILE"
+  run_expect "fail" "$@"
+}
+
+run_expect() {
+  local mode="$1"
+  local guardrail="$2"
+  local scenario_id="$3"
+  shift 3
+
+  run_and_capture "$LOG_FILE" "$@"
+
+  if [[ "$mode" == "pass" ]]; then
+    if [[ $RUN_RC -eq 0 ]]; then
+      record_result "$guardrail" "$scenario_id" "PASS" "$RUN_LAST_LINE"
+      return 0
+    fi
+
+    record_result "$guardrail" "$scenario_id" "FAIL" "$RUN_LAST_LINE"
     cat "$LOG_FILE"
     return 1
   fi
-  record_result "${guardrail}" "${scenario_id}" "PASS" "expected failure observed"
+
+  if [[ $RUN_RC -ne 0 ]]; then
+    record_result "$guardrail" "$scenario_id" "PASS" "expected failure observed: $RUN_LAST_LINE"
+    return 0
+  fi
+
+  record_result "$guardrail" "$scenario_id" "FAIL" "expected failure but command passed"
+  cat "$LOG_FILE"
+  return 1
 }
 
 run_expect_pass "automated_fairness" "steady" \
@@ -86,25 +112,27 @@ run_expect_fail "automated_fairness" "burst" \
     --max-post-resume-drain-ticks 1 \
     --min-resume-transitions 2
 
-if gate_output="$(python3 "$GATE_ANALYZER" --input "$DECIMAL_LATENCY_FIXTURE")"; then
-  if [[ "$gate_output" == *"[OK] NPC Bhvr gate checks passed"* ]]; then
+run_and_capture "$LOG_FILE" python3 "$GATE_ANALYZER" --input "$DECIMAL_LATENCY_FIXTURE"
+if [[ $RUN_RC -eq 0 ]]; then
+  if [[ "$RUN_LAST_LINE" == *"[OK] NPC Bhvr gate checks passed"* ]]; then
     record_result "tick_budget_degraded" "steady" "PASS" "decimal latency fixture accepted"
   else
     record_result "tick_budget_degraded" "steady" "FAIL" "missing OK marker in gate analyzer output"
-    echo "$gate_output"
+    cat "$LOG_FILE"
     exit 1
   fi
 else
   record_result "tick_budget_degraded" "steady" "FAIL" "gate analyzer returned non-zero"
+  cat "$LOG_FILE"
   exit 1
 fi
 
-non_finite_output="$(python3 "$GATE_ANALYZER" --input "$NON_FINITE_FAIL_FIXTURE" 2>&1 || true)"
-if [[ "$non_finite_output" == *"[FAIL] invalid numeric value (row index=1, column name=area_tick_latency_ms, raw value='nan')"* ]]; then
+run_and_capture "$LOG_FILE" python3 "$GATE_ANALYZER" --input "$NON_FINITE_FAIL_FIXTURE"
+if [[ $RUN_RC -ne 0 ]] && [[ "$RUN_LAST_LINE" == *"[FAIL] invalid numeric value (row index=1, column name=area_tick_latency_ms, raw value='nan')"* ]]; then
   record_result "tick_budget_degraded" "fault-non-finite-latency" "PASS" "invalid numeric guardrail fired"
 else
   record_result "tick_budget_degraded" "fault-non-finite-latency" "FAIL" "expected invalid numeric failure missing"
-  echo "$non_finite_output"
+  cat "$LOG_FILE"
   exit 1
 fi
 
