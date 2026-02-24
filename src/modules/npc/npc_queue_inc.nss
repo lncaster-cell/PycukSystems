@@ -305,16 +305,6 @@ void NpcBhvrQueueApplyDepthAndTotals(object oArea, int nPriority, int nDepth)
 int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
-    int nTotal;
-    int nIndex;
-    int nExistingPriority;
-    int nEscalatedPriority;
-    int bWasPendingActive;
-    int nIndexedPriority;
-    int nIndexedPosition;
-    int nNow;
-    object oIndexedSubject;
-    object oTail;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
