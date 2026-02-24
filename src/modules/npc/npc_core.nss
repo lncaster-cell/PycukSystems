@@ -83,6 +83,9 @@ const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 const string NPC_BHVR_VAR_IDLE_CURSOR = "npc_idle_cursor";
 const int NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT = 12;
+const int NPC_BHVR_IDLE_MAX_NPC_PER_TICK_MIN = 1;
+const int NPC_BHVR_IDLE_ADAPTIVE_THRESHOLD_DIVISOR = 2;
+const int NPC_BHVR_IDLE_ADAPTIVE_CARRYOVER_WEIGHT = 2;
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
 const string NPC_BHVR_VAR_PLAYER_COUNT = "npc_player_count";
@@ -137,6 +140,21 @@ void NpcBhvrOnSpawn(object oNpc)
 void NpcBhvrOnPerception(object oNpc)
 {
     NpcBhvrOnPerceptionImpl(oNpc);
+}
+
+void NpcBhvrOnDamaged(object oNpc)
+{
+    NpcBhvrOnDamagedImpl(oNpc);
+}
+
+void NpcBhvrOnDeath(object oNpc)
+{
+    NpcBhvrOnDeathImpl(oNpc);
+}
+
+void NpcBhvrOnDialogue(object oNpc)
+{
+    NpcBhvrOnDialogueImpl(oNpc);
 }
 
 void NpcBhvrOnAreaEnter(object oArea, object oEntering)

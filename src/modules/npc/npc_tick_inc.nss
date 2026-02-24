@@ -265,6 +265,9 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
 
     nSpentEvents = 0;
     nSpentBudgetMs = 0;
+    // Tick-stage timestamp snapshot: reused across this budgeted loop to avoid
+    // per-iteration clock reads and keep queue status transitions aligned.
+    nNow = NpcBhvrPendingNow();
 
     while (TRUE)
     {
@@ -281,7 +284,6 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
             break;
         }
 
-        nNow = NpcBhvrPendingNow();
         if (!NpcBhvrQueueProcessOne(oArea, nNow))
         {
             break;
@@ -497,6 +499,59 @@ void NpcBhvrTickHandleBacklogTelemetry(object oArea, int nPendingAfter)
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
 }
 
+int NpcBhvrTickResolveIdleBudget(object oArea, int nPendingTotal)
+{
+    int nBaseBudget;
+    int nMaxEvents;
+    int nSoftBudgetMs;
+    int nCarryoverEvents;
+    int nThreshold;
+    int nBudget;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT;
+    }
+
+    nBaseBudget = NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT;
+    nMaxEvents = NpcBhvrGetTickMaxEvents(oArea);
+    nSoftBudgetMs = NpcBhvrGetTickSoftBudgetMs(oArea);
+    nCarryoverEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS);
+
+    if (nCarryoverEvents < 0)
+    {
+        nCarryoverEvents = 0;
+    }
+
+    // Adaptive threshold ties idle throttling to runtime tick limits and current carryover pressure.
+    nThreshold = nMaxEvents + (nSoftBudgetMs / NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS) +
+        (nCarryoverEvents * NPC_BHVR_IDLE_ADAPTIVE_CARRYOVER_WEIGHT);
+
+    if (nThreshold < nBaseBudget)
+    {
+        nThreshold = nBaseBudget;
+    }
+
+    if (nPendingTotal > nThreshold)
+    {
+        nBudget = nBaseBudget - ((nPendingTotal - nThreshold) / NPC_BHVR_IDLE_ADAPTIVE_THRESHOLD_DIVISOR);
+        if (nBudget < NPC_BHVR_IDLE_MAX_NPC_PER_TICK_MIN)
+        {
+            nBudget = NPC_BHVR_IDLE_MAX_NPC_PER_TICK_MIN;
+        }
+
+        if (nBudget < nBaseBudget)
+        {
+            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_IDLE_BUDGET_THROTTLED_TOTAL);
+        }
+
+        return nBudget;
+    }
+
+    // Queue normalized: idle budget automatically returns to baseline.
+    return nBaseBudget;
+}
+
 void NpcBhvrTickHandleIdleStop(object oArea, int nPendingAfter)
 {
     int nPlayers;
@@ -530,4 +585,3 @@ void NpcBhvrTickScheduleNext(object oArea)
 
     SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
 }
-

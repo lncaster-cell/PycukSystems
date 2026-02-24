@@ -169,12 +169,10 @@ void NpcBhvrOnAreaTickImpl(object oArea)
         // 3) deferred trim/reconcile.
         // Это удерживает OnAreaTick тонким и выносит тяжёлую логику в малые функции.
         nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
-        if (nPendingBefore <= 0)
-        {
-            // Idle broadcast runs only when queue is empty: keeps ambient NPC activity alive
-            // without competing with queued event processing budget.
-            NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT);
-        }
+
+        // Idle budget is adaptive: under queue pressure we throttle registry idle fan-out,
+        // and when queue normalizes it automatically returns to base value.
+        NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NpcBhvrTickResolveIdleBudget(oArea, nPendingBefore));
 
         NpcBhvrTickPrepareBudgets(oArea);
         nMaxEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS);
@@ -290,6 +288,69 @@ void NpcBhvrOnPerceptionImpl(object oNpc)
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_PERCEPTION_COUNT);
     oArea = GetArea(oNpc);
     NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_HIGH, NPC_BHVR_REASON_PERCEPTION);
+}
+
+void NpcBhvrOnDamagedImpl(object oNpc)
+{
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DAMAGED_COUNT);
+    oArea = GetArea(oNpc);
+    NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_CRITICAL, NPC_BHVR_REASON_DAMAGE);
+}
+
+void NpcBhvrOnDeathImpl(object oNpc)
+{
+    object oArea;
+    int nFound;
+    int nFoundPriority;
+    int nFoundIndex;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DEATH_COUNT);
+
+    oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        NpcBhvrPendingNpcClear(oNpc);
+        return;
+    }
+
+    NpcBhvrRegistryRemove(oArea, oNpc);
+    nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oNpc);
+    while (nFound != 0)
+    {
+        nFoundPriority = nFound / 1000;
+        nFoundIndex = nFound - nFoundPriority * 1000;
+        NpcBhvrQueueSwapTailSubject(oArea, nFoundPriority, nFoundIndex, TRUE);
+        nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oNpc);
+    }
+
+    NpcBhvrPendingNpcClear(oNpc);
+    NpcBhvrPendingAreaClear(oArea, oNpc);
+}
+
+void NpcBhvrOnDialogueImpl(object oNpc)
+{
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DIALOGUE_COUNT);
+    oArea = GetArea(oNpc);
+    NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_NORMAL, NPC_BHVR_REASON_UNSPECIFIED);
 }
 
 void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)

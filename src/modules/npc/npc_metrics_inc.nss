@@ -41,6 +41,7 @@ const string NPC_BHVR_METRIC_PAUSED_WATCHDOG_TICK_COUNT = "npc_metric_paused_wat
 const string NPC_BHVR_METRIC_MAINT_SELF_HEAL_COUNT = "npc_metric_maintenance_self_heal_count";
 const string NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK = "npc_metric_idle_processed_per_tick";
 const string NPC_BHVR_METRIC_IDLE_REMAINING = "npc_metric_idle_remaining";
+const string NPC_BHVR_METRIC_IDLE_BUDGET_THROTTLED_TOTAL = "npc_metric_idle_budget_throttled_total";
 
 void NpcBhvrMetricSet(object oScope, string sMetric, int nValue)
 {
