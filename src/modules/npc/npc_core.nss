@@ -138,6 +138,21 @@ void NpcBhvrOnPerception(object oNpc)
     NpcBhvrOnPerceptionImpl(oNpc);
 }
 
+void NpcBhvrOnDamaged(object oNpc)
+{
+    NpcBhvrOnDamagedImpl(oNpc);
+}
+
+void NpcBhvrOnDeath(object oNpc)
+{
+    NpcBhvrOnDeathImpl(oNpc);
+}
+
+void NpcBhvrOnDialogue(object oNpc)
+{
+    NpcBhvrOnDialogueImpl(oNpc);
+}
+
 void NpcBhvrOnAreaEnter(object oArea, object oEntering)
 {
     NpcBhvrOnAreaEnterImpl(oArea, oEntering);
