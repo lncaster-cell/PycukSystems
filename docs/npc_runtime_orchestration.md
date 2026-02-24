@@ -22,7 +22,7 @@
     - запуск тикового цикла с warmup-ограничением.
 
 - **Пауза (`PAUSE`)**
-  - Триггер: в области нет игроков дольше `idlePauseAfter` (local `npc_area_idle_pause_after_sec`, default 30s).
+  - Триггер: в области нет игроков дольше `idlePauseAfter` (local `npc_area_idle_pause_after_sec`, default 30s); при обработке `OnAreaExit` пауза допускается только когда `active_pc_count == 0`.
   - Действия:
     - остановка heavy/non-critical dispatch;
     - сохранение агрегированных метрик;
