@@ -1639,9 +1639,12 @@ void NpcBhvrOnAreaTick(object oArea)
             SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
         }
 
-        if (NpcSqliteWriteBehindShouldFlush(NpcBhvrPendingNow(), NPC_SQLITE_WB_BATCH_SIZE_DEFAULT, NPC_SQLITE_WB_FLUSH_INTERVAL_SEC_DEFAULT))
+        // write-behind: фиксируем timestamp один раз на тик для консистентности
+        // (ShouldFlush/Flush работают с одним и тем же временем) и снижения накладных расходов.
+        int nNow = NpcBhvrPendingNow();
+        if (NpcSqliteWriteBehindShouldFlush(nNow, NPC_SQLITE_WB_BATCH_SIZE_DEFAULT, NPC_SQLITE_WB_FLUSH_INTERVAL_SEC_DEFAULT))
         {
-            NpcSqliteWriteBehindFlush(NpcBhvrPendingNow(), NPC_SQLITE_WB_BATCH_SIZE_DEFAULT);
+            NpcSqliteWriteBehindFlush(nNow, NPC_SQLITE_WB_BATCH_SIZE_DEFAULT);
         }
 
         // Auto-idle-stop: если в области нет игроков и нет pending, останавливаем loop.
