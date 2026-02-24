@@ -8,6 +8,7 @@ void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow);
 void NpcBhvrPendingSetStatusTrackedAt(object oArea, object oNpc, int nStatus, int nNow);
 void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow);
 void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow);
+void NpcBhvrPendingSetTrackedAtIntReason(object oArea, object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow);
 void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta);
 
 #include "npc_queue_pending_inc"
@@ -79,6 +80,7 @@ void NpcBhvrPendingNpcClear(object oNpc)
     // never as part of non-terminal deferred transitions. Terminal drop-paths
     // must clear both area-local and NPC-local pending state.
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY);
+    DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE);
     DeleteLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT);
@@ -528,7 +530,7 @@ void NpcBhvrQueuePostUpdateQueuedAt(object oArea, object oSubject, int nPriority
     }
     else
     {
-        NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
+        NpcBhvrPendingSetTrackedAtIntReason(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
     }
 }
 
@@ -558,7 +560,7 @@ int NpcBhvrQueueCoalesceSubjectAt(object oArea, object oSubject, int nFoundPrior
 void NpcBhvrQueueMarkDroppedOnEnqueueFailure(object oArea, object oSubject, int nPriority, int nReasonCode, int nNow)
 {
     NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
-    NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
+    NpcBhvrPendingSetTrackedAtIntReason(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
     NpcBhvrPendingNpcClear(oSubject);
     NpcBhvrPendingAreaClear(oArea, oSubject);
     NpcBhvrQueueIndexClear(oArea, oSubject);
@@ -624,7 +626,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     }
 
     NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
-    NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
+    NpcBhvrPendingSetTrackedAtIntReason(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
     NpcSqliteWriteBehindMarkDirty();
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
