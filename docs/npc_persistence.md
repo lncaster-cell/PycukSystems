@@ -205,7 +205,7 @@ Flush dirty-очереди выполняется при любом из усл�
 - Flush-trigger (таймер/батч): `NpcSqliteWriteBehindShouldFlush`.
 - Flush-операция: `NpcSqliteWriteBehindFlush`.
 - Graceful degradation при сериях ошибок: `NpcSqliteWriteBehindApplyWriteResult` + `npc_sqlite_wb_degraded_mode`.
-- Файл: `src/integrations/nwnx_sqlite/npc_writebehind_inc.nss`.
+- Файл: `src/integrations/nwnx_sqlite/npc_wb_inc.nss`.
 
 ### 6.4 Встраивание в NPC runtime
 - Модульная инициализация и healthcheck: `NpcBhvrOnModuleLoad` — `src/modules/npc/npc_core.nss`.
