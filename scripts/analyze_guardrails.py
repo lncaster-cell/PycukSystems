@@ -48,7 +48,7 @@ def analyze(path: Path) -> dict[str, str]:
         guardrail_all_ok = True
 
         for row in reader:
-            is_running = (row.get("lifecycle_state") or "").strip().upper() == "RUNNING"
+            is_running = (row.get("lifecycle_state") or "RUNNING").strip().upper() == "RUNNING"
             if is_running and (has_overflow or has_budget):
                 running_rows += 1
 
