@@ -1,5 +1,7 @@
 // Queue index + packed-location internals.
 
+string NpcBhvrPendingSubjectTag(object oSubject);
+
 string NpcBhvrQueueIndexKey(string sNpcKey)
 {
     return "npc_q_idx_" + sNpcKey;

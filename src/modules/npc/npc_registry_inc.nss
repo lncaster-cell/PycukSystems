@@ -1,5 +1,8 @@
 // NPC registry + player-count cache internals.
 
+string NpcBhvrPendingSubjectTag(object oSubject);
+string NpcBhvrPendingLegacySubjectTag(object oSubject);
+
 string NpcBhvrRegistrySlotKey(int nIndex)
 {
     return NPC_BHVR_VAR_REGISTRY_PREFIX + IntToString(nIndex);
