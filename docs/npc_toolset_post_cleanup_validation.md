@@ -1,5 +1,8 @@
 # NPC Toolset Post-Cleanup Validation
 
+_Обновлено: 2026-02-24._
+
+
 Документ фиксирует ручной проверочный сценарий после удаления toolset-derived логики из `npc_behavior_core.nss` и ожидаемое поведение.
 
 ## Контекст
