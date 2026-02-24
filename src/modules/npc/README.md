@@ -70,14 +70,23 @@ Tick/degraded telemetry в runtime включает:
   1) `npc_activity_route` на NPC (если явно задан);
   2) `npc_route_profile_slot_<slot>` на NPC;
   3) `npc_route_profile_default` на NPC;
-  4) `npc_route_profile_slot_<slot>` на area;
-  5) `npc_route_profile_default` на area;
+  4) area-level cache `npc_route_cache_slot_<slot>` (при первом обращении заполняется из area locals);
+  5) area-level cache `npc_route_cache_default`;
   6) `default_route`.
+- Lifecycle area cache:
+  - `routes_cached` (`0|1`) — признак валидного area-level cache;
+  - `routes_cache_version` — монотонная версия cache (увеличивается на invalidate/warmup-cycle);
+  - `NpcBhvrAreaRouteCacheWarmup` выполняет первичный prewarm при активации area-loop и идемпотентен при повторных вызовах (без полного re-scan);
+  - `NpcBhvrAreaRouteCacheInvalidate` очищает cache и переводит следующий resolve в controlled rescan/warmup.
+- Контракт idempotent warmup: повторные `OnEnter/Resolve` в той же area без invalidate должны приводить к cache hit-path, без роста `*_rescan_total`.
 - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями.
 - При отбрасывании невалидного route-id инкрементируются диагностические метрики:
   - `npc_metric_activity_invalid_route_total` — любой невалидный route в activity fallback-цепочке;
   - `npc_metric_activity_invalid_route_npc_local_total` — невалидный route найден в `NPC-local` источнике (`npc_activity_route`, `npc_route_profile_slot_<slot>`, `npc_route_profile_default` на NPC);
   - `npc_metric_activity_invalid_route_area_local_total` — невалидный route найден в `area-local` источнике (`npc_route_profile_slot_<slot>`, `npc_route_profile_default` на area).
+  - `npc_metric_route_cache_warmup_total` — количество успешных warmup-cycle;
+  - `npc_metric_route_cache_rescan_total` — количество полных area-rescan при пустом/инвалидированном cache;
+  - `npc_metric_route_cache_hit_ratio` — отношение hit/miss cache в процентах (`0..100`).
 - Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
   - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
   - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;

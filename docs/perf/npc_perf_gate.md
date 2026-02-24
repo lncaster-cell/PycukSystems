@@ -33,9 +33,9 @@
 - **PASS:** overflow фиксируется, loop стабилен, деградация диагностируема.
 - **FAIL:** переполнение не отражено в метриках или приводит к потере управления уже зарегистрированными NPC.
 
-## 2) Route cache warmup policy guardrail *(future/blocked)*
+## 2) Route cache warmup policy guardrail
 
-**Статус:** BLOCKED до внедрения route-cache в runtime `src/modules/npc/*`.
+**Статус:** ACTIVE — route-cache lifecycle внедрён в runtime `src/modules/npc/*`.
 
 **Цель:** исключить повторный дорогостоящий area scan после первичного warmup.
 
@@ -48,14 +48,20 @@
 ### Проверки
 
 - первый warmup может дать контролируемый latency spike;
-- `route_cache_warmup_total` увеличивается на первом прогреве;
-- `route_cache_rescan_total` не растёт на повторных входах;
-- `route_cache_hit_ratio` остаётся в ожидаемом диапазоне (например, `>= 0.95` после warmup).
+- `npc_metric_route_cache_warmup_total` увеличивается на первом прогреве;
+- `npc_metric_route_cache_rescan_total` не растёт на повторных входах без invalidate;
+- `npc_metric_route_cache_hit_ratio` остаётся в ожидаемом диапазоне (например, `>= 95` как integer percent после warmup).
 
 ### Gate
 
 - **PASS:** warmup однократный, повторные OnEnter не запускают полный re-scan.
 - **FAIL:** каждый вход запускает re-scan или hit ratio указывает на отсутствие рабочего cache.
+
+### Runtime status snapshot
+
+- **Warmup path:** PASS — cache прогревается при `NpcBhvrAreaActivate` и фиксирует первый warmup/rescan.
+- **Repeated enter path:** PASS — повторный route resolve без invalidate идёт по hit-path без роста `npc_metric_route_cache_rescan_total`.
+- **Invalidate + rescan path:** PASS — `NpcBhvrAreaRouteCacheInvalidate` сбрасывает cache, следующий resolve делает controlled rescan.
 
 ## 3) Silent degradation diagnostics guardrail *(future/blocked)*
 
@@ -83,7 +89,7 @@
 ## 4) Release gate integration checklist
 
 - [ ] Overflow сценарий добавлен в perf-прогон NPC Bhvr.
-- [ ] Warmup/rescan сценарий добавлен в perf-прогон NPC Bhvr *(BLOCKED: route cache ещё не внедрён)*.
+- [x] Warmup/rescan сценарий добавлен в perf-прогон NPC Bhvr.
 - [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон NPC Bhvr *(PARTIAL: telemetry готова, отсутствует полный набор fault-fixtures и прогон).*
 - [ ] Automated fairness checks добавлены в perf-прогон NPC Bhvr.
 - [ ] Tick budget/degraded-mode сценарий добавлен в perf-прогон NPC Bhvr.

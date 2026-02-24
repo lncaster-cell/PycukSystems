@@ -67,6 +67,8 @@ const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
+const string NPC_BHVR_VAR_ROUTES_CACHED = "routes_cached";
+const string NPC_BHVR_VAR_ROUTES_CACHE_VERSION = "routes_cache_version";
 
 const int NPC_BHVR_PENDING_STATUS_NONE = 0;
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
@@ -811,6 +813,7 @@ void NpcBhvrAreaActivate(object oArea)
     }
 
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
+    NpcBhvrAreaRouteCacheWarmup(oArea);
 
     // Contract: один area-loop на область.
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
@@ -839,6 +842,7 @@ void NpcBhvrAreaStop(object oArea)
     }
 
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
+    NpcBhvrAreaRouteCacheInvalidate(oArea);
     NpcBhvrQueueClear(oArea);
 }
 
@@ -1542,6 +1546,7 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
     if (!GetIsPC(oExiting))
     {
         NpcBhvrRegistryRemove(oArea, oExiting);
+        NpcBhvrAreaRouteCacheInvalidate(oArea);
         return;
     }
 
