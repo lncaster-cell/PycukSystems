@@ -25,6 +25,79 @@ void NpcBhvrAreaSetState(object oArea, int nState)
     SetLocalInt(oArea, NPC_BHVR_VAR_AREA_STATE, nState);
 }
 
+
+int NpcBhvrCountPlayersInArea(object oArea)
+{
+    object oIter;
+    int nPlayers;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    oIter = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oIter))
+    {
+        if (GetIsPC(oIter) && !GetIsDM(oIter))
+        {
+            nPlayers = nPlayers + 1;
+        }
+        oIter = GetNextObjectInArea(oArea);
+    }
+
+    return nPlayers;
+}
+
+int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
+{
+    object oIter;
+    int nPlayers;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    oIter = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oIter))
+    {
+        if (oIter != oExclude && GetIsPC(oIter) && !GetIsDM(oIter))
+        {
+            nPlayers = nPlayers + 1;
+        }
+        oIter = GetNextObjectInArea(oArea);
+    }
+
+    return nPlayers;
+}
+
+int NpcBhvrGetCachedPlayerCount(object oArea)
+{
+    int nPlayers;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    nPlayers = GetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT);
+    if (nPlayers < 0)
+    {
+        nPlayers = 0;
+    }
+
+    // Self-heal only: rebuild cache on first use (cold areas/module boot) or when value is suspicious.
+    if (!GetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED) || nPlayers > 1024)
+    {
+        nPlayers = NpcBhvrCountPlayersInArea(oArea);
+        SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+        SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+    }
+
+    return nPlayers;
+}
+
 void NpcBhvrAreaActivate(object oArea)
 {
     if (!GetIsObjectValid(oArea))
@@ -35,6 +108,7 @@ void NpcBhvrAreaActivate(object oArea)
     NpcBhvrApplyTickRuntimeConfig(oArea);
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrAreaRouteCacheWarmup(oArea);
+    NpcBhvrActivityOnAreaActivate(oArea);
     NpcBhvrSetTickMaxEvents(oArea, NpcBhvrGetTickMaxEvents(oArea));
     NpcBhvrSetTickSoftBudgetMs(oArea, NpcBhvrGetTickSoftBudgetMs(oArea));
 
@@ -191,4 +265,130 @@ void NpcBhvrBootstrapModuleAreasImpl()
         }
         oArea = GetNextArea();
     }
+}
+
+
+void NpcBhvrOnSpawnImpl(object oNpc)
+{
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_SPAWN_COUNT);
+    NpcBhvrActivityOnSpawn(oNpc);
+
+    oArea = GetArea(oNpc);
+    if (GetIsObjectValid(oArea))
+    {
+        NpcBhvrRegistryInsert(oArea, oNpc);
+        if (!NpcBhvrAreaIsRunning(oArea))
+        {
+            NpcBhvrAreaActivate(oArea);
+        }
+    }
+}
+
+void NpcBhvrOnPerceptionImpl(object oNpc)
+{
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_PERCEPTION_COUNT);
+    oArea = GetArea(oNpc);
+    NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_HIGH, NPC_BHVR_REASON_PERCEPTION);
+}
+
+void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
+{
+    int nPlayers;
+    int nEnteringType;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oEntering))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
+    if (!GetIsPC(oEntering))
+    {
+        nEnteringType = GetObjectType(oEntering);
+        if (nEnteringType != OBJECT_TYPE_CREATURE)
+        {
+            return;
+        }
+
+        NpcBhvrRegistryInsert(oArea, oEntering);
+        return;
+    }
+
+    if (GetIsDM(oEntering))
+    {
+        return;
+    }
+
+    nPlayers = NpcBhvrGetCachedPlayerCount(oArea) + 1;
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+
+    if (!NpcBhvrAreaIsRunning(oArea))
+    {
+        NpcBhvrAreaActivate(oArea);
+    }
+}
+
+void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
+{
+    int nPlayers;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oExiting))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_EXIT_COUNT);
+
+    if (!GetIsPC(oExiting))
+    {
+        NpcBhvrRegistryRemove(oArea, oExiting);
+        NpcBhvrAreaRouteCacheInvalidate(oArea);
+        return;
+    }
+
+    if (GetIsDM(oExiting))
+    {
+        return;
+    }
+
+    nPlayers = NpcBhvrGetCachedPlayerCount(oArea) - 1;
+    if (nPlayers < 0)
+    {
+        nPlayers = NpcBhvrCountPlayersInAreaExcluding(oArea, oExiting);
+        if (nPlayers < 0)
+        {
+            nPlayers = 0;
+        }
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+
+    if (nPlayers <= 0)
+    {
+        NpcBhvrAreaPause(oArea);
+    }
+}
+
+void NpcBhvrOnModuleLoadImpl()
+{
+    NpcSqliteInit();
+    NpcSqliteHealthcheck();
+    NpcBhvrMetricInc(GetModule(), NPC_BHVR_METRIC_MODULE_LOAD_COUNT);
+    NpcBhvrBootstrapModuleAreas();
 }
