@@ -37,6 +37,8 @@ const string NPC_BHVR_METRIC_PENDING_AGE_MS = "npc_metric_pending_age_ms";
 const string NPC_BHVR_METRIC_PAUSED_WATCHDOG_TICK_COUNT = "npc_metric_paused_watchdog_tick_count";
 // maintenance_self_heal_count: число self-heal правок deferred-total в maintenance loop.
 const string NPC_BHVR_METRIC_MAINT_SELF_HEAL_COUNT = "npc_metric_maintenance_self_heal_count";
+const string NPC_BHVR_METRIC_DEFERRED_COUNTER_CORRECTED_TOTAL = "npc_metric_deferred_counter_corrected_total";
+const string NPC_BHVR_METRIC_DEFERRED_RECONCILE_RUNS_TOTAL = "npc_metric_deferred_reconcile_runs_total";
 
 void NpcBhvrMetricAdd(object oScope, string sMetric, int nDelta)
 {

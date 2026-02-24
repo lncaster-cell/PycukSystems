@@ -63,6 +63,7 @@ const string NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG = "npc_area_maint_self_heal";
 const string NPC_BHVR_VAR_QUEUE_DEPTH = "npc_queue_depth";
 const string NPC_BHVR_VAR_QUEUE_PENDING_TOTAL = "npc_queue_pending_total";
 const string NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL = "npc_queue_deferred_total";
+const string NPC_BHVR_VAR_QUEUE_DEFERRED_DEPTH_PREFIX = "npc_queue_deferred_depth_";
 const string NPC_BHVR_VAR_QUEUE_CURSOR = "npc_queue_cursor";
 const string NPC_BHVR_VAR_FAIRNESS_STREAK = "npc_fairness_streak";
 const string NPC_BHVR_VAR_TICK_MAX_EVENTS = "npc_tick_max_events";
@@ -101,6 +102,7 @@ const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 // NpcBhvrQueueApplyOverflowGuardrail, NpcBhvrQueueCountDeferred,
 // NpcBhvrQueueGetDeferredTotalReconciledOnDemand, NpcBhvrQueueTrimDeferredOverflow.
 string NpcBhvrQueueDepthKey(int nPriority);
+string NpcBhvrQueueDeferredDepthKey(int nPriority);
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
 string NpcBhvrQueueIndexKey(string sNpcKey);
 int NpcBhvrQueueIndexPriority(object oArea, object oSubject);
@@ -109,6 +111,10 @@ void NpcBhvrQueueIndexClear(object oArea, object oSubject);
 void NpcBhvrQueueIndexSet(object oArea, object oSubject, int nPriority, int nIndex);
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
 void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
+int NpcBhvrQueueGetDeferredDepthForPriority(object oArea, int nPriority);
+void NpcBhvrQueueSetDeferredDepthForPriority(object oArea, int nPriority, int nDepth);
+void NpcBhvrQueueAdjustDeferredCounters(object oArea, int nPriority, int nDelta);
+string NpcBhvrMetricTrimmedByPriorityKey(int nPriority);
 void NpcBhvrQueueSyncTotals(object oArea);
 string NpcBhvrRegistrySlotKey(int nIndex);
 string NpcBhvrRegistryIndexKey(object oNpc);
@@ -335,7 +341,7 @@ void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal)
 void NpcBhvrPendingSetStatusTracked(object oArea, object oNpc, int nStatus)
 {
     int nPrevStatus;
-    int nDeferredTotal;
+    int nPriority;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc))
     {
@@ -343,15 +349,19 @@ void NpcBhvrPendingSetStatusTracked(object oArea, object oNpc, int nStatus)
     }
 
     nPrevStatus = GetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
+    nPriority = GetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY);
+    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW)
+    {
+        nPriority = NPC_BHVR_PRIORITY_LOW;
+    }
+
     if (nPrevStatus == NPC_BHVR_PENDING_STATUS_DEFERRED && nStatus != NPC_BHVR_PENDING_STATUS_DEFERRED)
     {
-        nDeferredTotal = NpcBhvrQueueGetDeferredTotal(oArea) - 1;
-        NpcBhvrQueueSetDeferredTotal(oArea, nDeferredTotal);
+        NpcBhvrQueueAdjustDeferredCounters(oArea, nPriority, -1);
     }
     else if (nPrevStatus != NPC_BHVR_PENDING_STATUS_DEFERRED && nStatus == NPC_BHVR_PENDING_STATUS_DEFERRED)
     {
-        nDeferredTotal = NpcBhvrQueueGetDeferredTotal(oArea) + 1;
-        NpcBhvrQueueSetDeferredTotal(oArea, nDeferredTotal);
+        NpcBhvrQueueAdjustDeferredCounters(oArea, nPriority, 1);
     }
 
     NpcBhvrPendingSetStatus(oNpc, nStatus);
@@ -483,6 +493,10 @@ object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
 
     DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+    if (GetIsObjectValid(oRemoved) && GetLocalInt(oRemoved, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
+    {
+        NpcBhvrQueueAdjustDeferredCounters(oArea, nPriority, -1);
+    }
     NpcBhvrQueueSyncTotals(oArea);
 
     return oRemoved;
@@ -670,6 +684,11 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea)
 string NpcBhvrQueueDepthKey(int nPriority)
 {
     return "npc_queue_depth_" + IntToString(nPriority);
+}
+
+string NpcBhvrQueueDeferredDepthKey(int nPriority)
+{
+    return NPC_BHVR_VAR_QUEUE_DEFERRED_DEPTH_PREFIX + IntToString(nPriority);
 }
 
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex)
@@ -978,6 +997,51 @@ void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth)
     SetLocalInt(oArea, NpcBhvrQueueDepthKey(nPriority), nDepth);
 }
 
+int NpcBhvrQueueGetDeferredDepthForPriority(object oArea, int nPriority)
+{
+    int nDeferredDepth;
+
+    nDeferredDepth = GetLocalInt(oArea, NpcBhvrQueueDeferredDepthKey(nPriority));
+    if (nDeferredDepth < 0)
+    {
+        nDeferredDepth = 0;
+    }
+
+    return nDeferredDepth;
+}
+
+void NpcBhvrQueueSetDeferredDepthForPriority(object oArea, int nPriority, int nDepth)
+{
+    if (nDepth < 0)
+    {
+        nDepth = 0;
+    }
+
+    SetLocalInt(oArea, NpcBhvrQueueDeferredDepthKey(nPriority), nDepth);
+}
+
+void NpcBhvrQueueAdjustDeferredCounters(object oArea, int nPriority, int nDelta)
+{
+    int nDeferredTotal;
+    int nDeferredDepth;
+
+    if (!GetIsObjectValid(oArea) || nDelta == 0)
+    {
+        return;
+    }
+
+    nDeferredDepth = NpcBhvrQueueGetDeferredDepthForPriority(oArea, nPriority) + nDelta;
+    NpcBhvrQueueSetDeferredDepthForPriority(oArea, nPriority, nDeferredDepth);
+
+    nDeferredTotal = NpcBhvrQueueGetDeferredTotal(oArea) + nDelta;
+    NpcBhvrQueueSetDeferredTotal(oArea, nDeferredTotal);
+}
+
+string NpcBhvrMetricTrimmedByPriorityKey(int nPriority)
+{
+    return "npc_metric_trimmed_by_priority_" + IntToString(nPriority);
+}
+
 void NpcBhvrQueueSyncTotals(object oArea)
 {
     int nTotal;
@@ -1016,6 +1080,7 @@ void NpcBhvrQueueClear(object oArea)
         }
 
         NpcBhvrQueueSetDepthForPriority(oArea, nPriority, 0);
+        NpcBhvrQueueSetDeferredDepthForPriority(oArea, nPriority, 0);
         nPriority = nPriority + 1;
     }
 
@@ -1387,11 +1452,6 @@ int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority)
 
     if (GetIsObjectValid(oDropped))
     {
-        if (GetLocalInt(oDropped, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
-        {
-            NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
-        }
-
         NpcBhvrPendingAreaTouch(oArea, oDropped, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
         NpcBhvrPendingNpcClear(oDropped);
         NpcBhvrPendingAreaClear(oArea, oDropped);
@@ -1471,11 +1531,41 @@ int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal)
 {
     int nDeferredActual;
     int nDeferredBefore;
+    int nPriority;
+    int nDepth;
+    int nIndex;
+    int nDeferredForPriority;
+    object oSubject;
 
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEFERRED_RECONCILE_RUNS_TOTAL);
     nDeferredBefore = NpcBhvrQueueGetDeferredTotal(oArea);
-    nDeferredActual = NpcBhvrQueueCountDeferred(oArea);
+    nDeferredActual = 0;
+
+    nPriority = NPC_BHVR_PRIORITY_CRITICAL;
+    while (nPriority <= NPC_BHVR_PRIORITY_LOW)
+    {
+        nDeferredForPriority = 0;
+        nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
+        nIndex = 1;
+        while (nIndex <= nDepth)
+        {
+            oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
+            if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
+            {
+                nDeferredForPriority = nDeferredForPriority + 1;
+            }
+
+            nIndex = nIndex + 1;
+        }
+
+        NpcBhvrQueueSetDeferredDepthForPriority(oArea, nPriority, nDeferredForPriority);
+        nDeferredActual = nDeferredActual + nDeferredForPriority;
+        nPriority = nPriority + 1;
+    }
+
     if (nDeferredActual != nDeferredBefore)
     {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEFERRED_COUNTER_CORRECTED_TOTAL);
         if (bMarkSelfHeal)
         {
             SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, TRUE);
@@ -1490,11 +1580,6 @@ int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal)
 
 int NpcBhvrQueueGetDeferredTotalReconciledOnDemand(object oArea)
 {
-    if (NpcBhvrQueueDeferredLooksDesynced(oArea))
-    {
-        return NpcBhvrQueueReconcileDeferredTotal(oArea, FALSE);
-    }
-
     return NpcBhvrQueueGetDeferredTotal(oArea);
 }
 
@@ -1503,6 +1588,7 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
     int nTrimmed;
     int nPriority;
     int nDepth;
+    int nDeferredDepth;
     int nIndex;
     object oSubject;
 
@@ -1511,29 +1597,33 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
         return 0;
     }
 
-    // Deferred trim is pressure-relief only; it intentionally permits swap-tail
-    // removal (non-FIFO) because relative deferred order is not semantically
-    // significant, unlike dequeue paths that must preserve FIFO ordering.
-
     nTrimmed = 0;
     nPriority = NPC_BHVR_PRIORITY_LOW;
     while (nPriority >= NPC_BHVR_PRIORITY_CRITICAL && nTrimmed < nTrimCount)
     {
+        nDeferredDepth = NpcBhvrQueueGetDeferredDepthForPriority(oArea, nPriority);
+        if (nDeferredDepth <= 0)
+        {
+            nPriority = nPriority - 1;
+            continue;
+        }
+
         nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
         nIndex = nDepth;
-        while (nIndex >= 1 && nTrimmed < nTrimCount)
+        while (nIndex >= 1 && nTrimmed < nTrimCount && nDeferredDepth > 0)
         {
             oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
             if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
             {
                 oSubject = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nIndex);
-                NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
                 NpcBhvrPendingNpcClear(oSubject);
                 NpcBhvrPendingAreaClear(oArea, oSubject);
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
+                NpcBhvrMetricInc(oArea, NpcBhvrMetricTrimmedByPriorityKey(nPriority));
                 NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE);
                 nTrimmed = nTrimmed + 1;
+                nDeferredDepth = nDeferredDepth - 1;
             }
 
             nIndex = nIndex - 1;
@@ -1541,8 +1631,6 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
 
         nPriority = nPriority - 1;
     }
-
-    NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea));
 
     return nTrimmed;
 }
@@ -1997,13 +2085,13 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
     nPendingAfter = NpcBhvrTickStatePendingAfter(nTickState);
     bQueueMutated = FALSE;
 
-    // Hot-path guard only: expensive full walk выполняется только если счётчик
-    // deferred выглядит рассинхронизированным.
+    // Hot-path: relies on incremental deferred counters.
     nDeferredCount = NpcBhvrQueueGetDeferredTotalReconciledOnDemand(oArea);
     if (nDeferredCount < 0)
     {
         nDeferredCount = 0;
         NpcBhvrQueueSetDeferredTotal(oArea, 0);
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEFERRED_COUNTER_CORRECTED_TOTAL);
         bQueueMutated = TRUE;
     }
 
