@@ -354,6 +354,7 @@ void NpcBhvrQueueRemoveAt(object oArea, int nPriority, int nIndex)
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
 }
 
+// Inserts into priority queue and guarantees totals refresh on successful insert.
 int NpcBhvrQueueEnqueueRaw(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
@@ -1007,7 +1008,6 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         return FALSE;
     }
 
-    NpcBhvrQueueSyncTotals(oArea);
     NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
     NpcBhvrPendingSet(oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
     NpcSqliteWriteBehindMarkDirty();
