@@ -4,18 +4,18 @@
 
 ## Include-модули
 
-- `npc_sqlite_api_inc.nss` — базовый DB API:
+- `npc_sql_api_inc.nss` — базовый DB API:
   - `NpcSqliteInit()`;
   - `NpcSqliteHealthcheck()` (обязательный smoke `SELECT 1;`);
   - `NpcSqliteSafeRead(string sQuery)` / `NpcSqliteSafeWrite(string sQuery)`;
   - `NpcSqliteNormalizeError(string sErrorRaw)`;
   - `NpcSqliteLogDbError(string sOperation, int nCode, string sErrorRaw, string sQuery)`.
-- `npc_persistence_repository_inc.nss` — repository-слой с SQL-константами и thin-функциями:
+- `npc_repo_inc.nss` — repository-слой с SQL-константами и thin-функциями:
   - `NpcRepoUpsertNpcState()`;
   - `NpcRepoFetchUnprocessedEvents()`;
   - `NpcRepoMarkEventProcessed()`;
   - `NpcRepoFetchDueSchedules()`.
-- `npc_writebehind_inc.nss` — минимальный write-behind контракт:
+- `npc_wb_inc.nss` — минимальный write-behind контракт:
   - dirty-очередь: `NpcSqliteWriteBehindMarkDirty()`, `NpcSqliteWriteBehindDirtyCount()`;
   - flush-trigger: `NpcSqliteWriteBehindShouldFlush(int nNowTs, int nBatchSize, int nFlushIntervalSec)`;
   - flush: `NpcSqliteWriteBehindFlush(int nNowTs, int nBatchSize)`;
@@ -38,12 +38,12 @@
 2. Любая DB-ошибка логируется только через `NpcSqliteLogDbError`.
 3. Healthcheck обязан использовать `SELECT 1;` через `NpcSqliteHealthcheck()`.
 4. При серии write-ошибок (`>=3`) write-behind переводится в degraded-mode (`npc_sqlite_wb_degraded_mode=TRUE`).
-5. SQL-строки для NPC persistence хранятся в repository include (`npc_persistence_repository_inc.nss`), а не в `npc_core.nss`.
+5. SQL-строки для NPC persistence хранятся в repository include (`npc_repo_inc.nss`), а не в `npc_core.nss`.
 
 ## Точки интеграции с NPC runtime
 
 - `src/modules/npc/npc_core.nss`:
-  - включает `npc_sqlite_api_inc` и `npc_writebehind_inc`;
+  - включает `npc_sql_api_inc` и `npc_wb_inc`;
   - на `NpcBhvrOnModuleLoad()` вызывает `NpcSqliteInit()` + `NpcSqliteHealthcheck()`;
   - на enqueue-событиях помечает dirty через `NpcSqliteWriteBehindMarkDirty()`;
   - в area tick запускает flush по таймеру/батчу через `NpcSqliteWriteBehindShouldFlush(...)`.

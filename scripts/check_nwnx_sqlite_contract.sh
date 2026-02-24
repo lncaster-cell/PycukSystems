@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SQLITE_API_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss"
-REPO_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_persistence_repository_inc.nss"
-WB_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_writebehind_inc.nss"
+SQLITE_API_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_sql_api_inc.nss"
+REPO_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_repo_inc.nss"
+WB_FILE="$ROOT_DIR/src/integrations/nwnx_sqlite/npc_wb_inc.nss"
 NPC_CORE_FILE="$ROOT_DIR/src/modules/npc/npc_core.nss"
 
 assert_has() {
@@ -40,8 +40,8 @@ assert_has "NPC_SQLITE_WB_WRITE_ERROR_STREAK_LIMIT" "$WB_FILE"
 assert_has "NPC_SQLITE_WB_DEGRADED_MODE" "$WB_FILE"
 
 # NPC runtime integration points.
-assert_has "#include \"npc_sqlite_api_inc\"" "$NPC_CORE_FILE"
-assert_has "#include \"npc_writebehind_inc\"" "$NPC_CORE_FILE"
+assert_has "#include \"npc_sql_api_inc\"" "$NPC_CORE_FILE"
+assert_has "#include \"npc_wb_inc\"" "$NPC_CORE_FILE"
 assert_has "NpcSqliteInit\(\);" "$NPC_CORE_FILE"
 assert_has "NpcSqliteHealthcheck\(\);" "$NPC_CORE_FILE"
 assert_has "NpcSqliteWriteBehindMarkDirty\(\);" "$NPC_CORE_FILE"

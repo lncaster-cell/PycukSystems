@@ -6,8 +6,8 @@
 
 #include "npc_metrics_inc"
 #include "npc_activity_inc"
-#include "npc_sqlite_api_inc"
-#include "npc_writebehind_inc"
+#include "npc_sql_api_inc"
+#include "npc_wb_inc"
 
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;
