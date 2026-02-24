@@ -60,6 +60,7 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     string sCustomAnims;
     string sNumericAnims;
     string sWaypointRequirement;
+    int nNow;
 
     nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRouteId);
     bLoop = NpcBhvrActivityResolveRouteLoop(oNpc, sRouteId);
@@ -74,9 +75,10 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     sCustomAnims = NpcBhvrActivityGetCustomAnims(nActivityId);
     sNumericAnims = NpcBhvrActivityGetNumericAnims(nActivityId);
     sWaypointRequirement = NpcBhvrActivityGetWaypointTagRequirement(nActivityId);
+    nNow = NpcBhvrPendingNow();
 
     NpcBhvrActivityAdapterStampTransition(oNpc, sState);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown + nPauseTicks);
+    NpcBhvrActivitySetCooldownTicks(oNpc, nCooldown + nPauseTicks, nNow);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bLoop);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex(nWpIndex + 1, nWpCount, bLoop));
@@ -90,4 +92,3 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner(nActivityId));
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair(nActivityId));
 }
-
