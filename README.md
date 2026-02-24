@@ -17,6 +17,7 @@
 
 Операционный статус и readiness-детали:
 - runtime readiness: `src/modules/npc/README.md`;
+- ограничения длины идентификаторов и safe-лимиты NWN2: `src/modules/npc/README.md#ограничения-длины-идентификаторов-nwn2-и-safe-лимиты`;
 - execution backlog и этапы: `docs/npc_implementation_backlog.md`;
 - baseline/perf gate: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/npc_gate_summary_latest.md`.
 
