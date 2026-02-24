@@ -109,9 +109,9 @@ def numeric_anims(activity: int) -> str:
         return "10"
     return ""
 
-assert_eq(custom_anims(1), "lookleft, lookright", "ambientlivev2 custom anims act_one")
-assert_eq(custom_anims(97), "meditate", "ambientlivev2 locate wrapper anim")
-assert_eq(numeric_anims(8), "10", "ambientlivev2 numeric anim angry")
+assert_eq(custom_anims(1), "lookleft, lookright", "custom anims act_one")
+assert_eq(custom_anims(97), "meditate", "locate wrapper anim")
+assert_eq(numeric_anims(8), "10", "numeric anim angry")
 
 print("[OK] NPC activity waypoint behavioral checks passed")
 PY

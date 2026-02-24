@@ -12,7 +12,6 @@
 - Backlog/readiness: `docs/npc_implementation_backlog.md`
 - Perf gate: `docs/perf/npc_perf_gate.md`
 
-Legacy `tools/*` не являются active runtime; исторические материалы находятся в `docs/legacy/tools_reference/*`.
 
 
 - **Blocking (merge gate)** — проверка обязательна для merge.

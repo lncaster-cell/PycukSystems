@@ -24,20 +24,17 @@
 
 Чеклист приёмки и минимальных проверок для Phase 1: `docs/npc_phase1_test_checklist.md`.
 
-Матрица для подготовки третьего модуля («лучшее из AL» vs «лучшее из npc_behavior»): `docs/npc_al_vs_npc_behavior_matrix.md`.
-
 Исполняемый бэклог старта Module 3: `docs/npc_implementation_backlog.md`.
 Отдельный perf-gate для Module 3 (гибрид AL/NPC): `docs/perf/npc_perf_gate.md`.
 
 ## Структура репозитория
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
-- `docs/legacy/tools_reference/` — архив перенесённых legacy/reference-материалов (бывший `tools/*`) для сравнительного анализа и миграции.
 - `src/modules/npc/` — **единственный active runtime-контур** для текущей разработки и execution backlog (core + includes + thin entrypoints).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - Source of truth для активной разработки runtime NPC: `src/modules/npc/`.
-- Код из `docs/legacy/tools_reference/*` является архивным reference и не должен подключаться в active hook-цепочки/namespace без явного migration-task в backlog.
+- Legacy-референсы старых систем (`ambientlive`, `npc_behavior`) удалены из репозитория; поддерживается только текущий runtime-модуль `src/modules/npc/`.
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.
 
@@ -50,16 +47,6 @@
 - Для активного NPC-контура используйте scoped-поиск: `rg "<query>" src/modules/npc docs/npc_* scripts`.
 - Для `git grep` исключайте архив: `git grep "<query>" -- . ':(exclude)third_party/nwn2_stock_scripts'`.
 - Для обзора изменений используйте pathspec: `git diff -- src scripts docs`.
-
-## Legacy cleanup milestone (`tools/*`)
-
-Milestone закрыт: содержимое `tools/*` перенесено в `docs/legacy/tools_reference/`, а каталог `tools/` очищен.
-
-Каталог legacy-модулей может быть удалён только при одновременном выполнении критериев:
-- все runtime entrypoints и include-зависимости в active-контуре ссылаются только на `src/modules/npc/*`;
-- в execution backlog нет открытых задач, требующих исполнения кода из legacy-reference архива;
-- parity-проверки и perf-gate (`docs/perf/npc_perf_gate.md`) пройдены на текущем baseline;
-- для каждого удаляемого legacy-каталога есть краткая миграционная заметка в `docs/` (что перенесено/что осознанно отброшено).
 
 ## Быстрый старт (подготовка workspace)
 ```bash
