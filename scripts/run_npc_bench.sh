@@ -325,33 +325,122 @@ if [[ "${baseline_state}" == "BLOCKED" ]]; then
   if [[ "${warmup_status}" == "PASS" ]]; then warmup_status="BLOCKED"; warmup_note="${warmup_note}; baseline ${baseline_note}"; fi
 fi
 
-cat > "${OUT_DIR}/gate_summary.csv" <<CSV
-guardrail,status,scenario_id,profile,runs_passed,runs_total,evidence
-registry_overflow,${overflow_status},${SCENARIO},${SCENARIO},${overflow_pass},${overflow_runs},"${overflow_note}"
-tick_budget_degraded,${budget_status},${SCENARIO},${SCENARIO},${budget_pass},${budget_runs},"${budget_note}"
-automated_fairness,${fairness_status},${SCENARIO},${SCENARIO},${queue_pass},${queue_runs},"${fairness_note}"
-route_cache_warmup_rescan,${warmup_status},${SCENARIO},${SCENARIO},${warmup_pass},${warmup_runs},"${warmup_note}"
-CSV
+SCENARIO="${SCENARIO}" OVERFLOW_STATUS="${overflow_status}" OVERFLOW_PASS="${overflow_pass}" OVERFLOW_RUNS="${overflow_runs}" OVERFLOW_NOTE="${overflow_note}" BUDGET_STATUS="${budget_status}" BUDGET_PASS="${budget_pass}" BUDGET_RUNS="${budget_runs}" BUDGET_NOTE="${budget_note}" FAIRNESS_STATUS="${fairness_status}" QUEUE_PASS="${queue_pass}" QUEUE_RUNS="${queue_runs}" FAIRNESS_NOTE="${fairness_note}" WARMUP_STATUS="${warmup_status}" WARMUP_PASS="${warmup_pass}" WARMUP_RUNS="${warmup_runs}" WARMUP_NOTE="${warmup_note}" python3 - "${OUT_DIR}/gate_summary.csv" <<'PY'
+import csv
+import os
+import sys
 
-cat > "${OUT_DIR}/gate_summary.json" <<JSON
-{
-  "timestamp": "${TIMESTAMP}",
-  "scenario_id": "${SCENARIO}",
-  "source_fixture": "${SOURCE_FIXTURE}",
-  "runs": ${RUNS},
-  "baseline": {
-    "status": "${baseline_state}",
-    "note": "${baseline_note}",
-    "reference": "${BASELINE_FILE}"
-  },
-  "guardrails": [
-    {"id": "registry_overflow", "status": "${overflow_status}", "passed_runs": ${overflow_pass}, "total_runs": ${overflow_runs}, "evidence": "${overflow_note}"},
-    {"id": "tick_budget_degraded", "status": "${budget_status}", "passed_runs": ${budget_pass}, "total_runs": ${budget_runs}, "evidence": "${budget_note}"},
-    {"id": "automated_fairness", "status": "${fairness_status}", "passed_runs": ${queue_pass}, "total_runs": ${queue_runs}, "evidence": "${fairness_note}"},
-    {"id": "route_cache_warmup_rescan", "status": "${warmup_status}", "passed_runs": ${warmup_pass}, "total_runs": ${warmup_runs}, "evidence": "${warmup_note}"}
-  ]
+path = sys.argv[1]
+scenario = os.environ["SCENARIO"]
+
+rows = [
+    {
+        "guardrail": "registry_overflow",
+        "status": os.environ["OVERFLOW_STATUS"],
+        "scenario_id": scenario,
+        "profile": scenario,
+        "runs_passed": int(os.environ["OVERFLOW_PASS"]),
+        "runs_total": int(os.environ["OVERFLOW_RUNS"]),
+        "evidence": os.environ["OVERFLOW_NOTE"],
+    },
+    {
+        "guardrail": "tick_budget_degraded",
+        "status": os.environ["BUDGET_STATUS"],
+        "scenario_id": scenario,
+        "profile": scenario,
+        "runs_passed": int(os.environ["BUDGET_PASS"]),
+        "runs_total": int(os.environ["BUDGET_RUNS"]),
+        "evidence": os.environ["BUDGET_NOTE"],
+    },
+    {
+        "guardrail": "automated_fairness",
+        "status": os.environ["FAIRNESS_STATUS"],
+        "scenario_id": scenario,
+        "profile": scenario,
+        "runs_passed": int(os.environ["QUEUE_PASS"]),
+        "runs_total": int(os.environ["QUEUE_RUNS"]),
+        "evidence": os.environ["FAIRNESS_NOTE"],
+    },
+    {
+        "guardrail": "route_cache_warmup_rescan",
+        "status": os.environ["WARMUP_STATUS"],
+        "scenario_id": scenario,
+        "profile": scenario,
+        "runs_passed": int(os.environ["WARMUP_PASS"]),
+        "runs_total": int(os.environ["WARMUP_RUNS"]),
+        "evidence": os.environ["WARMUP_NOTE"],
+    },
+]
+
+with open(path, "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(
+        f,
+        fieldnames=[
+            "guardrail",
+            "status",
+            "scenario_id",
+            "profile",
+            "runs_passed",
+            "runs_total",
+            "evidence",
+        ],
+    )
+    writer.writeheader()
+    writer.writerows(rows)
+PY
+
+TIMESTAMP="${TIMESTAMP}" SCENARIO="${SCENARIO}" SOURCE_FIXTURE="${SOURCE_FIXTURE}" RUNS="${RUNS}" BASELINE_STATE="${baseline_state}" BASELINE_NOTE="${baseline_note}" BASELINE_FILE="${BASELINE_FILE}" OVERFLOW_STATUS="${overflow_status}" OVERFLOW_PASS="${overflow_pass}" OVERFLOW_RUNS="${overflow_runs}" OVERFLOW_NOTE="${overflow_note}" BUDGET_STATUS="${budget_status}" BUDGET_PASS="${budget_pass}" BUDGET_RUNS="${budget_runs}" BUDGET_NOTE="${budget_note}" FAIRNESS_STATUS="${fairness_status}" QUEUE_PASS="${queue_pass}" QUEUE_RUNS="${queue_runs}" FAIRNESS_NOTE="${fairness_note}" WARMUP_STATUS="${warmup_status}" WARMUP_PASS="${warmup_pass}" WARMUP_RUNS="${warmup_runs}" WARMUP_NOTE="${warmup_note}" python3 - "${OUT_DIR}/gate_summary.json" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+payload = {
+    "timestamp": os.environ["TIMESTAMP"],
+    "scenario_id": os.environ["SCENARIO"],
+    "source_fixture": os.environ["SOURCE_FIXTURE"],
+    "runs": int(os.environ["RUNS"]),
+    "baseline": {
+        "status": os.environ["BASELINE_STATE"],
+        "note": os.environ["BASELINE_NOTE"],
+        "reference": os.environ["BASELINE_FILE"],
+    },
+    "guardrails": [
+        {
+            "id": "registry_overflow",
+            "status": os.environ["OVERFLOW_STATUS"],
+            "passed_runs": int(os.environ["OVERFLOW_PASS"]),
+            "total_runs": int(os.environ["OVERFLOW_RUNS"]),
+            "evidence": os.environ["OVERFLOW_NOTE"],
+        },
+        {
+            "id": "tick_budget_degraded",
+            "status": os.environ["BUDGET_STATUS"],
+            "passed_runs": int(os.environ["BUDGET_PASS"]),
+            "total_runs": int(os.environ["BUDGET_RUNS"]),
+            "evidence": os.environ["BUDGET_NOTE"],
+        },
+        {
+            "id": "automated_fairness",
+            "status": os.environ["FAIRNESS_STATUS"],
+            "passed_runs": int(os.environ["QUEUE_PASS"]),
+            "total_runs": int(os.environ["QUEUE_RUNS"]),
+            "evidence": os.environ["FAIRNESS_NOTE"],
+        },
+        {
+            "id": "route_cache_warmup_rescan",
+            "status": os.environ["WARMUP_STATUS"],
+            "passed_runs": int(os.environ["WARMUP_PASS"]),
+            "total_runs": int(os.environ["WARMUP_RUNS"]),
+            "evidence": os.environ["WARMUP_NOTE"],
+        },
+    ],
 }
-JSON
+
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False, indent=2)
+    f.write("\n")
+PY
 
 cat > "${OUT_DIR}/summary.md" <<MD
 # NPC Bhvr Baseline Summary
