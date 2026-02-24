@@ -204,7 +204,7 @@ Flush dirty-очереди выполняется при любом из усл�
   - `NPC_SQL_EVENTS_FETCH_UNPROCESSED`, `NpcRepoFetchUnprocessedEvents`;
   - `NPC_SQL_EVENT_MARK_PROCESSED`, `NpcRepoMarkEventProcessed`;
   - `NPC_SQL_SCHEDULES_FETCH_DUE`, `NpcRepoFetchDueSchedules`.
-- Файл: `src/integrations/nwnx_sqlite/npc_persistence_repository_inc.nss`.
+- Файл: `src/integrations/nwnx_sqlite/npc_repo_inc.nss`.
 - Инвариант: `src/modules/npc/npc_core.nss` не содержит прямых SQL-строк.
 
 ### 6.3 Минимальный write-behind контракт
