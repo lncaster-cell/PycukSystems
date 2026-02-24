@@ -554,7 +554,7 @@ void NpcBhvrTickHandleIdleStop(object oArea, int nPendingAfter)
     int nPlayers;
 
     // Area stop policy boundary: cached player-count + empty-queue predicate.
-    nPlayers = NpcBhvrGetCachedPlayerCount(oArea);
+    nPlayers = NpcBhvrGetCachedPlayerCountInternal(oArea);
     if (nPlayers <= 0 && nPendingAfter <= 0)
     {
         NpcBhvrAreaStop(oArea);
