@@ -17,6 +17,13 @@
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
 
+Tick/degraded telemetry в runtime включает:
+- `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
+- `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
+- `npc_metric_degradation_events_total`,
+- reason-specific: `npc_metric_degradation_by_reason_event_budget_total`, `npc_metric_degradation_by_reason_soft_budget_total`, `npc_metric_degradation_by_reason_empty_queue_total`,
+- `npc_metric_diagnostic_dropped_total` для нераспознанных reason-code.
+
 
 ## Activity primitives runtime-контракт
 

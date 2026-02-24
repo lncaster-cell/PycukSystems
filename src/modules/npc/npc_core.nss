@@ -20,6 +20,11 @@ const int NPC_BHVR_REASON_UNSPECIFIED = 0;
 const int NPC_BHVR_REASON_PERCEPTION = 1;
 const int NPC_BHVR_REASON_DAMAGE = 2;
 
+const int NPC_BHVR_DEGRADATION_REASON_NONE = 0;
+const int NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET = 1;
+const int NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET = 2;
+const int NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE = 3;
+
 const string NPC_BHVR_PENDING_STATUS_STR_QUEUED = "queued";
 const string NPC_BHVR_PENDING_STATUS_STR_RUNNING = "running";
 const string NPC_BHVR_PENDING_STATUS_STR_PROCESSED = "processed";
@@ -50,6 +55,7 @@ const string NPC_BHVR_VAR_TICK_DEGRADED_MODE = "npc_tick_degraded_mode";
 const string NPC_BHVR_VAR_TICK_DEGRADED_STREAK = "npc_tick_degraded_streak";
 const string NPC_BHVR_VAR_TICK_DEGRADED_TOTAL = "npc_tick_degraded_total";
 const string NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL = "npc_tick_budget_exceeded_total";
+const string NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON = "npc_tick_last_degradation_reason";
 const string NPC_BHVR_VAR_TICK_PROCESSED = "npc_tick_processed";
 const string NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS = "npc_queue_backlog_age_ticks";
 const string NPC_BHVR_VAR_REGISTRY_COUNT = "npc_registry_count";
@@ -956,12 +962,40 @@ int NpcBhvrQueueProcessOne(object oArea)
     {
         NpcBhvrPendingSetStatus(oSubject, NPC_BHVR_PENDING_STATUS_PROCESSED);
         NpcBhvrPendingNpcClear(oSubject);
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_PROCESSED_TOTAL);
         return TRUE;
     }
 
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
     return TRUE;
+}
+
+
+void NpcBhvrRecordDegradationReason(object oArea, int nReason)
+{
+    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nReason);
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EVENT_BUDGET_TOTAL);
+        return;
+    }
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_SOFT_BUDGET_TOTAL);
+        return;
+    }
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EMPTY_QUEUE_TOTAL);
+        return;
+    }
+
+    if (nReason != NPC_BHVR_DEGRADATION_REASON_NONE)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DIAGNOSTIC_DROPPED_TOTAL);
+    }
 }
 
 void NpcBhvrOnAreaTick(object oArea)
@@ -979,6 +1013,7 @@ void NpcBhvrOnAreaTick(object oArea)
     int nSoftBudgetReached;
     int nBacklogAgeTicks;
     int nPendingBefore;
+    int nDegradationReason;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -1008,23 +1043,30 @@ void NpcBhvrOnAreaTick(object oArea)
 
         nSpentEvents = 0;
         nSpentBudgetMs = 0;
+        nDegradationReason = NPC_BHVR_DEGRADATION_REASON_NONE;
         while (TRUE)
         {
             nEventsBudgetLeft = nMaxEvents - nSpentEvents;
             if (nEventsBudgetLeft <= 0)
             {
                 nEventBudgetReached = TRUE;
+                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
                 break;
             }
 
             if (nSpentBudgetMs + NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS > nSoftBudgetMs)
             {
                 nSoftBudgetReached = TRUE;
+                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
                 break;
             }
 
             if (!NpcBhvrQueueProcessOne(oArea))
             {
+                if (GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL) > 0)
+                {
+                    nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE;
+                }
                 break;
             }
 
@@ -1046,6 +1088,8 @@ void NpcBhvrOnAreaTick(object oArea)
         {
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
+            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_EVENTS_TOTAL);
+            NpcBhvrRecordDegradationReason(oArea, nDegradationReason);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
             NpcBhvrQueueMarkDeferredHead(oArea);
             SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK) + 1);
@@ -1055,6 +1099,7 @@ void NpcBhvrOnAreaTick(object oArea)
         else
         {
             SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, 0);
+            SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, NPC_BHVR_DEGRADATION_REASON_NONE);
         }
 
         if (nPendingAfter > 0)
