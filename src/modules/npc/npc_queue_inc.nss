@@ -737,7 +737,23 @@ void NpcBhvrQueueClear(object oArea)
     NpcBhvrQueueSyncTotals(oArea);
 }
 
-int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReasonCode)
+int NpcBhvrQueuePackLocation(int nPriority, int nIndex)
+{
+    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW || nIndex <= 0)
+    {
+        return 0;
+    }
+
+    return nPriority * 1000 + nIndex;
+}
+
+void NpcBhvrQueueApplyDepthAndTotals(object oArea, int nPriority, int nDepth)
+{
+    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth);
+    NpcBhvrQueueSyncTotals(oArea);
+}
+
+int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
     int nTotal;
@@ -756,9 +772,23 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         return FALSE;
     }
 
-    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW)
+    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority) + 1;
+    SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth), oSubject);
+    NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nDepth);
+    NpcBhvrQueueApplyDepthAndTotals(oArea, nPriority, nDepth);
+    return TRUE;
+}
+
+object NpcBhvrQueueSwapTailSubject(object oArea, int nPriority, int nIndex, int bClearRemovedIndex)
+{
+    int nDepth;
+    object oRemoved;
+    object oTail;
+
+    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
+    if (nIndex < 1 || nIndex > nDepth)
     {
-        nPriority = NPC_BHVR_PRIORITY_NORMAL;
+        return OBJECT_INVALID;
     }
 
     bWasPendingActive = NpcBhvrPendingIsActive(oSubject);
@@ -768,8 +798,9 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     nIndexedPosition = NpcBhvrQueueIndexPosition(oArea, oSubject);
     if (nIndexedPriority >= NPC_BHVR_PRIORITY_CRITICAL && nIndexedPriority <= NPC_BHVR_PRIORITY_LOW && nIndexedPosition > 0)
     {
-        nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nIndexedPriority);
-        if (nIndexedPosition <= nDepth)
+        oTail = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
+        SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oTail);
+        if (GetIsObjectValid(oTail))
         {
             oIndexedSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nIndexedPriority, nIndexedPosition));
             if (oIndexedSubject == oSubject)
@@ -807,39 +838,26 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                 return TRUE;
             }
         }
-
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_INDEX_MISS_TOTAL);
-        NpcBhvrQueueIndexClear(oArea, oSubject);
     }
 
-    nIndex = 1;
-    while (nIndex <= NpcBhvrQueueGetDepthForPriority(oArea, nPriority))
+    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
+    if (bClearRemovedIndex && GetIsObjectValid(oRemoved))
     {
-        if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex)) == oSubject)
-        {
-            nEscalatedPriority = nPriority;
-            nEscalatedPriority = NpcBhvrPriorityEscalate(nPriority, nPriority, nReasonCode);
-            if (nEscalatedPriority != nPriority)
-            {
-                oTail = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueGetDepthForPriority(oArea, nPriority)));
-                SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oTail);
-                if (GetIsObjectValid(oTail))
-                {
-                    NpcBhvrQueueIndexSet(oArea, oTail, nPriority, nIndex);
-                }
-                DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, NpcBhvrQueueGetDepthForPriority(oArea, nPriority)));
-                NpcBhvrQueueSetDepthForPriority(oArea, nPriority, NpcBhvrQueueGetDepthForPriority(oArea, nPriority) - 1);
+        NpcBhvrQueueIndexClear(oArea, oRemoved);
+    }
 
-                nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nEscalatedPriority) + 1;
-                SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nEscalatedPriority, nDepth), oSubject);
-                NpcBhvrQueueIndexSet(oArea, oSubject, nEscalatedPriority, nDepth);
-                NpcBhvrQueueSetDepthForPriority(oArea, nEscalatedPriority, nDepth);
-                NpcBhvrQueueSyncTotals(oArea);
-            }
-            else
-            {
-                NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nIndex);
-            }
+    NpcBhvrQueueApplyDepthAndTotals(oArea, nPriority, nDepth - 1);
+    return oRemoved;
+}
+
+int NpcBhvrQueueFindSubjectByPointChecks(object oArea, object oSubject, int nPriorityHint, int nPositionHint)
+{
+    int nDepth;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
+    {
+        return 0;
+    }
 
             NpcBhvrPendingAreaTouchAt(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
             if (bWasPendingActive)
@@ -853,9 +871,43 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
             return TRUE;
         }
-        nIndex = nIndex + 1;
     }
 
+    return 0;
+}
+
+int NpcBhvrQueueTryResolveIndexedSubject(object oArea, object oSubject)
+{
+    int nIndexedPriority;
+    int nIndexedPosition;
+    int nFound;
+
+    nIndexedPriority = NpcBhvrQueueIndexPriority(oArea, oSubject);
+    nIndexedPosition = NpcBhvrQueueIndexPosition(oArea, oSubject);
+    if (nIndexedPriority < NPC_BHVR_PRIORITY_CRITICAL || nIndexedPriority > NPC_BHVR_PRIORITY_LOW || nIndexedPosition <= 0)
+    {
+        return 0;
+    }
+
+    nFound = NpcBhvrQueueFindSubjectByPointChecks(oArea, oSubject, nIndexedPriority, nIndexedPosition);
+    if (nFound != 0)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_INDEX_HIT_TOTAL);
+        return nFound;
+    }
+
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_INDEX_MISS_TOTAL);
+    NpcBhvrQueueIndexClear(oArea, oSubject);
+    return 0;
+}
+
+int NpcBhvrQueueFindSubjectSlowPath(object oArea, object oSubject)
+{
+    int nExistingPriority;
+    int nDepth;
+    int nIndex;
+
+    // Slow-path: one full scan across all buckets (at most once per enqueue).
     nExistingPriority = NPC_BHVR_PRIORITY_CRITICAL;
     while (nExistingPriority <= NPC_BHVR_PRIORITY_LOW)
     {
@@ -901,10 +953,95 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
                 return TRUE;
             }
+
             nIndex = nIndex + 1;
         }
 
         nExistingPriority = nExistingPriority + 1;
+    }
+
+    return 0;
+}
+
+void NpcBhvrQueuePostUpdateQueued(object oArea, object oSubject, int nPriority, int nReasonCode, int bStatusOnlyIfPending)
+{
+    NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+    if (bStatusOnlyIfPending && NpcBhvrPendingIsActive(oSubject))
+    {
+        NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+    }
+    else
+    {
+        NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+    }
+}
+
+int NpcBhvrQueueCoalesceSubject(object oArea, object oSubject, int nFoundPriority, int nFoundIndex, int nRequestedPriority, int nReasonCode, int bWasPendingActive)
+{
+    int nEscalatedPriority;
+
+    nEscalatedPriority = NpcBhvrPriorityEscalate(nFoundPriority, nRequestedPriority, nReasonCode);
+    if (nEscalatedPriority != nFoundPriority)
+    {
+        NpcBhvrQueueSwapTailSubject(oArea, nFoundPriority, nFoundIndex, FALSE);
+        if (!NpcBhvrQueueAppendSubject(oArea, oSubject, nEscalatedPriority))
+        {
+            return FALSE;
+        }
+    }
+    else
+    {
+        NpcBhvrQueueIndexSet(oArea, oSubject, nFoundPriority, nFoundIndex);
+    }
+
+    NpcBhvrQueuePostUpdateQueued(oArea, oSubject, nEscalatedPriority, nReasonCode, bWasPendingActive);
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
+    return TRUE;
+}
+
+void NpcBhvrQueueMarkDroppedOnEnqueueFailure(object oArea, object oSubject, int nPriority, int nReasonCode)
+{
+    NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
+    NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED);
+    NpcBhvrPendingNpcClear(oSubject);
+    NpcBhvrPendingAreaClear(oArea, oSubject);
+    NpcBhvrQueueIndexClear(oArea, oSubject);
+}
+
+int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReasonCode)
+{
+    int nTotal;
+    int nFound;
+    int nFoundPriority;
+    int nFoundIndex;
+    int bWasPendingActive;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
+    {
+        return FALSE;
+    }
+
+    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW)
+    {
+        nPriority = NPC_BHVR_PRIORITY_NORMAL;
+    }
+
+    bWasPendingActive = NpcBhvrPendingIsActive(oSubject);
+
+    // Hot-path: index hint + point-check; no full scan here.
+    nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oSubject);
+
+    // Slow-path: single full scan fallback (at most once per enqueue).
+    if (nFound == 0)
+    {
+        nFound = NpcBhvrQueueFindSubjectSlowPath(oArea, oSubject);
+    }
+
+    if (nFound != 0)
+    {
+        nFoundPriority = nFound / 1000;
+        nFoundIndex = nFound - nFoundPriority * 1000;
+        return NpcBhvrQueueCoalesceSubject(oArea, oSubject, nFoundPriority, nFoundIndex, nPriority, nReasonCode, bWasPendingActive);
     }
 
     nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
