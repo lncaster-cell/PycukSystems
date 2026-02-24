@@ -16,6 +16,22 @@
 - `module3_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `module3_metrics_inc.nss` — единый helper API для метрик (`Module3MetricInc/Add`).
 
+
+## Activity primitives runtime-контракт
+
+`module3_activity_inc.nss` теперь фиксирует минимальный runtime-layer поверх AL-подхода через `module3_*` keyspace (без прямого использования `al_*` locals в core-flow):
+
+- Spawn-инициализация профиля NPC (`Module3ActivityOnSpawn`) обязана выставлять:
+  - `module3_activity_slot` (по умолчанию `default`),
+  - `module3_activity_route` (по умолчанию `default_route`),
+  - `module3_activity_state` (начальное состояние `spawn_ready`),
+  - `module3_activity_cooldown` (неотрицательный cooldown/state gate).
+- Idle-dispatch (`Module3ActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
+  - priority-ветка: `slot=priority` **или** route-map -> `priority_patrol`;
+  - fallback: `default_route` c состоянием `idle_default`.
+- Mapping-слой (`Module3ActivityMapRouteHint`) выполняет трансляцию route-id -> activity hint, чтобы AL-семантика подключалась через адаптер, а не через прямой `al_*` namespace.
+- Примитивы `Module3ActivityApplyPriorityRoute/Module3ActivityApplyDefaultRoute` задают только минимальные state/cooldown эффекты и могут расширяться в следующих фазах без изменения контракта entrypoint/core.
+
 ## Карта hook-скриптов (thin entrypoints)
 
 | Hook | Script | Core handler |
