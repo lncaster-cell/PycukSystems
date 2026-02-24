@@ -16,10 +16,10 @@
 
 ### Task A1 — Скелет Module 3 в `tools/`
 - **Артефакты:**
-  - `tools/module3_behavior_system/module3_core.nss`
-  - `tools/module3_behavior_system/module3_metrics_inc.nss`
-  - `tools/module3_behavior_system/module3_activity_inc.nss`
-  - `tools/module3_behavior_system/README.md`
+  - `src/modules/module3_behavior/module3_core.nss`
+  - `src/modules/module3_behavior/module3_metrics_inc.nss`
+  - `src/modules/module3_behavior/module3_activity_inc.nss`
+  - `src/modules/module3_behavior/README.md`
 - **Definition of Done:**
   - директория и базовые include-файлы добавлены;
   - README фиксирует thin-entrypoint правило;
@@ -96,7 +96,7 @@
 
 ## Release readiness checklist для старта разработки
 
-- [ ] Создан базовый runtime-каркас Module 3 в `tools/module3_behavior_system/`.
+- [ ] Создан базовый runtime-каркас Module 3 в `src/modules/module3_behavior/`.
 - [ ] Зафиксированы lifecycle/queue/metrics контракты.
 - [ ] Подготовлен perf-gate документ и фикстуры.
 - [ ] Автоматизирован fairness/lifecycle self-check.

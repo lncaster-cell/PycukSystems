@@ -28,7 +28,7 @@
 - `tools/` — вспомогательные генераторы и валидаторы для development-пайплайнов.
   - `tools/al_system/` — документация и материалы по Ambient Life system.
   - `tools/npc_behavior_system/` — runtime-скрипты NPC behavior system (entrypoints + core).
-  - `tools/module3_behavior_system/` — официальный runtime-контур подготовки Module 3 (core + includes + thin entrypoints).
+  - `src/modules/module3_behavior/` — официальный runtime-контур подготовки Module 3 (core + includes + thin entrypoints).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
 - `src/modules/npc_behavior/` — redirect-документация для модуля NPC behavior (скрипты перенесены в `tools/npc_behavior_system/`).
