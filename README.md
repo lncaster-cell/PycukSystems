@@ -26,14 +26,12 @@
 - `docs/` — архитектура, исследования производительности, ADR/диздоки.
 - `scripts/` — утилиты подготовки workspace и проверок.
 - `tools/` — **legacy/reference-контур** (исторические реализации, материалы для сравнения и миграции, не active runtime).
-  - `tools/al_system/` — reference-материалы по Ambient Life system.
-  - `tools/npc_behavior_system/` — reference-реализация NPC behavior для сравнительного анализа и переноса решений.
+- `tools/al_system/` — reference-материалы по Ambient Life system.
+- `tools/npc_behavior_system/` — reference-реализация NPC behavior для сравнительного анализа и переноса решений.
 - `src/modules/npc/` — **единственный active runtime-контур** для текущей разработки и execution backlog (core + includes + thin entrypoints).
 - `src/core/` — event-driven ядро и общие runtime-сервисы (**зарезервировано**, см. `src/core/README.md`).
 - `src/controllers/` — area-tick контроллеры и планировщики (**зарезервировано**, см. `src/controllers/README.md`).
-- `src/modules/npc_behavior/` — redirect-документация для модуля NPC behavior (скрипты перенесены в `tools/npc_behavior_system/`).
 - Source of truth для активной разработки runtime NPC: `src/modules/npc/`.
-- Каталог `src/modules/npc_behavior/` используется как redirect-документационный слой.
 - Код в `tools/*` не рассматривается как production runtime и не должен подключаться в active hook-цепочки/namespace без явного migration-task в backlog.
 - `src/integrations/nwnx_sqlite/` — интеграция персистентности через NWNX (**зарезервировано**, см. `src/integrations/nwnx_sqlite/README.md`).
 - `benchmarks/` — сценарии и результаты микро/нагрузочных измерений.

@@ -9,7 +9,7 @@ mkdir -p \
   tools/validators \
   src/core \
   src/controllers \
-  src/modules/npc_behavior \
+  src/modules/npc \
   tools/npc_behavior_system \
   tools/al_system \
   src/integrations/nwnx_sqlite \
@@ -17,6 +17,7 @@ mkdir -p \
 
 touch src/core/.gitkeep \
       src/controllers/.gitkeep \
+      src/modules/npc/.gitkeep \
       src/integrations/nwnx_sqlite/.gitkeep \
       tools/generators/.gitkeep \
       tools/validators/.gitkeep
