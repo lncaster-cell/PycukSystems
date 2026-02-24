@@ -1396,6 +1396,7 @@ void NpcBhvrRecordDegradationEvent(object oArea, int nReason)
 
 void NpcBhvrOnAreaTick(object oArea)
 {
+    int nAreaState;
     int nPlayers;
     int nProcessedThisTick;
     int nPendingAfter;
@@ -1419,13 +1420,15 @@ void NpcBhvrOnAreaTick(object oArea)
         return;
     }
 
-    if (NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_STOPPED)
+    nAreaState = NpcBhvrAreaGetState(oArea);
+
+    if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
     {
         SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
         return;
     }
 
-    if (NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_RUNNING)
+    if (nAreaState == NPC_BHVR_AREA_STATE_RUNNING)
     {
         nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
         nMaxEvents = NpcBhvrGetTickMaxEvents(oArea);
@@ -1557,13 +1560,15 @@ void NpcBhvrOnAreaTick(object oArea)
         }
     }
 
-    if (NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_RUNNING)
+    nAreaState = NpcBhvrAreaGetState(oArea);
+
+    if (nAreaState == NPC_BHVR_AREA_STATE_RUNNING)
     {
         DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
         return;
     }
 
-    if (NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_PAUSED)
+    if (nAreaState == NPC_BHVR_AREA_STATE_PAUSED)
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_PAUSED_WATCHDOG_TICK_COUNT);
         DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_PAUSED_WATCHDOG_SEC, ExecuteScript("npc_area_tick", oArea));
