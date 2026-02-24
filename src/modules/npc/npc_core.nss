@@ -121,7 +121,6 @@ int NpcBhvrGetCachedPlayerCountInternal(object oArea);
 #include "npc_queue_inc"
 #include "npc_tick_inc"
 #include "npc_lifecycle_inc"
-#include "npc_compat_inc"
 
 void NpcBhvrOnAreaTick(object oArea)
 {
