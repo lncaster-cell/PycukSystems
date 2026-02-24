@@ -100,9 +100,13 @@
 
 - [x] Создан базовый runtime-каркас NPC Bhvr в `src/modules/npc/`.
 - [x] Зафиксированы lifecycle/queue/metrics контракты.
-- [ ] Подготовлен perf-gate документ и фикстуры.
-- [ ] Автоматизирован fairness/lifecycle self-check.
+- [x] Подготовлен perf-gate документ и фикстуры.
+- [x] Автоматизирован fairness/lifecycle self-check.
 - [ ] Обновлены ссылки в README и рабочих чеклистах на актуальные пути runtime.
+
+_Примечание: perf-gate (`docs/perf/npc_perf_gate.md`), фикстуры `docs/perf/fixtures/npc/*` и
+fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*lifecycle_contract.sh`) готовы,
+но часть checklist-документов всё ещё ссылается на legacy-пути `tools/*` и требует отдельного обновления._
 
 
 ---
