@@ -1,0 +1,4 @@
+guardrail,status,scenario_id,profile,runs_passed,runs_total,evidence
+registry_overflow,N/A,steady,steady,0,3,"Not part of selected profile"
+tick_budget_degraded,N/A,steady,steady,0,3,"Not part of selected profile"
+automated_fairness,N/A,steady,steady,0,0,"processed_* columns absent in fixture"

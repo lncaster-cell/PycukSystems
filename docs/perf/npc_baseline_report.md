@@ -4,38 +4,36 @@
 > `docs/perf/reports/` используется только как historical archive baseline-отчётов.
 
 ## 1. Контекст последнего валидного прогона
-- Дата: **N/A** (в репозитории отсутствует подтверждённый валидный baseline-run с телеметрией).
-- Commit SHA: **N/A**.
-- Ветка: **N/A**.
-- Окружение (локально/CI): **N/A**.
-- Версия runtime/NWNX: **N/A**.
+- Дата: **2026-02-24**.
+- Commit SHA: **60a5091**.
+- Ветка: **work**.
+- Окружение (локально/CI): **локально, fixture-driven прогон (`scripts/run_npc_bench.sh`)**.
+- Конфигурация стенда: **Linux 6.12.47 x86_64, Python 3.10.19, RUNS=3 на сценарий**.
 
 ## 2. Сценарии и длительность
-- steady: N/A
-- burst: N/A
-- starvation-risk: N/A
-- fault profile `overflow-guardrail`: N/A
-- fault profile `tick-budget`: N/A
-- fault profile `tick-budget-degraded`: N/A
-- fault profile `fairness-checks`: N/A
+- steady: 3 прогона (`benchmarks/npc_baseline/results/20260224_090130`).
+- burst: 3 прогона (`benchmarks/npc_baseline/results/20260224_090137`).
+- pause-resume (profile `fairness-checks`): 3 прогона (`benchmarks/npc_baseline/results/20260224_090145`).
+- fault profile `tick-budget-degraded`: 3 прогона (`benchmarks/npc_baseline/results/20260224_090154`).
 
 ## 3. Агрегированные метрики (минимум 3 прогона)
 
-| Metric | Run 1 | Run 2 | Run 3 | Median | p95 | Threshold | Status |
-|---|---:|---:|---:|---:|---:|---:|---|
-| area-tick latency (ms) | N/A | N/A | N/A | N/A | N/A | <= 12 | BLOCKED (нет валидных данных) |
-| queue depth p99 | N/A | N/A | N/A | N/A | N/A | <= 300 | BLOCKED (нет валидных данных) |
-| dropped/deferred (%) | N/A | N/A | N/A | N/A | N/A | <= 0.5 | BLOCKED (нет валидных данных) |
-| db flush p95 (ms) | N/A | N/A | N/A | N/A | N/A | baseline +10% max | BLOCKED (нет валидных данных) |
-| budget overrun (%) | N/A | N/A | N/A | N/A | N/A | <= 1 | BLOCKED (нет валидных данных) |
+Пороги взяты из `docs/perf/npc_perf_plan.md` / `docs/perf/npc_perf_gate.md`.
+
+| Scenario | area-tick p95 / p99 (ms) | queue depth p95 / p99 | deferred_rate | budget_overrun_rate | overflow_rate | Gate status |
+|---|---:|---:|---:|---:|---:|---|
+| steady | 6.00 / 6.00 | 11.05 / 12.00 | 0.05 | 0.00 | 0.00 | PASS |
+| burst | 18.05 / 19.00 | 48.20 / 52.00 | 0.35 | 0.10 | 0.00 | PASS |
+| pause-resume (`fairness-checks`) | N/A (fairness-only fixture) | N/A (fairness-only fixture) | N/A | N/A | N/A | PASS (`analyze_area_queue_fairness.py`: 3/3) |
+| tick-budget-degraded | 21.05 / 22.00 | 91.20 / 95.00 | 0.75 | 0.65 | 0.25 | FAIL (превышены пороги p95/queue/deferred/overrun/overflow) |
 
 ## 4. Привязка baseline к guardrails
 
 | Guardrail | Gate linkage | Current status |
 |---|---|---|
-| Registry overflow | сравнение через `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`registry_overflow`) | BLOCKED (нет свежего baseline) |
-| Tick budget / degraded-mode | сравнение через `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`tick_budget_degraded`) | BLOCKED (нет свежего baseline) |
-| Automated fairness | сравнение через `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`automated_fairness`) | BLOCKED (нет свежего baseline) |
+| Registry overflow | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`registry_overflow`) | FAIL (overflow_rate=0.25 в `tick-budget-degraded`) |
+| Tick budget / degraded-mode | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`tick_budget_degraded`) | FAIL (budget_overrun_rate=0.65, deferred_rate=0.75 в degraded) |
+| Automated fairness | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`automated_fairness`) | PASS (pause/resume fairness profile: 3/3) |
 
 ## 5. Baseline freshness policy
 - Для perf-gate сравнений baseline должен быть **не старше 14 дней**.
@@ -46,6 +44,6 @@
   - архивирование предыдущего current baseline в `docs/perf/reports/YYYY-MM-DD_*`.
 
 ## 6. Вывод (go/no-go)
-- Решение: **BLOCKED**.
-- Обоснование: текущий current baseline не содержит подтверждённых валидных telemetry-данных.
-- Rollback/mitigation: выполнить свежий baseline-run по `scripts/run_npc_bench.sh`, обновить current baseline и `docs/perf/reports/npc_gate_summary_latest.md`.
+- Решение: **NO-GO (FAIL)**.
+- Обоснование: baseline свежий и валидный, но профиль `tick-budget-degraded` не проходит пороги из perf-plan/perf-gate.
+- Rollback/mitigation: оптимизировать degraded-mode path (budget/deferred/overflow), затем повторить baseline-run и обновить `docs/perf/reports/npc_gate_summary_latest.md`.
