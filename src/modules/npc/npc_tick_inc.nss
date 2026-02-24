@@ -265,6 +265,9 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
 
     nSpentEvents = 0;
     nSpentBudgetMs = 0;
+    // Tick-stage timestamp snapshot: reused across this budgeted loop to avoid
+    // per-iteration clock reads and keep queue status transitions aligned.
+    nNow = NpcBhvrPendingNow();
 
     while (TRUE)
     {
@@ -281,7 +284,6 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
             break;
         }
 
-        nNow = NpcBhvrPendingNow();
         if (!NpcBhvrQueueProcessOne(oArea, nNow))
         {
             break;
@@ -530,4 +532,3 @@ void NpcBhvrTickScheduleNext(object oArea)
 
     SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
 }
-
