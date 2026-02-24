@@ -56,7 +56,6 @@ const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
 const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
 // AmbientLiveV2 activity IDs (ported from legacy AL data layer).
-const int NPC_BHVR_ACTIVITY_ID_HIDDEN = 0;
 const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;
 const int NPC_BHVR_ACTIVITY_ID_ACT_TWO = 2;
 const int NPC_BHVR_ACTIVITY_ID_DINNER = 3;
@@ -481,7 +480,7 @@ string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oM
         return "";
     }
 
-    return NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
+    return NpcBhvrActivityAdapterNormalizeRoute(sRouteId);
 }
 
 string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
@@ -491,7 +490,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 
     if (!GetIsObjectValid(oNpc))
     {
-        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+        return NpcBhvrActivityAdapterNormalizeRoute("");
     }
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
@@ -524,7 +523,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
     oArea = GetArea(oNpc);
     if (!GetIsObjectValid(oArea))
     {
-        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+        return NpcBhvrActivityAdapterNormalizeRoute("");
     }
 
     sRoute = NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot);
@@ -533,7 +532,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return sRoute;
     }
 
-    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    return NpcBhvrActivityAdapterNormalizeRoute("");
 }
 
 int NpcBhvrActivityAdapterWasSlotFallback(string sSlot)

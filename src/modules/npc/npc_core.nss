@@ -23,7 +23,6 @@ const int NPC_BHVR_REASON_DAMAGE = 2;
 const int NPC_BHVR_DEGRADATION_REASON_NONE = 0;
 const int NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET = 1;
 const int NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET = 2;
-const int NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE = 3;
 const int NPC_BHVR_DEGRADATION_REASON_OVERFLOW = 4;
 const int NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE = 5;
 const int NPC_BHVR_DEGRADATION_REASON_ROUTE_MISS = 6;
@@ -72,10 +71,6 @@ const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
-const string NPC_BHVR_VAR_ROUTES_CACHED = "routes_cached";
-const string NPC_BHVR_VAR_ROUTES_CACHE_VERSION = "routes_cache_version";
-
-const int NPC_BHVR_PENDING_STATUS_NONE = 0;
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
 const int NPC_BHVR_PENDING_STATUS_RUNNING = 2;
 const int NPC_BHVR_PENDING_STATUS_PROCESSED = 3;
@@ -605,11 +600,6 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
     }
 }
 
-int NpcBhvrPendingNowTs()
-{
-    return GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
-}
-
 void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus)
 {
     string sNpcKey;
@@ -626,7 +616,7 @@ void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int n
     SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
     SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nReasonCode);
     SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), NpcBhvrPendingStatusToString(nStatus));
-    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), NpcBhvrPendingNowTs());
+    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), NpcBhvrPendingNow());
 }
 
 void NpcBhvrPendingAreaClear(object oArea, object oSubject)
@@ -783,6 +773,8 @@ void NpcBhvrAreaActivate(object oArea)
     NpcBhvrApplyTickRuntimeConfig(oArea);
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrAreaRouteCacheWarmup(oArea);
+    NpcBhvrSetTickMaxEvents(oArea, NpcBhvrGetTickMaxEvents(oArea));
+    NpcBhvrSetTickSoftBudgetMs(oArea, NpcBhvrGetTickSoftBudgetMs(oArea));
 
     // Contract: один area-loop на область.
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
@@ -822,6 +814,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     int nIndex;
     int nExistingPriority;
     int nEscalatedPriority;
+    int bWasPendingActive;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
@@ -832,6 +825,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     {
         nPriority = NPC_BHVR_PRIORITY_NORMAL;
     }
+
+    bWasPendingActive = NpcBhvrPendingIsActive(oSubject);
 
     nIndex = 1;
     while (nIndex <= NpcBhvrQueueGetDepthForPriority(oArea, nPriority))
@@ -853,6 +848,14 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
             }
 
             NpcBhvrPendingAreaTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+            if (bWasPendingActive)
+            {
+                NpcBhvrPendingSetStatus(oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+            }
+            else
+            {
+                NpcBhvrPendingSet(oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+            }
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
             return TRUE;
         }
@@ -883,6 +886,14 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                 }
 
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+                if (bWasPendingActive)
+                {
+                    NpcBhvrPendingSetStatus(oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+                }
+                else
+                {
+                    NpcBhvrPendingSet(oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+                }
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
                 return TRUE;
             }
@@ -901,6 +912,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
             NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
             NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
+            NpcBhvrPendingSet(oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED);
+            NpcBhvrPendingNpcClear(oSubject);
             NpcBhvrPendingAreaClear(oArea, oSubject);
             return FALSE;
         }
@@ -909,6 +922,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     if (!NpcBhvrQueueEnqueueRaw(oArea, oSubject, nPriority))
     {
         NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingSet(oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingNpcClear(oSubject);
         NpcBhvrPendingAreaClear(oArea, oSubject);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
         NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
@@ -917,6 +932,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
 
     NpcBhvrQueueSyncTotals(oArea);
     NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+    NpcBhvrPendingSet(oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
 }
@@ -1392,6 +1408,7 @@ void NpcBhvrOnAreaTick(object oArea)
     int nCarryoverEvents;
     int nDeferredCount;
     int nDeferredOverflow;
+    int nDegradationReason;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -1468,6 +1485,16 @@ void NpcBhvrOnAreaTick(object oArea)
         nCarryoverEvents = 0;
         if (nBudgetExceeded)
         {
+            nDegradationReason = NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE;
+            if (nEventBudgetReached)
+            {
+                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
+            }
+            else if (nSoftBudgetReached)
+            {
+                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
+            }
+
             nCarryoverEvents = nPendingAfter;
             if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
             {
@@ -1476,7 +1503,7 @@ void NpcBhvrOnAreaTick(object oArea)
 
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
-            NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE);
+            NpcBhvrRecordDegradationEvent(oArea, nDegradationReason);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
             NpcBhvrQueueMarkDeferredHead(oArea);
             SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK) + 1);

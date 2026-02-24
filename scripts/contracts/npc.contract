@@ -6,8 +6,8 @@ CONTRACT_NAME="NPC lifecycle contract"
 HAS_CTRL_PATTERNS=(
   'const int NPC_AREA_LIFECYCLE_RUNNING = 1;'
   'const int NPC_AREA_LIFECYCLE_PAUSED = 2;'
-  'void NpcControllerAreaPause\(object oArea\)'
-  'void NpcControllerAreaStop\(object oArea\)'
+  'int NpcControllerAreaGetLifecycleState\(object oArea\)'
+  'void NpcControllerAreaSetLifecycleState\(object oArea, int nState\)'
 )
 
 HAS_CORE_PATTERNS=(
@@ -25,4 +25,12 @@ NOT_CORE_PATTERNS=(
   'string NPC_VAR_AREA_TIMER_RUNNING = "nb_area_timer_running";'
 )
 
-NOT_CTRL_PATTERNS=()
+NOT_CTRL_PATTERNS=(
+  'int NpcControllerAreaIsRunning\(object oArea\)'
+  'int NpcControllerAreaCanProcessTick\(object oArea\)'
+  'void NpcControllerAreaStart\(object oArea\)'
+  'void NpcControllerAreaPause\(object oArea\)'
+  'void NpcControllerAreaStop\(object oArea\)'
+  'int NpcControllerAreaIsTimerRunning\(object oArea\)'
+  'void NpcControllerAreaSetTimerRunning\(object oArea, int bRunning\)'
+)

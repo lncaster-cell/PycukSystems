@@ -42,7 +42,9 @@ Tick/degraded telemetry в runtime включает:
 - `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
 - `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
 - `npc_metric_degradation_events_total`,
-- `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
+- `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `EVENT_BUDGET|SOFT_BUDGET|OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
+
+- Tick budget-параметры (`npc_tick_max_events`, `npc_tick_soft_budget_ms`) нормализуются и фиксируются при `NpcBhvrAreaActivate` через `NpcBhvrSetTickMaxEvents/NpcBhvrSetTickSoftBudgetMs` (с hard-cap), после чего используются в `NpcBhvrOnAreaTick`.
 
 ### Perf-budget runtime application
 
@@ -88,7 +90,7 @@ Tick/degraded telemetry в runtime включает:
   - `routes_cache_version` — монотонная версия cache (увеличивается на invalidate/warmup-cycle);
   - `NpcBhvrAreaRouteCacheWarmup` выполняет первичный prewarm при активации area-loop и идемпотентен при повторных вызовах (без полного re-scan);
   - `NpcBhvrAreaRouteCacheInvalidate` очищает cache и переводит следующий resolve в controlled rescan/warmup.
-- `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями.
+- `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями, и завершает нормализацию через `NpcBhvrActivityAdapterNormalizeRoute` как канонический adapter-step.
 - При отбрасывании невалидного route-id инкрементируется `npc_metric_activity_invalid_route_total`.
 - Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
   - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
@@ -193,9 +195,10 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 ## Контракт pending-состояний (NPC-local и area-local)
 
-- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC), и в execution-path используются только явные переходы `NpcBhvrPendingSetStatus` + terminal clear (`NpcBhvrPendingNpcClear`).
-- Legacy-helper'ы `NpcBhvrPendingIsActive` и `NpcBhvrPendingSet` удалены как неиспользуемые: активность/состояние pending вычисляется напрямую по `npc_pending_status` в рабочем пути очереди (`deferred`-ветки trim/count/process), без альтернативных веток на удалённые функции.
+- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC); `NpcBhvrQueueEnqueue` явно выставляет `queued` через `NpcBhvrPendingSet`, а queue-processing переводит статус в `running/deferred/processed`.
 - `area-local` (`npc_queue_pending_*` на area) — диагностическое/наблюдаемое зеркало последнего состояния, обновляется через `NpcBhvrPendingAreaTouch`.
+- Временная модель (`*_updated_at`) едина для обоих хранилищ: используется `NpcBhvrPendingNow()` (секундный timestamp на базе календарного дня + `HH:MM:SS`).
+- Для `NPC-local` timestamp дополнительно поддерживает монотонность при частых апдейтах (минимум `+1` при коллизии секунды); `area-local` пишет то же текущее значение времени без отдельного источника часов.
 - `deferred` при `GetArea(oSubject) != oArea` фиксируется **в обоих хранилищах** и не очищается неявно в этом же шаге.
 - Очистка pending (`NpcBhvrPendingNpcClear` и `NpcBhvrPendingAreaClear`) допустима только на явных terminal-переходах (`processed`, `dropped`, удаление/смерть NPC, очистка очереди/area shutdown).
 - Следствие: deferred является краткоживущим состоянием до следующего события/terminal-перехода, но в течение этого окна наблюдается консистентно и в NPC-local, и в area-local.
