@@ -12,7 +12,7 @@
 Используйте модуль как готовый runtime-пакет из `src/modules/npc/`:
 
 1. Подключите event hooks к thin-entrypoint скриптам (таблица «Карта hook-скриптов» ниже).
-2. Убедитесь, что include `npc_core` доступен всем entrypoint-файлам `npc_*.nss` / `npc_behavior_*.nss`.
+2. Убедитесь, что include `npc_core` доступен всем entrypoint-файлам `npc_*.nss`.
 3. Для приёмки запустите smoke/contract проверки:
    - `bash scripts/test_npc_smoke.sh`
    - `bash scripts/check_npc_lifecycle_contract.sh`
