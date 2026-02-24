@@ -452,6 +452,7 @@ void NpcBhvrTickPrepareBudgets(object oArea)
     int nSoftBudgetMs;
     int nCarryoverEvents;
 
+    // Hot-path optimization: normalize first, then write only changed values to reduce area-tick write-amplification.
     // Budget normalization boundary: держим все тик-лимиты в валидных диапазонах.
     nMaxEvents = NpcBhvrGetTickMaxEvents(oArea);
     if (nMaxEvents > NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP)
@@ -475,9 +476,9 @@ void NpcBhvrTickPrepareBudgets(object oArea)
         nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nMaxEvents);
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nSoftBudgetMs);
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nMaxEvents);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nSoftBudgetMs);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
 }
 
 void NpcBhvrTickHandleBacklogTelemetry(object oArea, int nPendingAfter)
@@ -485,15 +486,20 @@ void NpcBhvrTickHandleBacklogTelemetry(object oArea, int nPendingAfter)
     int nBacklogAgeTicks;
 
     // Backlog telemetry boundary: учитываем возраст backlog и pending-age метрику.
+    // read-normalize-write-if-changed: в тиковом hot-path избегаем лишних одинаковых записей.
     if (nPendingAfter > 0)
     {
         nBacklogAgeTicks = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS) + 1;
-        SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, nBacklogAgeTicks);
+        if (nBacklogAgeTicks < 0)
+        {
+            nBacklogAgeTicks = 0;
+        }
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, nBacklogAgeTicks);
         NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PENDING_AGE_MS, nPendingAfter * 1000);
         return;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
 }
 
 int NpcBhvrTickResolveIdleBudget(object oArea, int nPendingTotal)
