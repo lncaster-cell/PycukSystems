@@ -12,17 +12,42 @@ RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resu
 RESUME_DRAIN_EOF_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_eof_violation.csv"
 NO_RUNNING_ROWS_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_no_running_rows.csv"
 
-expect_fail() {
-  local description="$1"
-  shift
+RESULTS=()
 
-  if "$@"; then
-    echo "[FAIL] expected failure: $description"
-    exit 1
+record_result() {
+  local guardrail="$1"
+  local scenario_id="$2"
+  local status="$3"
+  local details="$4"
+  RESULTS+=("${guardrail}|${scenario_id}|${status}|${details}")
+}
+
+run_expect_pass() {
+  local guardrail="$1"
+  local scenario_id="$2"
+  shift 2
+  if "$@" >/tmp/area_queue_check.log 2>&1; then
+    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 /tmp/area_queue_check.log || echo ok)"
+  else
+    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 /tmp/area_queue_check.log || echo failed)"
+    cat /tmp/area_queue_check.log
+    return 1
   fi
 }
 
-python3 "$ANALYZER" \
+run_expect_fail() {
+  local guardrail="$1"
+  local scenario_id="$2"
+  shift 2
+  if "$@" >/tmp/area_queue_check.log 2>&1; then
+    record_result "${guardrail}" "${scenario_id}" "FAIL" "expected failure but command passed"
+    return 1
+  fi
+  record_result "${guardrail}" "${scenario_id}" "PASS" "expected failure observed"
+}
+
+run_expect_pass "automated_fairness" "steady" \
+  python3 "$ANALYZER" \
   --input "$PASS_FIXTURE" \
   --max-starvation-window 10 \
   --buckets LOW,NORMAL \
@@ -30,25 +55,28 @@ python3 "$ANALYZER" \
 
 # Этот fixture должен проходить: инвариант pause-zero разрешает частичную обработку
 # только до входа в pause, а при paused=true processed_sum обязан оставаться нулём.
-python3 "$ANALYZER" \
+run_expect_pass "automated_fairness" "steady-partial" \
+  python3 "$ANALYZER" \
   --input "$PARTIAL_PROCESSED_FIXTURE" \
   --max-starvation-window 10 \
   --buckets LOW,NORMAL \
   --enforce-pause-zero
 
-expect_fail "pause-zero violation fixture" \
+run_expect_fail "automated_fairness" "fault-pause-zero" \
   python3 "$ANALYZER" \
     --input "$PAUSE_FAIL_FIXTURE" \
     --max-starvation-window 10 \
     --buckets LOW,NORMAL \
     --enforce-pause-zero
 
-python3 "$ANALYZER" \
+run_expect_pass "automated_fairness" "burst" \
+  python3 "$ANALYZER" \
   --input "$LONG_BURST_FIXTURE" \
   --max-starvation-window 2 \
   --buckets LOW,NORMAL
 
-python3 "$ANALYZER" \
+run_expect_pass "automated_fairness" "pause-resume" \
+  python3 "$ANALYZER" \
   --input "$PAUSE_RESUME_FIXTURE" \
   --max-starvation-window 3 \
   --buckets LOW,NORMAL \
@@ -56,7 +84,7 @@ python3 "$ANALYZER" \
   --min-resume-transitions 3 \
   --max-post-resume-drain-ticks 1
 
-expect_fail "resume transition count threshold" \
+run_expect_fail "automated_fairness" "fault-resume-transitions" \
   python3 "$ANALYZER" \
     --input "$PAUSE_RESUME_FIXTURE" \
     --max-starvation-window 3 \
@@ -65,7 +93,7 @@ expect_fail "resume transition count threshold" \
     --min-resume-transitions 4 \
     --max-post-resume-drain-ticks 1
 
-expect_fail "post-resume drain latency threshold" \
+run_expect_fail "automated_fairness" "fault-resume-drain" \
   python3 "$ANALYZER" \
     --input "$RESUME_DRAIN_FAIL_FIXTURE" \
     --max-starvation-window 4 \
@@ -74,7 +102,7 @@ expect_fail "post-resume drain latency threshold" \
     --min-resume-transitions 1 \
     --max-post-resume-drain-ticks 1
 
-expect_fail "post-resume drain latency threshold at EOF" \
+run_expect_fail "automated_fairness" "fault-resume-drain-eof" \
   python3 "$ANALYZER" \
     --input "$RESUME_DRAIN_EOF_FAIL_FIXTURE" \
     --max-starvation-window 4 \
@@ -83,10 +111,16 @@ expect_fail "post-resume drain latency threshold at EOF" \
     --min-resume-transitions 1 \
     --max-post-resume-drain-ticks 0
 
-expect_fail "input without RUNNING rows" \
+run_expect_fail "automated_fairness" "fault-no-running" \
   python3 "$ANALYZER" \
     --input "$NO_RUNNING_ROWS_FIXTURE" \
     --max-starvation-window 4 \
     --buckets LOW,NORMAL
+
+printf "guardrail,scenario_id,status,details\n"
+for item in "${RESULTS[@]}"; do
+  IFS='|' read -r guardrail scenario_id status details <<<"${item}"
+  printf "%s,%s,%s,%s\n" "$guardrail" "$scenario_id" "$status" "$details"
+done
 
 echo "[OK] analyzer self-tests passed"
