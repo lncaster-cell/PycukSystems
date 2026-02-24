@@ -327,7 +327,8 @@ void NpcBhvrPendingNpcClear(object oNpc)
     }
 
     // Clear only on explicit terminal transitions (processed/dropped/death),
-    // never as part of non-terminal deferred transitions.
+    // never as part of non-terminal deferred transitions. Terminal drop-paths
+    // must clear both area-local and NPC-local pending state.
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY);
     DeleteLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
@@ -706,7 +707,8 @@ void NpcBhvrPendingAreaClear(object oArea, object oSubject)
     }
 
     // Area-local clear is explicit/terminal and must not be used to drop
-    // deferred state implicitly.
+    // deferred state implicitly. Terminal drop-paths must pair this with
+    // NpcBhvrPendingNpcClear(...) to preserve pending lifecycle invariants.
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     NpcBhvrPendingAreaMigrateLegacy(oArea, oSubject, sNpcKey);
     DeleteLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey));
@@ -1075,6 +1077,7 @@ int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority)
     if (GetIsObjectValid(oDropped))
     {
         NpcBhvrPendingAreaTouch(oArea, oDropped, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingNpcClear(oDropped);
         NpcBhvrPendingAreaClear(oArea, oDropped);
     }
 
@@ -1163,6 +1166,7 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
             {
                 NpcBhvrQueueRemoveAt(oArea, nPriority, nIndex);
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
+                NpcBhvrPendingNpcClear(oSubject);
                 NpcBhvrPendingAreaClear(oArea, oSubject);
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
                 NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE);
