@@ -1,17 +1,49 @@
-# `src/integrations/nwnx_sqlite` — контракт каталога
+# `src/integrations/nwnx_sqlite` — runtime API и контракты
 
-## Что будет размещаться
-- Адаптеры интеграции NWNX/SQLite для персистентности NPC-состояния и runtime-метрик.
-- Обёртки для безопасного SQL-доступа из скриптов (thin repository API).
-- Вспомогательные контракты для write-behind, healthcheck и деградационных режимов DB-доступа.
+Каталог содержит рабочие include-модули интеграции NPC runtime с NWNX/SQLite.
 
-## Критерий готовности
-Каталог считается готовым к первой фазе, когда:
-1. Доступны базовые read/write операции к SQLite через NWNX с предсказуемыми ошибками и логированием.
-2. Контракты интеграции используются runtime-потоком NPC без прямого SQL в прикладной логике.
-3. Подтверждены минимальные эксплуатационные проверки: smoke `SELECT 1`, latency и отказоустойчивость.
+## Include-модули
 
-## Связанные design-доки
-- Базовая архитектура: `docs/design.md`.
-- Спецификация персистентности NPC: `docs/npc_persistence.md`.
-- План внедрения и этапность: `docs/npc_implementation_backlog.md`.
+- `npc_sqlite_api_inc.nss` — базовый DB API:
+  - `NpcSqliteInit()`;
+  - `NpcSqliteHealthcheck()` (обязательный smoke `SELECT 1;`);
+  - `NpcSqliteSafeRead(string sQuery)` / `NpcSqliteSafeWrite(string sQuery)`;
+  - `NpcSqliteNormalizeError(string sErrorRaw)`;
+  - `NpcSqliteLogDbError(string sOperation, int nCode, string sErrorRaw, string sQuery)`.
+- `npc_persistence_repository_inc.nss` — repository-слой с SQL-константами и thin-функциями:
+  - `NpcRepoUpsertNpcState()`;
+  - `NpcRepoFetchUnprocessedEvents()`;
+  - `NpcRepoMarkEventProcessed()`;
+  - `NpcRepoFetchDueSchedules()`.
+- `npc_writebehind_inc.nss` — минимальный write-behind контракт:
+  - dirty-очередь: `NpcSqliteWriteBehindMarkDirty()`, `NpcSqliteWriteBehindDirtyCount()`;
+  - flush-trigger: `NpcSqliteWriteBehindShouldFlush(int nNowTs, int nBatchSize, int nFlushIntervalSec)`;
+  - flush: `NpcSqliteWriteBehindFlush(int nNowTs, int nBatchSize)`;
+  - graceful degradation: `NpcSqliteWriteBehindApplyWriteResult(int nWriteResult)` + `npc_sqlite_wb_degraded_mode`.
+
+## Нормализованные коды ошибок
+
+- `NPC_SQLITE_OK = 0`
+- `NPC_SQLITE_ERR_NOT_READY = 1001`
+- `NPC_SQLITE_ERR_LOCKED = 1002`
+- `NPC_SQLITE_ERR_BUSY = 1003`
+- `NPC_SQLITE_ERR_MALFORMED = 1004`
+- `NPC_SQLITE_ERR_CONSTRAINT = 1005`
+- `NPC_SQLITE_ERR_IO = 1006`
+- `NPC_SQLITE_ERR_UNKNOWN = 1999`
+
+## Инварианты runtime
+
+1. Любой read/write в SQLite выполняется только через `NpcSqliteSafeRead/Write`.
+2. Любая DB-ошибка логируется только через `NpcSqliteLogDbError`.
+3. Healthcheck обязан использовать `SELECT 1;` через `NpcSqliteHealthcheck()`.
+4. При серии write-ошибок (`>=3`) write-behind переводится в degraded-mode (`npc_sqlite_wb_degraded_mode=TRUE`).
+5. SQL-строки для NPC persistence хранятся в repository include (`npc_persistence_repository_inc.nss`), а не в `npc_core.nss`.
+
+## Точки интеграции с NPC runtime
+
+- `src/modules/npc/npc_core.nss`:
+  - включает `npc_sqlite_api_inc` и `npc_writebehind_inc`;
+  - на `NpcBhvrOnModuleLoad()` вызывает `NpcSqliteInit()` + `NpcSqliteHealthcheck()`;
+  - на enqueue-событиях помечает dirty через `NpcSqliteWriteBehindMarkDirty()`;
+  - в area tick запускает flush по таймеру/батчу через `NpcSqliteWriteBehindShouldFlush(...)`.

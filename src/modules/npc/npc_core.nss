@@ -6,6 +6,8 @@
 
 #include "npc_metrics_inc"
 #include "npc_activity_inc"
+#include "npc_sqlite_api_inc"
+#include "npc_writebehind_inc"
 
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;
@@ -937,6 +939,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     NpcBhvrQueueSyncTotals(oArea);
     NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
     NpcBhvrPendingSet(oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+    NpcSqliteWriteBehindMarkDirty();
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
 }
@@ -1559,6 +1562,11 @@ void NpcBhvrOnAreaTick(object oArea)
             SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
         }
 
+        if (NpcSqliteWriteBehindShouldFlush(NpcBhvrPendingNow(), NPC_SQLITE_WB_BATCH_SIZE_DEFAULT, NPC_SQLITE_WB_FLUSH_INTERVAL_SEC_DEFAULT))
+        {
+            NpcSqliteWriteBehindFlush(NpcBhvrPendingNow(), NPC_SQLITE_WB_BATCH_SIZE_DEFAULT);
+        }
+
         // Auto-idle-stop: если в области нет игроков и нет pending, останавливаем loop.
         nPlayers = NpcBhvrCountPlayersInArea(oArea);
         if (nPlayers <= 0 && nPendingAfter <= 0)
@@ -1719,6 +1727,8 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
 
 void NpcBhvrOnModuleLoad()
 {
+    NpcSqliteInit();
+    NpcSqliteHealthcheck();
     NpcBhvrMetricInc(GetModule(), NPC_BHVR_METRIC_MODULE_LOAD_COUNT);
     NpcBhvrBootstrapModuleAreas();
 }

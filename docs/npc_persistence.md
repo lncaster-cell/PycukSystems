@@ -178,3 +178,36 @@ Flush dirty-очереди выполняется при любом из усл�
 2. включается режим graceful degradation (только критичные записи);
 3. предпринимается безопасный повтор flush с backoff;
 4. при невозможности стабилизации — модуль переводится в fail-safe режим с минимальным влиянием на игровой тик.
+
+
+---
+
+## 6. Трассировка “документ → функции/файлы”
+
+### 6.1 Базовый NWNX/SQLite API
+- Инициализация: `NpcSqliteInit` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
+- Healthcheck (`SELECT 1`): `NpcSqliteHealthcheck` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
+- Безопасный доступ read/write: `NpcSqliteSafeRead`, `NpcSqliteSafeWrite` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
+- Нормализация ошибок: `NpcSqliteNormalizeError` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
+- Единое runtime-логирование DB ошибок: `NpcSqliteLogDbError` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
+
+### 6.2 Repository-слой (SQL вне NPC core)
+- SQL-константы и repository-функции:
+  - `NPC_SQL_STATE_UPSERT`, `NpcRepoUpsertNpcState`;
+  - `NPC_SQL_EVENTS_FETCH_UNPROCESSED`, `NpcRepoFetchUnprocessedEvents`;
+  - `NPC_SQL_EVENT_MARK_PROCESSED`, `NpcRepoMarkEventProcessed`;
+  - `NPC_SQL_SCHEDULES_FETCH_DUE`, `NpcRepoFetchDueSchedules`.
+- Файл: `src/integrations/nwnx_sqlite/npc_persistence_repository_inc.nss`.
+- Инвариант: `src/modules/npc/npc_core.nss` не содержит прямых SQL-строк.
+
+### 6.3 Минимальный write-behind контракт
+- Dirty-очередь: `NpcSqliteWriteBehindMarkDirty`, `NpcSqliteWriteBehindDirtyCount`.
+- Flush-trigger (таймер/батч): `NpcSqliteWriteBehindShouldFlush`.
+- Flush-операция: `NpcSqliteWriteBehindFlush`.
+- Graceful degradation при сериях ошибок: `NpcSqliteWriteBehindApplyWriteResult` + `npc_sqlite_wb_degraded_mode`.
+- Файл: `src/integrations/nwnx_sqlite/npc_writebehind_inc.nss`.
+
+### 6.4 Встраивание в NPC runtime
+- Модульная инициализация и healthcheck: `NpcBhvrOnModuleLoad` — `src/modules/npc/npc_core.nss`.
+- Dirty-mark на enqueue: `NpcBhvrQueueEnqueue` — `src/modules/npc/npc_core.nss`.
+- Flush-trigger в area tick: `NpcBhvrOnAreaTick` — `src/modules/npc/npc_core.nss`.
