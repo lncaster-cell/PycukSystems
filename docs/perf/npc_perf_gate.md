@@ -9,6 +9,7 @@
 - Если baseline отсутствует, содержит `N/A` дату или старше 14 дней: итог по guardrail помечается `BLOCKED` даже при локальном PASS.
 - `docs/perf/reports/*` — архив исторических отчётов и не используется как reference-point для текущего gate.
 - `scripts/run_npc_bench.sh` автоматически проверяет freshness baseline и добавляет статус в `gate_summary.json/csv`.
+- Контракт output для `scripts/bench/analyze_single_run.py` зафиксирован в `docs/perf/analyze_single_run_schema.json`.
 
 ## Scenario IDs
 
@@ -46,7 +47,7 @@ Fault profiles (отдельные прогоны guardrails):
 **PASS:**
 - есть RUNNING-тики;
 - в run наблюдаются оба сигнала: `budget_overrun > 0` и `deferred_events > 0`;
-- `analyze_npc_fairness.py` проходит для валидных fixture.
+- `scripts/bench/analyze_single_run.py` проходит для валидных fixture и возвращает JSON согласно schema.
 
 **FAIL:**
 - нет budget/deferred сигналов;
@@ -60,7 +61,7 @@ Fault profiles (отдельные прогоны guardrails):
 **Сценарии:** `steady`, `burst`, `starvation-risk`, `fairness-checks` + fault fixtures.
 
 **PASS:**
-- `analyze_area_queue_fairness.py` проходит с флагами:
+- `scripts/bench/analyze_single_run.py` проходит с fairness-флагами:
   `--max-starvation-window 3 --enforce-pause-zero --max-post-resume-drain-ticks 1 --min-resume-transitions 2`;
 - fault fixtures детерминированно падают на нужном инварианте (starvation/pause-zero/post-resume).
 
