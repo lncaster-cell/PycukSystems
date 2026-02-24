@@ -1,4 +1,4 @@
-#include "module_skeleton_core"
+#include "mod_skel_core"
 
 void main()
 {
