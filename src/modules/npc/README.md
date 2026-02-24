@@ -36,6 +36,10 @@
 ## Базовые include-файлы
 
 - `npc_core.nss` — lifecycle area-controller, bounded queue с приоритетами, routing хуков в core.
+- `npc_queue_inc.nss` — queue/pending/deferred internals (`NpcBhvrQueue*`, `NpcBhvrPending*`, overflow/deferred guardrails).
+- `npc_tick_inc.nss` — tick orchestration и бюджет/деградация (`NpcBhvrTick*`, runtime budget config, degraded carryover).
+- `npc_lifecycle_inc.nss` — area lifecycle/state-machine (`NpcBhvrArea*`, area tick/maintenance loop, module-area bootstrap).
+- `npc_registry_inc.nss` — registry и кеш игроков (`NpcBhvrRegistry*`, `NpcBhvrGetCachedPlayerCount`, recount helpers).
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
 
