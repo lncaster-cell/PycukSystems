@@ -68,7 +68,7 @@ Tick/degraded telemetry в runtime включает:
   - `npc_activity_last_ts` (timestamp последнего transition в секундах игрового времени),
   - `npc_activity_wp_index|npc_activity_wp_count|npc_activity_wp_loop` (текущее состояние маршрута по waypoint-позициям),
   - `npc_activity_route_tag` (идентификатор route-tag для state-композера),
-  - `npc_activity_slot_emote` (resolved ambient emote для активного slot).
+  - `npc_activity_slot_emote` (resolved ambient emote для активного slot, с fallback `NPC-slot -> area-slot -> area-global -> NPC-global`).
 - Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
   1) `npc_activity_route` на NPC (если явно задан);
   2) `npc_route_profile_slot_<slot>` на NPC;

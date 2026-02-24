@@ -20,9 +20,11 @@ assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
 assert_has 'int NpcBhvrActivityNormalizeWaypointIndex\(' "$TARGET_FILE"
 assert_has 'string NpcBhvrActivityComposeWaypointState\(' "$TARGET_FILE"
 assert_has 'void NpcBhvrActivityApplyRouteState\(' "$TARGET_FILE"
+assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex\);' "$TARGET_FILE"
 assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex\(nWpIndex \+ 1, nWpCount, bLoop\)\);' "$TARGET_FILE"
 assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag\);' "$TARGET_FILE"
 assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, NpcBhvrActivityResolveSlotEmote\(oNpc, sSlot\)\);' "$TARGET_FILE"
+assert_has 'GetLocalString\(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE\);' "$TARGET_FILE"
 
 # Behavioral contract (emulated): index clamp/loop + state suffix composition.
 python3 - <<'PY'

@@ -37,6 +37,17 @@ const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
 const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
 const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
 
+// Waypoint/ambient activity runtime locals.
+const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
+const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
+const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
+
+const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
+const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
+const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
+
 const string NPC_BHVR_ACTIVITY_SLOT_DEFAULT = "default";
 const string NPC_BHVR_ACTIVITY_SLOT_PRIORITY = "priority";
 const string NPC_BHVR_ACTIVITY_SLOT_CRITICAL = "critical";
@@ -479,6 +490,12 @@ string NpcBhvrActivityResolveSlotEmote(object oNpc, string sSlot)
         {
             return sEmote;
         }
+
+        sEmote = GetLocalString(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE);
+        if (sEmote != "")
+        {
+            return sEmote;
+        }
     }
 
     return GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE);
@@ -546,6 +563,9 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     string sSlot;
     string sRouteConfigured;
     string sRoute;
+    int nWpCount;
+    int bWpLoop;
+    int nWpIndex;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -587,9 +607,13 @@ void NpcBhvrActivityOnSpawn(object oNpc)
         SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, 0);
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex(GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX), 0, TRUE));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, NpcBhvrActivityResolveRouteCount(oNpc, sRoute));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, NpcBhvrActivityResolveRouteLoop(oNpc, sRoute));
+    nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRoute);
+    bWpLoop = NpcBhvrActivityResolveRouteLoop(oNpc, sRoute);
+    nWpIndex = NpcBhvrActivityNormalizeWaypointIndex(GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX), nWpCount, bWpLoop);
+
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bWpLoop);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, NpcBhvrActivityResolveSlotEmote(oNpc, sSlot));
 
