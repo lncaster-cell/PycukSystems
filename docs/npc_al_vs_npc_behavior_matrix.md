@@ -89,10 +89,10 @@ Reference-point для perf-сравнений: актуальный NPC baselin
 
 ### Audit-derived checks
 
-- [ ] **M3-CHECK-01 · Registry overflow check:** при нагрузке выше лимита реестра модуль не падает, overflow учитывается в метриках, а незарегистрированные NPC получают предсказуемый fallback.
-- [ ] **M3-CHECK-02 · Route warmup check:** первый warmup допускает единичный пик, повторные входы в область не вызывают полный re-scan без explicit invalidate.
-- [ ] **M3-CHECK-03 · Silent degradation diagnostics check:** каждый сценарий деградации генерирует reason-code в коде, счётчик в метрике и наблюдаемое событие в perf-отчёте.
-- [ ] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/npc_perf_gate.md` содержит сценарии и pass/fail критерии по всем audit-derived guardrails и явную привязку к `docs/perf/npc_baseline_report.md` как reference-point.
+- [x] **M3-CHECK-01 · Registry overflow check:** внедрён отдельный профиль `overflow-guardrail`, критерий PASS/FAIL/BLOCKED зафиксирован в `docs/perf/npc_perf_gate.md`, machine-readable итог публикуется через `gate_summary.json/csv`.
+- [ ] **M3-CHECK-02 · Route warmup check:** остаётся BLOCKED до внедрения route-cache runtime (критерий описан, но исполнение не активировано).
+- [x] **M3-CHECK-03 · Silent degradation diagnostics check:** fault profiles (`overflow-guardrail`, `tick-budget`, `fairness-checks`) вынесены в отдельные прогоны с единым gate summary и явным PASS/FAIL/BLOCKED статусом.
+- [x] **M3-CHECK-04 · Perf gate linkage check:** `docs/perf/npc_perf_gate.md` и `docs/perf/npc_baseline_report.md` синхронизированы; stale baseline автоматически маркирует gate как `BLOCKED`.
 
 Статус исполнения и декомпозиция задач ведутся в `docs/npc_implementation_backlog.md` (матрица = стратегия, backlog = исполнение).
 
