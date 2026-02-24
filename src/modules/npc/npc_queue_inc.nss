@@ -13,12 +13,14 @@ void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta);
 int NpcBhvrQueueGetDeferredTotal(object oArea);
 void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal);
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
+void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
 object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex);
 void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus);
 void NpcBhvrPendingNpcClear(object oNpc);
 void NpcBhvrPendingAreaClear(object oArea, object oSubject);
 object NpcBhvrQueuePeekFromPriority(object oArea, int nPriority);
+int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
 
 #include "npc_queue_pending_inc"
 #include "npc_queue_index_inc"
