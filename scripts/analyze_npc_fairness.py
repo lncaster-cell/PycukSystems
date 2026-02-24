@@ -84,54 +84,58 @@ def main() -> int:
     try:
         with path.open("r", encoding="utf-8", newline="") as file:
             reader = csv.DictReader(file)
-            rows = list(reader)
-            fieldnames = reader.fieldnames or []
-    except (OSError, UnicodeDecodeError) as exc:
-        print(f"[FAIL] failed to read csv input: {path} ({exc})")
-        return 2
+            fieldnames = reader.fieldnames
 
-    if not rows:
-        print("[FAIL] csv is empty")
-        return 2
+            if fieldnames is None:
+                print("[FAIL] csv is empty")
+                return 2
 
-    missing = [column for column in REQUIRED_COLUMNS if column not in fieldnames]
-    if missing:
-        print(f"[FAIL] csv missing required columns: {', '.join(missing)}")
-        return 2
+            missing = [column for column in REQUIRED_COLUMNS if column not in fieldnames]
+            if missing:
+                print(f"[FAIL] csv missing required columns: {', '.join(missing)}")
+                return 2
 
-    running_rows = 0
-    latency_values: list[float] = []
-    queue_values: list[float] = []
-    deferred_ticks = 0
-    overflow_ticks = 0
-    budget_overrun_ticks = 0
+            total_rows = 0
+            running_rows = 0
+            latency_values: list[float] = []
+            queue_values: list[float] = []
+            deferred_ticks = 0
+            overflow_ticks = 0
+            budget_overrun_ticks = 0
 
-    try:
-        for row_index, row in enumerate(rows, start=1):
-            lifecycle_state = (row.get("lifecycle_state") or "").strip().upper()
-            parse_int(row.get("tick"), row_index, "tick")
+            for row_index, row in enumerate(reader, start=1):
+                total_rows += 1
+                lifecycle_state = (row.get("lifecycle_state") or "").strip().upper()
+                parse_int(row.get("tick"), row_index, "tick")
 
-            if lifecycle_state != "RUNNING":
-                continue
+                if lifecycle_state != "RUNNING":
+                    continue
 
-            running_rows += 1
-            area_tick_latency_ms = parse_float(row.get("area_tick_latency_ms"), row_index, "area_tick_latency_ms")
-            queue_depth = parse_float(row.get("queue_depth"), row_index, "queue_depth")
-            deferred_events = parse_int(row.get("deferred_events"), row_index, "deferred_events")
-            overflow_events = parse_int(row.get("overflow_events"), row_index, "overflow_events")
-            budget_overrun = parse_int(row.get("budget_overrun"), row_index, "budget_overrun")
+                running_rows += 1
+                area_tick_latency_ms = parse_float(row.get("area_tick_latency_ms"), row_index, "area_tick_latency_ms")
+                queue_depth = parse_float(row.get("queue_depth"), row_index, "queue_depth")
+                deferred_events = parse_int(row.get("deferred_events"), row_index, "deferred_events")
+                overflow_events = parse_int(row.get("overflow_events"), row_index, "overflow_events")
+                budget_overrun = parse_int(row.get("budget_overrun"), row_index, "budget_overrun")
 
-            latency_values.append(area_tick_latency_ms)
-            queue_values.append(queue_depth)
+                latency_values.append(area_tick_latency_ms)
+                queue_values.append(queue_depth)
 
-            if deferred_events > 0:
-                deferred_ticks += 1
-            if overflow_events > 0:
-                overflow_ticks += 1
-            if budget_overrun > 0:
-                budget_overrun_ticks += 1
+                if deferred_events > 0:
+                    deferred_ticks += 1
+                if overflow_events > 0:
+                    overflow_ticks += 1
+                if budget_overrun > 0:
+                    budget_overrun_ticks += 1
+
+            if total_rows == 0:
+                print("[FAIL] csv is empty")
+                return 2
     except ValueError as exc:
         print(str(exc))
+        return 2
+    except (OSError, UnicodeDecodeError) as exc:
+        print(f"[FAIL] failed to read csv input: {path} ({exc})")
         return 2
 
     if running_rows == 0:
@@ -147,7 +151,7 @@ def main() -> int:
     overflow_rate = overflow_ticks / running_rows
     budget_overrun_rate = budget_overrun_ticks / running_rows
 
-    print(f"[INFO] analyzed rows={len(rows)}, running_rows={running_rows}")
+    print(f"[INFO] analyzed rows={total_rows}, running_rows={running_rows}")
     print(f"[INFO] area_tick_latency_ms p95={latency_p95:.2f} p99={latency_p99:.2f}")
     print(f"[INFO] queue_depth p95={queue_p95:.2f} p99={queue_p99:.2f}")
     print(f"[INFO] deferred_rate={deferred_rate:.4f}")
