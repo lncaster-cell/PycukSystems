@@ -680,6 +680,8 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
         return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
     }
 
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
     oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
