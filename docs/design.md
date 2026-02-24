@@ -136,6 +136,10 @@
 
 Source of truth для финального gate-статуса: `docs/perf/npc_baseline_report.md` (раздел **6. Вывод (go/no-go)**) + latest gate report в `docs/perf/reports/*_npc_gate_report.md` (или актуальный `docs/perf/reports/npc_gate_summary_latest.md`). При расхождении статусов в checklist приоритет имеет эта пара артефактов.
 
+
+### 7.5 Кластеризация областей города (exterior/interior)
+Для сценариев с большим количеством интерьеров в городе (частые входы/выходы игрока) принята стратегия cluster orchestration + interest bubble + LOD-симуляция NPC вне видимости игрока. Детали: `docs/area_cluster_streaming_strategy.md`.
+
 ## 8. План этапов
 1. Каркас ядра событий и контракт модулей.
 2. Реализация area-tick контроллера с бакетами/jitter.
