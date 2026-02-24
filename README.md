@@ -103,6 +103,10 @@ python3 scripts/analyze_npc_fairness.py --input docs/perf/fixtures/npc/steady.cs
 Компиляция `.nss -> .ncs` выполняется в GitHub Actions (`.github/workflows/compile.yml`) на `windows-latest`.
 Локальный запуск Windows-компилятора в Linux/WSL для этого репозитория не является целевым сценарием.
 
+Контракт compile/bugscan (этапы, входные артефакты, формат summary, коды возврата): `docs/compile_bugscan_contract.md`.
+
+Для `bugscan` доступна настройка параллельности через `BUGSCAN_JOBS` (по умолчанию `1`).
+
 ## Структура репозитория (кратко)
 
 - `src/modules/npc/` — активный NPC runtime-модуль

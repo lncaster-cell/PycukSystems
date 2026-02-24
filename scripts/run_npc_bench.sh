@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCENARIO="${1:-steady}"
+SCENARIO="steady"
+MATERIALIZE_RAW="false"
 RUNS="${RUNS:-3}"
 OUTPUT_ROOT="benchmarks/npc_baseline/results"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
@@ -24,6 +25,36 @@ QUEUE_FLAGS=(
 )
 
 mkdir -p "${RAW_DIR}" "${ANALYSIS_DIR}"
+
+while (( "$#" )); do
+  case "$1" in
+    --materialize-raw)
+      MATERIALIZE_RAW="true"
+      ;;
+    -h|--help)
+      cat <<'USAGE'
+Usage: scripts/run_npc_bench.sh [SCENARIO] [--materialize-raw]
+
+SCENARIO defaults to "steady".
+--materialize-raw copies SOURCE_FIXTURE into raw/run_N.csv per run for debugging.
+Without this flag, raw/run_N.csv is a symlink to SOURCE_FIXTURE and raw/manifest.csv is emitted.
+USAGE
+      exit 0
+      ;;
+    --*)
+      echo "[ERR] Unknown option: $1" >&2
+      exit 2
+      ;;
+    *)
+      if [[ "${SCENARIO}" != "steady" ]]; then
+        echo "[ERR] Scenario already provided: ${SCENARIO}. Unexpected extra argument: $1" >&2
+        exit 2
+      fi
+      SCENARIO="$1"
+      ;;
+  esac
+  shift
+done
 
 if ! [[ "${RUNS}" =~ ^[0-9]+$ ]] || (( RUNS < 1 )); then
   echo "[ERR] Invalid RUNS value: ${RUNS}. RUNS must be an integer >= 1 (example: RUNS=3)." >&2
@@ -112,7 +143,13 @@ for i in $(seq 1 "${RUNS}"); do
   run_csv="${RAW_DIR}/run_${i}.csv"
   run_json="${ANALYSIS_DIR}/run_${i}_single_run.json"
 
-  cp "${SOURCE_FIXTURE}" "${run_csv}"
+  if [[ "${MATERIALIZE_RAW}" == "true" ]]; then
+    cp "${SOURCE_FIXTURE}" "${run_csv}"
+    analysis_input="${run_csv}"
+  else
+    ln -sf "$(realpath --relative-to="${RAW_DIR}" "${SOURCE_FIXTURE}")" "${run_csv}"
+    analysis_input="${SOURCE_FIXTURE}"
+  fi
 
   python3 "${SINGLE_RUN_ANALYZER}" --input "${run_csv}" "${QUEUE_FLAGS[@]}" >"${run_json}"
 
@@ -183,6 +220,10 @@ payload = {
     "timestamp": os.environ["TIMESTAMP"],
     "scenario_id": os.environ["SCENARIO"],
     "source_fixture": os.environ["SOURCE_FIXTURE"],
+    "raw_artifacts": {
+        "mode": os.environ["RAW_MODE"],
+        "manifest": os.environ["MANIFEST_FILE"],
+    },
     "runs": int(os.environ["RUNS"]),
     "baseline": {
         "status": os.environ["BASELINE_STATE"],
@@ -206,6 +247,8 @@ cat > "${OUT_DIR}/summary.md" <<MD
 - Scenario/profile: ${SCENARIO}
 - Source fixture: ${SOURCE_FIXTURE}
 - Runs: ${RUNS}
+- Raw artifacts mode: ${RAW_MODE}
+- Raw manifest: ${MANIFEST_FILE}
 - Baseline reference: ${BASELINE_FILE} (${baseline_state}: ${baseline_note})
 
 ## Analyzer post-processing
@@ -232,6 +275,7 @@ Per-run JSON logs are stored in ${ANALYSIS_DIR}.
 - ${OUT_DIR}/gate_summary.csv
 - ${OUT_DIR}/gate_summary.json
 - ${BASELINE_META_FILE}
+- ${MANIFEST_FILE}
 MD
 
 echo "[OK] Benchmark scaffolding completed: ${OUT_DIR}"
