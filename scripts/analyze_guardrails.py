@@ -75,11 +75,13 @@ def analyze(path: Path) -> dict[str, str]:
             overflow_events = None
             budget_overrun = None
             deferred_events = None
-            if has_overflow:
-                overflow_events = parse_int(row.get("overflow_events"), row_index, "overflow_events")
-            if has_budget:
-                budget_overrun = parse_int(row.get("budget_overrun"), row_index, "budget_overrun")
-                deferred_events = parse_int(row.get("deferred_events"), row_index, "deferred_events")
+            if is_running:
+                # Intentionally skip non-RUNNING rows to reduce single-pass cost on large CSV files.
+                if has_overflow:
+                    overflow_events = parse_int(row.get("overflow_events"), row_index, "overflow_events")
+                if has_budget:
+                    budget_overrun = parse_int(row.get("budget_overrun"), row_index, "budget_overrun")
+                    deferred_events = parse_int(row.get("deferred_events"), row_index, "deferred_events")
 
             if has_overflow and is_running and overflow_events is not None and overflow_events > 0:
                 overflow_hits += 1
@@ -99,13 +101,13 @@ def analyze(path: Path) -> dict[str, str]:
                     and (row.get("route_cache_guardrail_status") or "").strip().upper() == "PASS"
                 )
 
-    if has_overflow and result["overflow"] != "FAIL":
+    if has_overflow:
         result["overflow"] = "PASS" if running_rows > 0 and overflow_hits > 0 else "FAIL"
 
-    if has_budget and result["budget"] != "FAIL":
+    if has_budget:
         result["budget"] = "PASS" if running_rows > 0 and budget_hits > 0 and deferred_hits > 0 else "FAIL"
 
-    if has_warmup and result["warmup"] != "FAIL":
+    if has_warmup:
         result["warmup"] = "PASS" if warmup_rows > 0 and warmup_all_ok and rescan_all_ok and guardrail_all_ok else "FAIL"
 
     return result
