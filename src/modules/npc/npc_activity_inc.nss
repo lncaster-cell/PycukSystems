@@ -1063,7 +1063,6 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
     sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
     nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
-    nSlotFallback = sSlotRaw != "" && sSlot != sSlotRaw;
     nResolvedHour = GetTimeHour();
     if (GetIsObjectValid(oArea))
     {
