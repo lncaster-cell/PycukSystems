@@ -383,6 +383,56 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 ---
 
+## 3.1) TL;DR: минимальная настройка NPC за 5 минут
+
+Если коротко, чтобы NPC вообще «ожили», нужно всего 4 вещи:
+
+1. В **Module OnLoad** поставить `npc_module_load`.
+2. У NPC-шаблонов (creature blueprints) выставить hooks:
+   - `OnSpawn = npc_spawn`
+   - `OnPerception = npc_perception`
+   - `OnDamaged = npc_damaged`
+   - `OnDeath = npc_death`
+   - `OnConversation = npc_dialogue`
+3. У area привязать `npc_area_enter` и `npc_area_exit` (если в модуле используется area enter/exit pipeline).
+4. Скомпилировать скрипты и проверить, что после запуска у NPC появляются locals:
+   - `npc_activity_slot`
+   - `npc_activity_state`
+   - `npc_activity_last_ts`
+
+Если эти locals не появляются, почти всегда проблема в одном из пунктов выше (обычно не назначен hook или не скомпилирован нужный `npc_*.nss`).
+
+## 3.2) Как NPC понимает, куда идти (route -> waypoint)
+
+Короткий принцип движения такой:
+
+1. На idle-тик runtime выбирает **effective route** (например `default_route` / `priority_patrol` / `critical_safe`) через fallback-цепочку.
+2. Для выбранного route читаются параметры waypoint-маршрута:
+   - `npc_route_count_<routeId>` — сколько точек в маршруте;
+   - `npc_route_tag_<routeId>` — tag группы waypoint/состояния;
+   - `npc_route_loop_<routeId>` — зацикливать маршрут или нет.
+3. Текущая позиция берётся из `npc_activity_wp_index`.
+4. После dispatch индекс двигается на следующую точку:
+   - при loop=on: после `N` идёт снова `1`;
+   - при loop=off: остаётся на последней валидной точке.
+5. В `npc_activity_state`/`npc_activity_last` пишется состояние с суффиксом маршрута, например `..._<routeTag>_<i>_of_<N>`, чтобы было видно, какой waypoint сейчас активен.
+
+Важно: если `npc_route_count_<routeId> <= 0` или не задан `npc_route_tag_<routeId>`, runtime не сможет построить waypoint-ветку и уйдёт в безопасный fallback-state без waypoint-суффикса.
+
+Минимум данных, чтобы NPC реально ходил по маршруту:
+
+- валидный `routeId` (`default_route|priority_patrol|critical_safe`),
+- `npc_route_count_<routeId> > 0`,
+- `npc_route_tag_<routeId>` (не пустой),
+- корректные waypoint-объекты/теги в вашем контенте под этот route-tag.
+
+Быстрая диагностика, если «стоит на месте»:
+
+- проверить `npc_activity_route_effective` (какой route реально выбран),
+- проверить `npc_activity_wp_index|npc_activity_wp_count|npc_activity_wp_loop`,
+- проверить рост `npc_metric_activity_invalid_route_total` (невалидный route -> fallback),
+- проверить cooldown (`npc_activity_cooldown_until_ts`): пока активен, idle-dispatch не двигает состояние.
+
 ## 4) Настройка в тулсете: пошагово
 
 ### Шаг 1. Подключить исходники
