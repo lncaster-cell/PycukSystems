@@ -692,6 +692,7 @@ void NpcBhvrQueueClear(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, 0);
     SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
+    NpcBhvrRegistryResetIdleCursor(oArea);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
     NpcBhvrQueueSyncTotals(oArea);
 }

@@ -80,6 +80,8 @@ const string NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS = "npc_tick_carryover_events";
 const string NPC_BHVR_VAR_REGISTRY_COUNT = "npc_registry_count";
 const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
+const string NPC_BHVR_VAR_IDLE_CURSOR = "npc_idle_cursor";
+const int NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT = 12;
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
 const string NPC_BHVR_VAR_PLAYER_COUNT = "npc_player_count";
@@ -132,6 +134,9 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
 int NpcBhvrRegistryInsert(object oArea, object oNpc);
 int NpcBhvrRegistryRemove(object oArea, object oNpc);
 void NpcBhvrRegistryBroadcastIdleTick(object oArea);
+void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick);
+void NpcBhvrRegistryResetIdleCursor(object oArea);
+void NpcBhvrRegistryClampIdleCursor(object oArea, int nCount);
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
 int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority);
 object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex);
