@@ -97,3 +97,22 @@ for f in tools/npc_behavior_system/*.nss; do b=$(basename "$f" .nss); c=$(rg -n 
 - Debug entrypoints `npc_behavior_area_enter_debug.nss`, `npc_behavior_area_exit_debug.nss`, `npc_behavior_module_load_debug.nss` удалены из `tools/npc_behavior_system/`.
 - Временный debug helper `al_dbg.nss` удалён из `tools/npc_behavior_system/`.
 - README модуля обновлён: зафиксировано отсутствие debug-ветки в runtime-дереве.
+
+## Повторный поиск (2026-02-24)
+
+Проведён повторный grep-аудит по ключевым маркерам (`TODO|FIXME|TEMP|Temporary|debug|DEBUG|hack|HACK|deprecated|compat`) в каталогах `src/`, `tools/`, `docs/`, `benchmarks/`, `scripts/` с теми же исключениями (`third_party/**`, `tools/NWNScriptCompiler.exe`).
+
+Итог:
+
+- новых runtime debug-entrypoint файлов в `tools/npc_behavior_system/` не появилось;
+- удалённые ранее `*_debug.nss` и `al_dbg.nss` по-прежнему отсутствуют;
+- вхождения `debug/compat` остаются в документации, в legacy AL-диагностике (`al_debug`) и в явном compat-wrapper `NpcBehaviorOnCombatRound`, что соответствует зафиксированному переходному состоянию.
+
+Вывод: новых кандидатов на cleanup в рамках текущего прохода не выявлено.
+
+### Команды повторной проверки
+
+```bash
+rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|hack|HACK|deprecated|compat" src tools docs benchmarks scripts --glob '!third_party/**' --glob '!tools/NWNScriptCompiler.exe'
+rg -n "NpcBehaviorOnCombatRound|al_debug|_debug\.nss" tools src docs --glob '!third_party/**'
+```
