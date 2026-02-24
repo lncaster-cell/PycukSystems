@@ -23,7 +23,6 @@ object NpcBhvrQueuePeekFromPriority(object oArea, int nPriority);
 int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
 
 #include "npc_queue_pending_inc"
-#include "npc_queue_pending_compat_inc"
 #include "npc_queue_index_inc"
 #include "npc_queue_ring_inc"
 #include "npc_queue_deferred_inc"
