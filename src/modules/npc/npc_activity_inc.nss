@@ -40,6 +40,12 @@ const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
 const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
 const string NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX = "npc_route_activity_";
 
+const int NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN = 1;
+const int NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN = 32;
+const int NPC_BHVR_ACTIVITY_ROUTE_TAG_MIN_LEN = 1;
+const int NPC_BHVR_ACTIVITY_ROUTE_TAG_MAX_LEN = 24;
+const string NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT = "default";
+
 const string NPC_BHVR_ACTIVITY_SLOT_DEFAULT = "default";
 const string NPC_BHVR_ACTIVITY_SLOT_PRIORITY = "priority";
 const string NPC_BHVR_ACTIVITY_SLOT_CRITICAL = "critical";
@@ -102,29 +108,104 @@ string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
 }
 
+int NpcBhvrActivityIsValidIdentifierChar(string sChar)
+{
+    return FindSubString("abcdefghijklmnopqrstuvwxyz0123456789_", sChar) >= 0;
+}
+
+int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLen)
+{
+    int nLen;
+    int i;
+
+    nLen = GetStringLength(sValue);
+    if (nLen < nMinLen || nLen > nMaxLen)
+    {
+        return FALSE;
+    }
+
+    for (i = 0; i < nLen; i++)
+    {
+        if (!NpcBhvrActivityIsValidIdentifierChar(GetSubString(sValue, i, 1)))
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope)
+{
+    if (!NpcBhvrActivityIsValidIdentifierValue(
+        sRouteId,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN
+    ))
+    {
+        if (GetIsObjectValid(oMetricScope))
+        {
+            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
+        }
+        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    if (!NpcBhvrActivityIsSupportedRoute(sRouteId))
+    {
+        if (GetIsObjectValid(oMetricScope))
+        {
+            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
+        }
+        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    }
+
+    return NpcBhvrActivityAdapterNormalizeRoute(sRouteId);
+}
+
+string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope)
+{
+    if (!NpcBhvrActivityIsValidIdentifierValue(
+        sRouteTag,
+        NPC_BHVR_ACTIVITY_ROUTE_TAG_MIN_LEN,
+        NPC_BHVR_ACTIVITY_ROUTE_TAG_MAX_LEN
+    ))
+    {
+        if (GetIsObjectValid(oMetricScope))
+        {
+            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
+        }
+        return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
+    }
+
+    return sRouteTag;
+}
+
 string NpcBhvrActivityRouteCountKey(string sRouteId)
 {
-    return NPC_BHVR_VAR_ROUTE_COUNT_PREFIX + sRouteId;
+    return NPC_BHVR_VAR_ROUTE_COUNT_PREFIX + NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
 }
 
 string NpcBhvrActivityRouteLoopKey(string sRouteId)
 {
-    return NPC_BHVR_VAR_ROUTE_LOOP_PREFIX + sRouteId;
+    return NPC_BHVR_VAR_ROUTE_LOOP_PREFIX + NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
 }
 
 string NpcBhvrActivityRouteTagKey(string sRouteId)
 {
-    return NPC_BHVR_VAR_ROUTE_TAG_PREFIX + sRouteId;
+    return NPC_BHVR_VAR_ROUTE_TAG_PREFIX + NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
 }
 
 string NpcBhvrActivityRoutePauseTicksKey(string sRouteId)
 {
-    return NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX + sRouteId;
+    return NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX + NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
 }
 
 string NpcBhvrActivityRoutePointActivityKey(string sRouteId, int nIndex)
 {
-    return NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX + sRouteId + "_" + IntToString(nIndex);
+    return NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX
+        + NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID)
+        + "_"
+        + IntToString(nIndex);
 }
 
 string NpcBhvrActivityScheduleStartKey(string sSlot)
@@ -248,13 +329,23 @@ string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oM
         return "";
     }
 
+    if (!NpcBhvrActivityIsValidIdentifierValue(
+        sRouteId,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN
+    ))
+    {
+        NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
+        return "";
+    }
+
     if (!NpcBhvrActivityIsSupportedRoute(sRouteId))
     {
         NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
         return "";
     }
 
-    return NpcBhvrActivityAdapterNormalizeRoute(sRouteId);
+    return NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
 }
 
 string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
@@ -368,13 +459,16 @@ int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId)
 {
     int nCount;
     object oArea;
+    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
         return 0;
     }
 
-    nCount = GetLocalInt(oNpc, NpcBhvrActivityRouteCountKey(sRouteId));
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
+    nCount = GetLocalInt(oNpc, NpcBhvrActivityRouteCountKey(sRouteIdNormalized));
     if (nCount > 0)
     {
         return nCount;
@@ -383,7 +477,7 @@ int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId)
     oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
-        nCount = GetLocalInt(oArea, NpcBhvrActivityRouteCountKey(sRouteId));
+        nCount = GetLocalInt(oArea, NpcBhvrActivityRouteCountKey(sRouteIdNormalized));
         if (nCount > 0)
         {
             return nCount;
@@ -397,13 +491,16 @@ int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
 {
     object oArea;
     int nLoopFlag;
+    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
         return TRUE;
     }
 
-    nLoopFlag = GetLocalInt(oNpc, NpcBhvrActivityRouteLoopKey(sRouteId));
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
+    nLoopFlag = GetLocalInt(oNpc, NpcBhvrActivityRouteLoopKey(sRouteIdNormalized));
     if (nLoopFlag > 0)
     {
         return TRUE;
@@ -420,7 +517,7 @@ int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
         return TRUE;
     }
 
-    nLoopFlag = GetLocalInt(oArea, NpcBhvrActivityRouteLoopKey(sRouteId));
+    nLoopFlag = GetLocalInt(oArea, NpcBhvrActivityRouteLoopKey(sRouteIdNormalized));
     if (nLoopFlag > 0)
     {
         return TRUE;
@@ -438,25 +535,32 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
 {
     object oArea;
     string sTag;
+    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
-        return "";
+        return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
     }
 
-    sTag = GetLocalString(oNpc, NpcBhvrActivityRouteTagKey(sRouteId));
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
+    sTag = GetLocalString(oNpc, NpcBhvrActivityRouteTagKey(sRouteIdNormalized));
     if (sTag != "")
     {
-        return sTag;
+        return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
     }
 
     oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
+    if (GetIsObjectValid(oArea))
     {
-        return "";
+        sTag = GetLocalString(oArea, NpcBhvrActivityRouteTagKey(sRouteIdNormalized));
+        if (sTag != "")
+        {
+            return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
+        }
     }
 
-    return GetLocalString(oArea, NpcBhvrActivityRouteTagKey(sRouteId));
+    return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
 }
 
 int NpcBhvrActivityNormalizeWaypointIndex(int nIndex, int nCount, int bLoop)
@@ -486,6 +590,8 @@ int NpcBhvrActivityNormalizeWaypointIndex(int nIndex, int nCount, int bLoop)
 
 string NpcBhvrActivityComposeWaypointState(string sBaseState, string sRouteTag, int nWpIndex, int nWpCount)
 {
+    sRouteTag = NpcBhvrActivityNormalizeRouteTagOrDefault(sRouteTag, OBJECT_INVALID);
+
     if (sRouteTag == "" || nWpCount <= 0)
     {
         return sBaseState;
@@ -504,13 +610,16 @@ int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int n
 {
     int nActivity;
     object oArea;
+    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc) || nWpIndex < 0)
     {
         return 0;
     }
 
-    nActivity = GetLocalInt(oNpc, NpcBhvrActivityRoutePointActivityKey(sRouteId, nWpIndex));
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
+    nActivity = GetLocalInt(oNpc, NpcBhvrActivityRoutePointActivityKey(sRouteIdNormalized, nWpIndex));
     if (nActivity > 0)
     {
         return nActivity;
@@ -522,7 +631,7 @@ int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int n
         return 0;
     }
 
-    nActivity = GetLocalInt(oArea, NpcBhvrActivityRoutePointActivityKey(sRouteId, nWpIndex));
+    nActivity = GetLocalInt(oArea, NpcBhvrActivityRoutePointActivityKey(sRouteIdNormalized, nWpIndex));
     if (nActivity > 0)
     {
         return nActivity;
@@ -680,13 +789,16 @@ int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
 {
     int nPause;
     object oArea;
+    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
         return 0;
     }
 
-    nPause = GetLocalInt(oNpc, NpcBhvrActivityRoutePauseTicksKey(sRouteId));
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+
+    nPause = GetLocalInt(oNpc, NpcBhvrActivityRoutePauseTicksKey(sRouteIdNormalized));
     if (nPause > 0)
     {
         return nPause;
@@ -698,7 +810,7 @@ int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
         return 0;
     }
 
-    nPause = GetLocalInt(oArea, NpcBhvrActivityRoutePauseTicksKey(sRouteId));
+    nPause = GetLocalInt(oArea, NpcBhvrActivityRoutePauseTicksKey(sRouteIdNormalized));
     if (nPause > 0)
     {
         return nPause;

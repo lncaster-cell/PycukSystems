@@ -140,6 +140,29 @@ Tick/degraded telemetry в runtime включает:
 
 Smoke-композит теперь включает `scripts/test_npc_activity_schedule_contract.sh` для валидации этих инвариантов.
 
+## Identifier constraints
+
+Для route-идентификаторов и route-tag в `npc_activity_inc.nss` действует единая политика нормализации перед построением runtime key/state:
+
+- Допустимые символы: только `a-z`, `0-9`, `_`.
+- Пустые значения запрещены (`non-empty`).
+- `routeId`:
+  - минимальная длина: `1`;
+  - максимальная длина: `32`.
+- `routeTag`:
+  - минимальная длина: `1`;
+  - максимальная длина: `24`.
+- При нарушении ограничений инкрементируется `npc_metric_activity_invalid_route_total`, а runtime использует детерминированный fallback:
+  - `routeId` -> `default_route`;
+  - `routeTag` -> `default`.
+
+Примеры:
+
+- Допустимые `routeId`: `default_route`, `priority_patrol`, `critical_safe`.
+- Недопустимые `routeId`: `""` (empty), `priority-patrol` (символ `-`), `Priority` (верхний регистр), строка длиннее 32.
+- Допустимые `routeTag`: `market_lane`, `north_gate_2`, `default`.
+- Недопустимые `routeTag`: `""` (empty), `market lane` (пробел), `tag!` (символ `!`), строка длиннее 24.
+
 
 ## Контракт pending-состояний (NPC-local и area-local)
 
