@@ -667,7 +667,6 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
 {
     object oArea;
     string sTag;
-    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -685,14 +684,17 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
     oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
-        sTag = GetLocalString(oArea, NpcBhvrActivityRouteTagKey(sRouteIdNormalized));
+        sTag = GetLocalString(oArea, NpcBhvrActivityRouteTagKey(sRouteId));
         if (sTag != "")
         {
             return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
         }
+
+        sTag = NpcBhvrActivityReadMigratedString(oArea, NpcBhvrActivityRouteTagKey(sRouteId), NpcBhvrActivityRouteTagLegacyKey(sRouteId));
+        return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
     }
 
-    return NpcBhvrActivityReadMigratedString(oArea, NpcBhvrActivityRouteTagKey(sRouteId), NpcBhvrActivityRouteTagLegacyKey(sRouteId));
+    return NpcBhvrActivityNormalizeRouteTagOrDefault("", oNpc);
 }
 
 int NpcBhvrActivityNormalizeWaypointIndex(int nIndex, int nCount, int bLoop)
