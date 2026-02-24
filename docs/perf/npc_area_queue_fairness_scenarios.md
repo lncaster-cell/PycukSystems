@@ -17,7 +17,7 @@
 Перед сценарными прогонами выполнить:
 
 ```bash
-bash scripts/check_area_lifecycle_contract.sh
+bash scripts/check_npc_lifecycle_contract.sh
 ```
 
 Проверка валидирует, что `npc_behavior_core.nss` использует `src/controllers/lifecycle_controller.nss` как единую точку lifecycle-контракта и не дублирует legacy area lifecycle vars.

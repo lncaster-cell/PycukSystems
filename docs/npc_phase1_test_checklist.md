@@ -171,10 +171,7 @@ RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
 Для валидации связки `core <-> lifecycle_controller` используйте универсальный скрипт:
 
 ```bash
-bash scripts/check_lifecycle_contract.sh \
-  src/modules/npc/npc_core.nss \
-  src/controllers/lifecycle_controller.nss \
-  npc_behavior
+bash scripts/check_npc_lifecycle_contract.sh
 ```
 
 Подробности и примеры для NPC Bhvr: `docs/testing_contracts.md`.

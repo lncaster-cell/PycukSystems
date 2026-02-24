@@ -22,4 +22,4 @@
 - Runtime-контракт оркестрации: `docs/npc_runtime_orchestration.md`.
 - Backlog реализации: `docs/npc_implementation_backlog.md`.
 - Perf-сценарии fairness: `docs/perf/npc_area_queue_fairness_scenarios.md`.
-- Быстрая статическая проверка контракта: `bash scripts/check_area_lifecycle_contract.sh`.
+- Быстрая статическая проверка контракта: `bash scripts/check_npc_lifecycle_contract.sh`.
