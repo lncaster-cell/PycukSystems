@@ -1,0 +1,59 @@
+{
+  "title": "NPC Runtime — DB Flush",
+  "uid": "npc-db-flush",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "tags": ["npc", "runtime", "perf", "db"],
+  "templating": {
+    "list": [
+      {
+        "name": "module",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(npc_db_flush_duration_ms_bucket, module)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "scenario",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(npc_db_flush_duration_ms_bucket{module=~\"$module\"}, scenario)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Flush duration p50/p95/p99 (ms)",
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le) (rate(npc_db_flush_duration_ms_bucket{module=~\"$module\",scenario=~\"$scenario\"}[5m])))", "legendFormat": "p50"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(npc_db_flush_duration_ms_bucket{module=~\"$module\",scenario=~\"$scenario\"}[5m])))", "legendFormat": "p95"},
+        {"expr": "histogram_quantile(0.99, sum by (le) (rate(npc_db_flush_duration_ms_bucket{module=~\"$module\",scenario=~\"$scenario\"}[5m])))", "legendFormat": "p99"}
+      ],
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 0}
+    },
+    {
+      "type": "timeseries",
+      "title": "DB flush error rate (%)",
+      "targets": [
+        {"expr": "100 * sum(rate(npc_db_flush_total{module=~\"$module\",scenario=~\"$scenario\",result=\"error\"}[5m])) / clamp_min(sum(rate(npc_db_flush_total{module=~\"$module\",scenario=~\"$scenario\"}[5m])), 1)", "legendFormat": "error_rate"}
+      ],
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 9}
+    },
+    {
+      "type": "timeseries",
+      "title": "Flush batch size avg/p95",
+      "targets": [
+        {"expr": "avg_over_time(npc_db_flush_batch_size{module=~\"$module\",scenario=~\"$scenario\"}[5m])", "legendFormat": "avg"},
+        {"expr": "quantile_over_time(0.95, npc_db_flush_batch_size{module=~\"$module\",scenario=~\"$scenario\"}[5m])", "legendFormat": "p95"}
+      ],
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 9}
+    }
+  ]
+}

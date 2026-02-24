@@ -130,8 +130,8 @@
   - **DONE**: фактические p95/p99/deferred/overrun зафиксированы в baseline-отчёте; `tick-budget-degraded` отмечен как FAIL относительно порогов. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/npc_perf_plan.md`.
 - [x] Зафиксирован rollback-план для изменённых флагов/констант.
   - Артефакт: раздел **Rollback-процедура** в этом документе (`docs/design.md`, §7.4).
-- [ ] Обновлены runtime-дашборды для tick orchestration, DB flush и AI step cost.
-  - **BLOCKED**: в репозитории отсутствуют экспорт/конфигурации runtime-дашбордов (Grafana/аналоги) для подтверждения обновления. Owner: Observability/dashboard owner.
+- [x] Обновлены runtime-дашборды для tick orchestration, DB flush и AI step cost.
+  - Артефакты: `docs/perf/dashboards/tick_orchestration_dashboard.json`, `docs/perf/dashboards/db_flush_dashboard.json`, `docs/perf/dashboards/ai_step_cost_dashboard.json`, `docs/perf/dashboards/README.md`.
 
 ## 8. План этапов
 1. Каркас ядра событий и контракт модулей.
