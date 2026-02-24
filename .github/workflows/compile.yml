@@ -92,10 +92,16 @@ jobs:
           $moduleIncludeDirs = Get-ChildItem -Path (Join-Path $PWD 'src/modules') -Recurse -File -Filter '*.nss' |
             Select-Object -ExpandProperty DirectoryName -Unique |
             Sort-Object
+          $srcIncludeDirs = Get-ChildItem -Path (Join-Path $PWD 'src') -Recurse -File -Filter '*.nss' |
+            Select-Object -ExpandProperty DirectoryName -Unique |
+            Sort-Object
 
           $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
           foreach ($moduleIncludeDir in $moduleIncludeDirs) {
             $includeArgs += @('-i', $moduleIncludeDir)
+          }
+          foreach ($srcIncludeDir in $srcIncludeDirs) {
+            $includeArgs += @('-i', $srcIncludeDir)
           }
 
           $logDir = Join-Path $PWD 'ci-logs'
@@ -350,10 +356,16 @@ jobs:
           $moduleIncludeDirs = Get-ChildItem -Path (Join-Path $PWD 'src/modules') -Recurse -File -Filter '*.nss' |
             Select-Object -ExpandProperty DirectoryName -Unique |
             Sort-Object
+          $srcIncludeDirs = Get-ChildItem -Path (Join-Path $PWD 'src') -Recurse -File -Filter '*.nss' |
+            Select-Object -ExpandProperty DirectoryName -Unique |
+            Sort-Object
 
           $includeArgs = @('-i', $stockIncludePath, '-i', $sourceRootIncludePath, '-i', $npcIncludePath, '-i', $projectIncludePath, '-i', $nwnxIncludePath)
           foreach ($moduleIncludeDir in $moduleIncludeDirs) {
             $includeArgs += @('-i', $moduleIncludeDir)
+          }
+          foreach ($srcIncludeDir in $srcIncludeDirs) {
+            $includeArgs += @('-i', $srcIncludeDir)
           }
 
           $logDir = Join-Path $PWD 'ci-logs'
