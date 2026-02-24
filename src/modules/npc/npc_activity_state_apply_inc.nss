@@ -3,6 +3,18 @@
 string NpcBhvrActivityResolveSlotEmote(object oNpc, string sSlot);
 int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId);
 int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId);
+int NpcBhvrActivityNormalizeWaypointIndex(int nIndex, int nCount, int bLoop);
+int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId);
+int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int nWpIndex);
+string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId);
+string NpcBhvrActivityComposeWaypointState(string sBaseState, string sRouteTag, int nWpIndex, int nWpCount);
+string NpcBhvrActivityGetCustomAnims(int nActivityId);
+string NpcBhvrActivityGetNumericAnims(int nActivityId);
+string NpcBhvrActivityGetWaypointTagRequirement(int nActivityId);
+int NpcBhvrPendingNow();
+int NpcBhvrActivityRequiresTrainingPartner(int nActivityId);
+int NpcBhvrActivityRequiresBarPair(int nActivityId);
+void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow);
 
 string NpcBhvrActivityResolveAction(object oNpc, string sSlot, string sRouteId, int nWpIndex, int nWpCount)
 {
