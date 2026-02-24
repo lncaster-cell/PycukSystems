@@ -456,6 +456,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     {
         if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex)) == oSubject)
         {
+            nEscalatedPriority = nPriority;
             nEscalatedPriority = NpcBhvrPriorityEscalate(nPriority, nPriority, nReasonCode);
             if (nEscalatedPriority != nPriority)
             {
@@ -485,6 +486,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         {
             if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nExistingPriority, nIndex)) == oSubject)
             {
+                nEscalatedPriority = nExistingPriority;
                 nEscalatedPriority = NpcBhvrPriorityEscalate(nExistingPriority, nPriority, nReasonCode);
                 if (nEscalatedPriority != nExistingPriority)
                 {
