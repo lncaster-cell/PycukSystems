@@ -1,5 +1,6 @@
 # NPC Gate Report — 2026-02-24
 
+- Commit SHA: **ee2da52 (`ee2da52f718134afa2e6fa4a4d23953e49f1f949`)**.
 ## Sources
 - Perf plan: `docs/perf/npc_perf_plan.md`
 - Perf gate criteria: `docs/perf/npc_perf_gate.md`

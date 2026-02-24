@@ -78,6 +78,42 @@ is_guardrail_enabled() {
   esac
 }
 
+stamp_baseline_commit_sha() {
+  if [[ ! -f "${BASELINE_FILE}" ]]; then
+    return
+  fi
+
+  local short_sha full_sha
+  short_sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
+  full_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+  if [[ -z "${short_sha}" || -z "${full_sha}" ]]; then
+    echo "[WARN] Unable to resolve git SHA for baseline report auto-stamp." >&2
+    return
+  fi
+
+  python3 - "${BASELINE_FILE}" "${short_sha}" "${full_sha}" <<'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+short_sha = sys.argv[2]
+full_sha = sys.argv[3]
+text = path.read_text(encoding="utf-8")
+pattern = r"- Commit SHA:\\s*\\*\\*(.+?)\\*\\*\\.?"
+match = re.search(pattern, text)
+if not match:
+    raise SystemExit(0)
+
+current = match.group(1).strip()
+line = f"- Commit SHA: **{short_sha}** (`{full_sha}`)."
+pseudo = {"WORKTREE", "N/A", "UNKNOWN", "TBD", ""}
+if current.upper() in pseudo:
+    text = re.sub(pattern, line, text, count=1)
+    path.write_text(text, encoding="utf-8")
+PY
+}
+
 check_baseline_freshness() {
   python3 - "${BASELINE_FILE}" <<'PY'
 import re
@@ -127,6 +163,7 @@ if [[ ! -f "${SOURCE_FIXTURE}" ]]; then
   exit 2
 fi
 
+stamp_baseline_commit_sha
 baseline_info="$(check_baseline_freshness)"
 baseline_state="${baseline_info%%|*}"
 baseline_note="${baseline_info#*|}"
