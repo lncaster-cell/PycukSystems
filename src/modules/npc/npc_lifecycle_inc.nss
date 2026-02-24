@@ -292,6 +292,69 @@ void NpcBhvrOnPerceptionImpl(object oNpc)
     NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_HIGH, NPC_BHVR_REASON_PERCEPTION);
 }
 
+void NpcBhvrOnDamagedImpl(object oNpc)
+{
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DAMAGED_COUNT);
+    oArea = GetArea(oNpc);
+    NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_CRITICAL, NPC_BHVR_REASON_DAMAGE);
+}
+
+void NpcBhvrOnDeathImpl(object oNpc)
+{
+    object oArea;
+    int nFound;
+    int nFoundPriority;
+    int nFoundIndex;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DEATH_COUNT);
+
+    oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        NpcBhvrPendingNpcClear(oNpc);
+        return;
+    }
+
+    NpcBhvrRegistryRemove(oArea, oNpc);
+    nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oNpc);
+    while (nFound != 0)
+    {
+        nFoundPriority = nFound / 1000;
+        nFoundIndex = nFound - nFoundPriority * 1000;
+        NpcBhvrQueueSwapTailSubject(oArea, nFoundPriority, nFoundIndex, TRUE);
+        nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oNpc);
+    }
+
+    NpcBhvrPendingNpcClear(oNpc);
+    NpcBhvrPendingAreaClear(oArea, oNpc);
+}
+
+void NpcBhvrOnDialogueImpl(object oNpc)
+{
+    object oArea;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DIALOGUE_COUNT);
+    oArea = GetArea(oNpc);
+    NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_NORMAL, NPC_BHVR_REASON_UNSPECIFIED);
+}
+
 void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
 {
     int nPlayers;
