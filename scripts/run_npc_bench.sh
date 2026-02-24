@@ -11,6 +11,7 @@ ANALYSIS_DIR="${OUT_DIR}/analysis"
 FIXTURE_ROOT="docs/perf/fixtures/npc"
 NPC_ANALYZER="scripts/analyze_npc_fairness.py"
 QUEUE_ANALYZER="scripts/analyze_area_queue_fairness.py"
+GUARDRAIL_ANALYZER="scripts/analyze_guardrails.py"
 BASELINE_FILE="docs/perf/npc_baseline_report.md"
 BASELINE_META_FILE="${ANALYSIS_DIR}/baseline_meta.json"
 
@@ -215,86 +216,27 @@ for i in $(seq 1 "${RUNS}"); do
     ((queue_runs += 1))
   fi
 
-  overflow_result="$(python3 - "${run_csv}" <<'PY'
-import csv,sys
-path=sys.argv[1]
-running=0
-overflow=0
-with open(path,encoding='utf-8',newline='') as f:
-    reader=csv.DictReader(f)
-    if 'overflow_events' not in (reader.fieldnames or []):
-        print('NA')
-        raise SystemExit(0)
-    for row in reader:
-        if (row.get('lifecycle_state') or '').strip().upper()!='RUNNING':
-            continue
-        running += 1
-        try:
-            if int(row.get('overflow_events') or '0')>0:
-                overflow += 1
-        except Exception:
-            print('FAIL')
-            raise SystemExit(0)
-print('PASS' if running>0 and overflow>0 else 'FAIL')
-PY
-)"
+  overflow_result="NA"
+  budget_result="NA"
+  warmup_result="NA"
+  while IFS='=' read -r key value; do
+    case "${key}" in
+      OVERFLOW) overflow_result="${value}" ;;
+      BUDGET) budget_result="${value}" ;;
+      WARMUP) warmup_result="${value}" ;;
+    esac
+  done < <(python3 "${GUARDRAIL_ANALYZER}" --input "${run_csv}")
+
   if [[ "${overflow_result}" != "NA" ]]; then
     ((overflow_runs += 1))
     [[ "${overflow_result}" == "PASS" ]] && ((overflow_pass += 1))
   fi
 
-  budget_result="$(python3 - "${run_csv}" <<'PY'
-import csv,sys
-path=sys.argv[1]
-running=0
-budget=0
-deferred=0
-with open(path,encoding='utf-8',newline='') as f:
-    reader=csv.DictReader(f)
-    fields=set(reader.fieldnames or [])
-    if 'budget_overrun' not in fields or 'deferred_events' not in fields:
-        print('NA')
-        raise SystemExit(0)
-    for row in reader:
-        if (row.get('lifecycle_state') or '').strip().upper()!='RUNNING':
-            continue
-        running += 1
-        try:
-            if int(row.get('budget_overrun') or '0')>0:
-                budget += 1
-            if int(row.get('deferred_events') or '0')>0:
-                deferred += 1
-        except Exception:
-            print('FAIL')
-            raise SystemExit(0)
-print('PASS' if running>0 and budget>0 and deferred>0 else 'FAIL')
-PY
-)"
   if [[ "${budget_result}" != "NA" ]]; then
     ((budget_runs += 1))
     [[ "${budget_result}" == "PASS" ]] && ((budget_pass += 1))
   fi
 
-  warmup_result="$(python3 - "${run_csv}" <<'PY'
-import csv,sys
-path=sys.argv[1]
-req={'route_cache_warmup_ok','route_cache_rescan_ok','route_cache_guardrail_status'}
-with open(path,encoding='utf-8',newline='') as f:
-    reader=csv.DictReader(f)
-    fields=set(reader.fieldnames or [])
-    if not req.issubset(fields):
-        print('NA')
-        raise SystemExit(0)
-    rows=list(reader)
-if not rows:
-    print('FAIL')
-    raise SystemExit(0)
-warmup=all((r.get('route_cache_warmup_ok') or '').strip() in {'1','true','TRUE','pass','PASS'} for r in rows)
-rescan=all((r.get('route_cache_rescan_ok') or '').strip() in {'1','true','TRUE','pass','PASS'} for r in rows)
-guardrails=all((r.get('route_cache_guardrail_status') or '').strip().upper()=='PASS' for r in rows)
-print('PASS' if warmup and rescan and guardrails else 'FAIL')
-PY
-)"
   if [[ "${warmup_result}" != "NA" ]]; then
     ((warmup_runs += 1))
     [[ "${warmup_result}" == "PASS" ]] && ((warmup_pass += 1))
