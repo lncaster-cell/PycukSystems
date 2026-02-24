@@ -12,6 +12,8 @@ DECIMAL_LATENCY_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/steady_decimal_latency
 NON_FINITE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/non_finite_latency_fail.csv"
 
 RESULTS=()
+LOG_FILE="$(mktemp)"
+trap 'rm -f "$LOG_FILE"' EXIT
 
 record_result() {
   local guardrail="$1"
@@ -25,11 +27,12 @@ run_expect_pass() {
   local guardrail="$1"
   local scenario_id="$2"
   shift 2
-  if "$@" >/tmp/npc_fairness_check.log 2>&1; then
-    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 /tmp/npc_fairness_check.log || echo ok)"
+  if "$@" >"$LOG_FILE" 2>&1; then
+    record_result "${guardrail}" "${scenario_id}" "PASS" "$(tail -n1 "$LOG_FILE" || echo ok)"
   else
-    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 /tmp/npc_fairness_check.log || echo failed)"
-    cat /tmp/npc_fairness_check.log
+    record_result "${guardrail}" "${scenario_id}" "FAIL" "$(tail -n1 "$LOG_FILE" || echo failed)"
+    echo "[DEBUG] log file: $LOG_FILE"
+    cat "$LOG_FILE"
     return 1
   fi
 }
@@ -38,8 +41,10 @@ run_expect_fail() {
   local guardrail="$1"
   local scenario_id="$2"
   shift 2
-  if "$@" >/tmp/npc_fairness_check.log 2>&1; then
+  if "$@" >"$LOG_FILE" 2>&1; then
     record_result "${guardrail}" "${scenario_id}" "FAIL" "expected failure but command passed"
+    echo "[DEBUG] log file: $LOG_FILE"
+    cat "$LOG_FILE"
     return 1
   fi
   record_result "${guardrail}" "${scenario_id}" "PASS" "expected failure observed"
