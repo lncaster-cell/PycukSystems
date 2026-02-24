@@ -4,10 +4,10 @@
 
 ## Область аудита
 
-Проверены каталоги `src/`, `scripts/`, `docs/`, `benchmarks/`, `tools/` c исключением:
+Проверены каталоги `src/`, `scripts/`, `docs/`, `benchmarks/` c исключением:
 
 - `third_party/**`
-- `tools/NWNScriptCompiler.exe`
+- `third_party/toolchain/NWNScriptCompiler.exe`
 
 Основной фокус — `src/modules/npc_behavior`.
 
@@ -23,9 +23,9 @@
 
 Файлы:
 
-- `tools/npc_behavior_system/npc_behavior_area_enter_debug.nss`
-- `tools/npc_behavior_system/npc_behavior_area_exit_debug.nss`
-- `tools/npc_behavior_system/npc_behavior_module_load_debug.nss`
+- `docs/legacy/tools_reference/npc_behavior_system/npc_behavior_area_enter_debug.nss`
+- `docs/legacy/tools_reference/npc_behavior_system/npc_behavior_area_exit_debug.nss`
+- `docs/legacy/tools_reference/npc_behavior_system/npc_behavior_module_load_debug.nss`
 
 Наблюдение:
 
@@ -39,13 +39,13 @@
 
 Рекомендация:
 
-- вынести debug entrypoints в отдельный каталог (`tools/npc_behavior_system/debug/`) или удалить из ветки runtime-скриптов, оставив только при необходимости локальной диагностики.
+- вынести debug entrypoints в отдельный каталог (`docs/legacy/tools_reference/npc_behavior_system/debug/`) или удалить из ветки runtime-скриптов, оставив только при необходимости локальной диагностики.
 
 ### 2) Временный debug helper `al_dbg.nss`
 
 Файл:
 
-- `tools/npc_behavior_system/al_dbg.nss`
+- `docs/legacy/tools_reference/npc_behavior_system/al_dbg.nss`
 
 Наблюдение:
 
@@ -64,7 +64,7 @@
 
 Файл:
 
-- `tools/npc_behavior_system/npc_behavior_core.nss`
+- `docs/legacy/tools_reference/npc_behavior_system/npc_behavior_core.nss`
 
 Наблюдение:
 
@@ -87,24 +87,24 @@
 
 ```bash
 rg --files --glob '!third_party/**' --glob '!**/compiler/**'
-rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|compat" tools/npc_behavior_system --glob '!third_party/**'
-for f in tools/npc_behavior_system/*.nss; do b=$(basename "$f" .nss); c=$(rg -n "\b${b}\b" tools src --glob '!third_party/**' | wc -l); echo "$b $c"; done | sort
+rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|compat" docs/legacy/tools_reference/npc_behavior_system --glob '!third_party/**'
+for f in docs/legacy/tools_reference/npc_behavior_system/*.nss; do b=$(basename "$f" .nss); c=$(rg -n "\b${b}\b" src docs --glob '!third_party/**' | wc -l); echo "$b $c"; done | sort
 ```
 
 
 ## Статус cleanup
 
-- Debug entrypoints `npc_behavior_area_enter_debug.nss`, `npc_behavior_area_exit_debug.nss`, `npc_behavior_module_load_debug.nss` удалены из `tools/npc_behavior_system/`.
-- Временный debug helper `al_dbg.nss` удалён из `tools/npc_behavior_system/`.
+- Debug entrypoints `npc_behavior_area_enter_debug.nss`, `npc_behavior_area_exit_debug.nss`, `npc_behavior_module_load_debug.nss` удалены из `docs/legacy/tools_reference/npc_behavior_system/`.
+- Временный debug helper `al_dbg.nss` удалён из `docs/legacy/tools_reference/npc_behavior_system/`.
 - README модуля обновлён: зафиксировано отсутствие debug-ветки в runtime-дереве.
 
 ## Повторный поиск (2026-02-24)
 
-Проведён повторный grep-аудит по ключевым маркерам (`TODO|FIXME|TEMP|Temporary|debug|DEBUG|hack|HACK|deprecated|compat`) в каталогах `src/`, `tools/`, `docs/`, `benchmarks/`, `scripts/` с теми же исключениями (`third_party/**`, `tools/NWNScriptCompiler.exe`).
+Проведён повторный grep-аудит по ключевым маркерам (`TODO|FIXME|TEMP|Temporary|debug|DEBUG|hack|HACK|deprecated|compat`) в каталогах `src/`, `docs/`, `benchmarks/`, `scripts/` с теми же исключениями (`third_party/**`, `third_party/toolchain/NWNScriptCompiler.exe`).
 
 Итог:
 
-- новых runtime debug-entrypoint файлов в `tools/npc_behavior_system/` не появилось;
+- новых runtime debug-entrypoint файлов в `docs/legacy/tools_reference/npc_behavior_system/` не появилось;
 - удалённые ранее `*_debug.nss` и `al_dbg.nss` по-прежнему отсутствуют;
 - вхождения `debug/compat` остаются в документации, в legacy AL-диагностике (`al_debug`) и в явном compat-wrapper `NpcBehaviorOnCombatRound`, что соответствует зафиксированному переходному состоянию.
 
@@ -113,6 +113,6 @@ for f in tools/npc_behavior_system/*.nss; do b=$(basename "$f" .nss); c=$(rg -n 
 ### Команды повторной проверки
 
 ```bash
-rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|hack|HACK|deprecated|compat" src tools docs benchmarks scripts --glob '!third_party/**' --glob '!tools/NWNScriptCompiler.exe'
-rg -n "NpcBehaviorOnCombatRound|al_debug|_debug\.nss" tools src docs --glob '!third_party/**'
+rg -n "TODO|FIXME|TEMP|Temporary|debug|DEBUG|hack|HACK|deprecated|compat" src docs benchmarks scripts --glob '!third_party/**' --glob '!third_party/toolchain/NWNScriptCompiler.exe'
+rg -n "NpcBehaviorOnCombatRound|al_debug|_debug\.nss" src docs --glob '!third_party/**'
 ```

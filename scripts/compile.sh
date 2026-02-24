@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-check}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPILER_REL="tools/NWNScriptCompiler.exe"
+COMPILER_REL="third_party/toolchain/NWNScriptCompiler.exe"
 COMPILER_PATH="$ROOT_DIR/$COMPILER_REL"
 # Project-level shared include scripts/helpers (.nss), used by compiler -i lookup.
 INCLUDE_PATH="$ROOT_DIR/scripts"

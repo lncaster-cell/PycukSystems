@@ -8,4 +8,4 @@
 - `src/modules/npc/npc_behavior_*.nss`
 - `src/modules/npc/npc_core.nss`
 
-Каталог `tools/npc_behavior_system/` сохраняется только как legacy/reference и подлежит удалению после завершения миграции документации.
+Legacy-референсы перенесены в `docs/legacy/tools_reference/npc_behavior_system/`.

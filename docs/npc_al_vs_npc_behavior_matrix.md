@@ -4,7 +4,7 @@
 
 Матрица нужна как опорный артефакт для подготовки **третьего модуля**: что переиспользовать из исторической Ambient Life (AL) системы и что брать как стандарт из текущего `npc_behavior` runtime.
 
-Источники: `tools/al_system/*`, `tools/npc_behavior_system/*`, а также проектные ограничения из `docs/design.md`.
+Источники: `docs/legacy/tools_reference/al_system/*`, `docs/legacy/tools_reference/npc_behavior_system/*`, а также проектные ограничения из `docs/design.md`.
 
 Reference-point для perf-сравнений: актуальный NPC baseline в `docs/perf/npc_baseline_report.md` (архив прошлых baseline: `docs/perf/reports/`).
 
