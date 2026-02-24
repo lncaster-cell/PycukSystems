@@ -21,53 +21,6 @@ const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
 const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
 const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
 const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
-
-const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
-const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
-const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
-
-// Waypoint/ambient activity runtime locals.
-const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
-const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
-const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
-const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
-const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
-
-const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
-const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
-const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
-
-// Waypoint/ambient activity runtime locals.
-const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
-const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
-const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
-const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
-const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
-
-const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
-const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
-const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
-
-// Waypoint/ambient activity runtime locals.
-const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
-const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
-const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
-const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
-const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
-const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";
-
-const string NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX = "npc_route_pause_ticks_";
-
-const string NPC_BHVR_VAR_ROUTE_COUNT_PREFIX = "npc_route_count_";
-const string NPC_BHVR_VAR_ROUTE_LOOP_PREFIX = "npc_route_loop_";
-const string NPC_BHVR_VAR_ROUTE_TAG_PREFIX = "npc_route_tag_";
-
-// Waypoint/ambient activity runtime locals.
-const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
-const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";
-const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";
-const string NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG = "npc_activity_route_tag";
-const string NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE = "npc_activity_slot_emote";
 const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";
 const string NPC_BHVR_VAR_ACTIVITY_ID = "npc_activity_id";
 const string NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS = "npc_activity_custom_anims";

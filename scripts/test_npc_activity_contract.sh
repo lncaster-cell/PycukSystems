@@ -25,4 +25,11 @@ assert_has "NpcBhvrMetricInc\(oNpc, NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL\
 assert_has "sSlot = NpcBhvrActivityAdapterNormalizeSlot\(sSlotRaw\);" "$ACTIVITY_FILE"
 assert_has "sRoute = NpcBhvrActivityResolveRouteProfile\(oNpc, sSlot\);" "$ACTIVITY_FILE"
 
+bash "$ROOT_DIR/scripts/test_npc_activity_route_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_activity_waypoint_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_activity_schedule_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_activity_slot_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_activity_route_effective_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_activity_last_ts_contract.sh"
+
 echo "[OK] NPC activity contract tests passed"

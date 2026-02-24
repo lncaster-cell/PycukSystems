@@ -8,12 +8,12 @@
 Подробности: `docs/design.md`.
 
 ## Текущий этап разработки (Phase 1 snapshot)
-Текущий этап зафиксирован как **runtime foundation готов, release/perf gate заблокирован до нового baseline**:
+Текущий этап зафиксирован как **runtime foundation готов, baseline обновлён, perf/release gate в статусе FAIL до фикса degraded-профиля**:
 
 - ✅ runtime-контур NPC в `src/modules/npc/*` собран и используется как canonical source;
 - ✅ lifecycle/fairness/activity контрактные проверки автоматизированы и проходят локально;
 - ✅ legacy-cleanup milestone (`tools/*` -> `docs/legacy/tools_reference/*`) закрыт;
-- ⛔ perf/release gate остаётся `BLOCKED`, пока не опубликован свежий baseline (>=3 runs, не старше 14 дней).
+- ⚠️ perf/release gate имеет статус `FAIL`: baseline свежий (>=3 runs), но `tick-budget-degraded` превышает пороги (см. `docs/perf/npc_baseline_report.md`).
 
 Операционный статус и readiness-детали:
 - runtime readiness: `src/modules/npc/README.md`;

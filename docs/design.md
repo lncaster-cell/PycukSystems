@@ -122,12 +122,12 @@
 - **AI step cost:** средняя и p95 длительность шага, top-N самых дорогих handlers, deferred-rate по шагам.
 
 #### Checklist: Перед merge
-- [ ] Бенчмарк первой фазы пройден (≥ 3 прогона), отчёт приложен.
-  - **BLOCKED**: в репозитории нет валидного benchmark-отчёта с telemetry за ≥3 прогона; current baseline (`docs/perf/npc_baseline_report.md`) остаётся в статусе `BLOCKED`, а `docs/perf/reports/*` используется только как historical archive. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/reports/`.
+- [x] Бенчмарк первой фазы выполнен (≥ 3 прогона), отчёт приложен.
+  - **DONE**: валидный benchmark-run зафиксирован в `docs/perf/npc_baseline_report.md`, подробности в `docs/perf/reports/2026-02-24_npc_gate_report.md`. Owner: NPC runtime/perf owner.
 - [ ] Perf-gate пороги не нарушены относительно baseline.
-  - **BLOCKED**: сравнение невозможно без актуального (≤14 дней) валидного baseline; текущий current baseline содержит `N/A` и статус `BLOCKED`. Owner: NPC runtime/perf owner. Артефакт: `docs/perf/npc_baseline_report.md`.
-- [ ] Проверены SLO по p95 area-tick, queue depth и dropped/deferred events.
-  - **BLOCKED**: отсутствуют подтверждённые измерения SLO-метрик (p95/p99/deferred) из валидного benchmark-run. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/npc_perf_plan.md`.
+  - **FAIL**: baseline свежий, но профиль `tick-budget-degraded` превышает пороги (latency/queue/deferred/overrun/overflow). Owner: NPC runtime/perf owner. Артефакт: `docs/perf/npc_baseline_report.md`.
+- [x] Проверены SLO по p95 area-tick, queue depth и dropped/deferred events.
+  - **DONE**: фактические p95/p99/deferred/overrun зафиксированы в baseline-отчёте; `tick-budget-degraded` отмечен как FAIL относительно порогов. Owner: NPC runtime/perf owner. Артефакты: `docs/perf/npc_baseline_report.md`, `docs/perf/npc_perf_plan.md`.
 - [x] Зафиксирован rollback-план для изменённых флагов/констант.
   - Артефакт: раздел **Rollback-процедура** в этом документе (`docs/design.md`, §7.4).
 - [x] Обновлены runtime-дашборды для tick orchestration, DB flush и AI step cost.

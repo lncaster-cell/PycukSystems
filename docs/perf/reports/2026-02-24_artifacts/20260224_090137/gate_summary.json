@@ -1,0 +1,16 @@
+{
+  "timestamp": "20260224_090137",
+  "scenario_id": "burst",
+  "source_fixture": "docs/perf/fixtures/npc/burst.csv",
+  "runs": 3,
+  "baseline": {
+    "status": "BLOCKED",
+    "note": "baseline date is N/A",
+    "reference": "docs/perf/npc_baseline_report.md"
+  },
+  "guardrails": [
+    {"id": "registry_overflow", "status": "N/A", "passed_runs": 0, "total_runs": 3, "evidence": "Not part of selected profile"},
+    {"id": "tick_budget_degraded", "status": "BLOCKED", "passed_runs": 3, "total_runs": 3, "evidence": "3/3 runs passed; baseline baseline date is N/A"},
+    {"id": "automated_fairness", "status": "N/A", "passed_runs": 0, "total_runs": 0, "evidence": "processed_* columns absent in fixture"}
+  ]
+}
