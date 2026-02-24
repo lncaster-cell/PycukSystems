@@ -448,20 +448,20 @@ int NpcBhvrQueueFindSubjectSlowPath(object oArea, object oSubject)
     return 0;
 }
 
-void NpcBhvrQueuePostUpdateQueued(object oArea, object oSubject, int nPriority, int nReasonCode, int bStatusOnlyIfPending)
+void NpcBhvrQueuePostUpdateQueuedAt(object oArea, object oSubject, int nPriority, int nReasonCode, int bStatusOnlyIfPending, int nNow)
 {
-    NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+    NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
     if (bStatusOnlyIfPending && NpcBhvrPendingIsActive(oSubject))
     {
-        NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+        NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
     }
     else
     {
-        NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+        NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
     }
 }
 
-int NpcBhvrQueueCoalesceSubject(object oArea, object oSubject, int nFoundPriority, int nFoundIndex, int nRequestedPriority, int nReasonCode, int bWasPendingActive)
+int NpcBhvrQueueCoalesceSubjectAt(object oArea, object oSubject, int nFoundPriority, int nFoundIndex, int nRequestedPriority, int nReasonCode, int bWasPendingActive, int nNow)
 {
     int nEscalatedPriority;
 
@@ -479,7 +479,7 @@ int NpcBhvrQueueCoalesceSubject(object oArea, object oSubject, int nFoundPriorit
         NpcBhvrQueueIndexSet(oArea, oSubject, nFoundPriority, nFoundIndex);
     }
 
-    NpcBhvrQueuePostUpdateQueued(oArea, oSubject, nEscalatedPriority, nReasonCode, bWasPendingActive);
+    NpcBhvrQueuePostUpdateQueuedAt(oArea, oSubject, nEscalatedPriority, nReasonCode, bWasPendingActive, nNow);
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
     return TRUE;
 }
@@ -531,7 +531,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     {
         nFoundPriority = nFound / 1000;
         nFoundIndex = nFound - nFoundPriority * 1000;
-        return NpcBhvrQueueCoalesceSubject(oArea, oSubject, nFoundPriority, nFoundIndex, nPriority, nReasonCode, bWasPendingActive);
+        return NpcBhvrQueueCoalesceSubjectAt(oArea, oSubject, nFoundPriority, nFoundIndex, nPriority, nReasonCode, bWasPendingActive, nNow);
     }
 
     nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
@@ -609,7 +609,7 @@ object NpcBhvrQueuePeekFromPriority(object oArea, int nPriority)
     return GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, 1));
 }
 
-int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority)
+int NpcBhvrQueueDropTailFromPriorityAt(object oArea, int nPriority, int nNow)
 {
     int nDepth;
     object oDropped;
@@ -629,7 +629,7 @@ int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority)
             NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
         }
 
-        NpcBhvrPendingAreaTouch(oArea, oDropped, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingAreaTouchAt(oArea, oDropped, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
         NpcBhvrPendingNpcClear(oDropped);
         NpcBhvrPendingAreaClear(oArea, oDropped);
     }
@@ -642,16 +642,19 @@ int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority)
 int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode)
 {
     int nPriority;
+    int nNow;
 
     if (nIncomingPriority <= NPC_BHVR_PRIORITY_CRITICAL || nReasonCode == NPC_BHVR_REASON_DAMAGE)
     {
         return FALSE;
     }
 
+    nNow = NpcBhvrPendingNow();
+
     nPriority = NPC_BHVR_PRIORITY_LOW;
     while (nPriority >= nIncomingPriority)
     {
-        if (NpcBhvrQueueDropTailFromPriority(oArea, nPriority))
+        if (NpcBhvrQueueDropTailFromPriorityAt(oArea, nPriority, nNow))
         {
             return TRUE;
         }
