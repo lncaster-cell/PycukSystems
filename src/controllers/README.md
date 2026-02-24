@@ -9,7 +9,7 @@
 ## Реализовано (Phase 1, Task 3.2/3.3)
 - `lifecycle_controller.nss` — state machine для area lifecycle: `RUNNING/PAUSED/STOPPED`.
 - Контракт совместимости: при смене lifecycle синхронизируется legacy-флаг `nb_area_active` для существующих проверок.
-- Управление timer-loop вынесено в `NpcControllerAreaIsTimerRunning/SetTimerRunning`, чтобы предотвращать duplicate loops.
+- Экспортируемое API контроллера: `NpcControllerAreaGetLifecycleState` и `NpcControllerAreaSetLifecycleState` (runtime timer-loop обрабатывается внутри `npc_core.nss`).
 
 ## Критерий готовности
 Каталог считается готовым к первой фазе, когда:
