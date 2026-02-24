@@ -1,5 +1,10 @@
 // NPC lifecycle internals (area state + loop orchestration).
 
+// Forward declarations for lifecycle-local/public helpers used before definition.
+void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec);
+void NpcBhvrOnAreaMaintenance(object oArea);
+void NpcBhvrBootstrapModuleAreas();
+
 int NpcBhvrAreaGetState(object oArea)
 {
     if (!GetIsObjectValid(oArea))
