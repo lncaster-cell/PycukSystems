@@ -101,21 +101,22 @@ const string NPC_BHVR_VAR_PENDING_REASON = "npc_pending_reason";
 const string NPC_BHVR_VAR_PENDING_STATUS = "npc_pending_status";
 const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 
-// Public API (forward declarations).
+// Runtime internal API (forward declarations across include units).
 int NpcBhvrAreaGetState(object oArea);
 int NpcBhvrAreaIsRunning(object oArea);
-void NpcBhvrAreaSetState(object oArea, int nState);
+void NpcBhvrAreaSetStateInternal(object oArea, int nState);
 void NpcBhvrAreaActivate(object oArea);
 void NpcBhvrAreaPause(object oArea);
 void NpcBhvrAreaStop(object oArea);
-int NpcBhvrCountPlayersInArea(object oArea);
-int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude);
-int NpcBhvrGetCachedPlayerCount(object oArea);
+int NpcBhvrCountPlayersInAreaInternalApi(object oArea);
+int NpcBhvrCountPlayersInAreaExcludingInternalApi(object oArea, object oExclude);
+int NpcBhvrGetCachedPlayerCountInternal(object oArea);
 
 #include "npc_registry_inc"
 #include "npc_queue_inc"
 #include "npc_tick_inc"
 #include "npc_lifecycle_inc"
+#include "npc_compat_inc"
 
 void NpcBhvrOnAreaTick(object oArea)
 {

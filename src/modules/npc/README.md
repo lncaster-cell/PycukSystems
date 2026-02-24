@@ -35,13 +35,26 @@
 
 ## Базовые include-файлы
 
-- `npc_core.nss` — только константы, forward declarations и thin entrypoint-обёртки.
+- `npc_core.nss` — константы, runtime-internal declarations между include-юнитами и thin entrypoint-обёртки.
 - `npc_queue_inc.nss` — queue/pending/deferred internals (`NpcBhvrQueue*`, `NpcBhvrPending*`, overflow/deferred guardrails).
 - `npc_tick_inc.nss` — tick orchestration и бюджет/деградация (`NpcBhvrTick*`, runtime budget config, degraded carryover).
 - `npc_lifecycle_inc.nss` — area/player lifecycle (`NpcBhvrOnAreaEnter/Exit`, player-count cache, activate/pause/stop, module bootstrap).
 - `npc_registry_inc.nss` — registry internals (`NpcBhvrRegistry*`, индекс/слоты, idle broadcast).
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
+
+### Deprecated/compat API
+
+- `npc_compat_inc.nss` — legacy-совместимость для потенциальных внешних include-контрактов; функции помечены как deprecated wrappers и делегируют во внутренние runtime-реализации:
+  - `NpcBhvrAreaSetState`
+  - `NpcBhvrCountPlayersInArea`
+  - `NpcBhvrCountPlayersInAreaExcluding`
+  - `NpcBhvrGetCachedPlayerCount`
+- В текущем runtime-контуре (`npc_tick_inc`, `npc_lifecycle_inc`) используются только внутренние версии:
+  - `NpcBhvrAreaSetStateInternal`
+  - `NpcBhvrCountPlayersInAreaInternalApi`
+  - `NpcBhvrCountPlayersInAreaExcludingInternalApi`
+  - `NpcBhvrGetCachedPlayerCountInternal`
 
 Tick/degraded telemetry в runtime включает:
 - `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
@@ -189,7 +202,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 - `npc_queue_inc.nss` — **queue hot-path**: enqueue/dequeue, drop/overflow guardrails, deferred reconcile/trim.
 - `npc_tick_inc.nss` — **tick hot-path**: budgeted processing, degradation/carryover, deferred reconcile stage.
 - `npc_lifecycle_inc.nss` — **lifecycle hot-path**: area/player enter-exit, player-count cache, area activate/pause/stop, loop orchestration.
-- `npc_core.nss` — стабильная фасадная точка include: константы + forward declarations + тонкие wrappers entrypoint-ов.
+- `npc_core.nss` — стабильная фасадная точка include: константы + runtime-internal declarations + тонкие wrappers entrypoint-ов.
 
 ## Ограничения длины идентификаторов (NWN2) и safe-лимиты
 
@@ -270,7 +283,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 ### Состав файлов
 
-- `npc_core.nss` — центральная runtime-логика:
+- `npc_core.nss` — центральная runtime-фасадная логика:
   - lifecycle area-controller (`RUNNING/PAUSED/STOPPED`),
   - bounded queue с приоритетами,
   - tick pipeline и degraded mode,

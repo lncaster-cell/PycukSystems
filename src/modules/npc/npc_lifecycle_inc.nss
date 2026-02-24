@@ -15,7 +15,7 @@ int NpcBhvrAreaIsRunning(object oArea)
     return NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_RUNNING;
 }
 
-void NpcBhvrAreaSetState(object oArea, int nState)
+void NpcBhvrAreaSetStateInternal(object oArea, int nState)
 {
     if (!GetIsObjectValid(oArea))
     {
@@ -49,17 +49,17 @@ int NpcBhvrCountPlayersInAreaInternal(object oArea, object oExclude)
     return nPlayers;
 }
 
-int NpcBhvrCountPlayersInArea(object oArea)
+int NpcBhvrCountPlayersInAreaInternalApi(object oArea)
 {
     return NpcBhvrCountPlayersInAreaInternal(oArea, OBJECT_INVALID);
 }
 
-int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
+int NpcBhvrCountPlayersInAreaExcludingInternalApi(object oArea, object oExclude)
 {
     return NpcBhvrCountPlayersInAreaInternal(oArea, oExclude);
 }
 
-int NpcBhvrGetCachedPlayerCount(object oArea)
+int NpcBhvrGetCachedPlayerCountInternal(object oArea)
 {
     int nPlayers;
 
@@ -77,7 +77,7 @@ int NpcBhvrGetCachedPlayerCount(object oArea)
     // Self-heal only: rebuild cache on first use (cold areas/module boot) or when value is suspicious.
     if (!GetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED) || nPlayers > 1024)
     {
-        nPlayers = NpcBhvrCountPlayersInArea(oArea);
+        nPlayers = NpcBhvrCountPlayersInAreaInternalApi(oArea);
         SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
         SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
     }
@@ -95,7 +95,7 @@ void NpcBhvrAreaActivate(object oArea)
     // Единый источник применения runtime-budget (area -> module -> defaults + normalisation):
     // только NpcBhvrApplyTickRuntimeConfig.
     NpcBhvrApplyTickRuntimeConfig(oArea);
-    NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
+    NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrAreaRouteCacheWarmup(oArea);
     NpcBhvrActivityOnAreaActivate(oArea);
     // Contract: один area-loop на область.
@@ -117,7 +117,7 @@ void NpcBhvrAreaPause(object oArea)
     }
 
     // Pause only toggles lifecycle state; queue/pending counters remain untouched.
-    NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_PAUSED);
+    NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_PAUSED);
     NpcBhvrOnAreaMaintenance(oArea);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
@@ -130,7 +130,7 @@ void NpcBhvrAreaStop(object oArea)
     }
 
     NpcBhvrOnAreaMaintenance(oArea);
-    NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
+    NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
     NpcBhvrAreaRouteCacheInvalidate(oArea);
     NpcBhvrRegistryResetIdleCursor(oArea);
@@ -473,7 +473,7 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
         return;
     }
 
-    nPlayers = NpcBhvrGetCachedPlayerCount(oArea) + 1;
+    nPlayers = NpcBhvrGetCachedPlayerCountInternal(oArea) + 1;
     SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
     SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
 
@@ -513,10 +513,10 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
         return;
     }
 
-    nPlayers = NpcBhvrGetCachedPlayerCount(oArea) - 1;
+    nPlayers = NpcBhvrGetCachedPlayerCountInternal(oArea) - 1;
     if (nPlayers < 0)
     {
-        nPlayers = NpcBhvrCountPlayersInAreaExcluding(oArea, oExiting);
+        nPlayers = NpcBhvrCountPlayersInAreaExcludingInternalApi(oArea, oExiting);
         if (nPlayers < 0)
         {
             nPlayers = 0;
