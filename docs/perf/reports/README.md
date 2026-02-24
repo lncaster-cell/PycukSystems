@@ -25,3 +25,13 @@
 - **Current baseline**: только `docs/perf/npc_baseline_report.md` (reference-point для perf-gate).
 - **Archive baseline**: `docs/perf/reports/*` (исторические отчёты для трендов).
 - При обновлении current baseline предыдущая версия переносится в архив с датой.
+
+## Публикация baseline (обязательный SHA)
+
+1. Перед публикацией baseline зафиксируйте commit и получите SHA из Git:
+   - `git rev-parse --short HEAD`
+   - `git rev-parse HEAD`
+2. В `docs/perf/npc_baseline_report.md` поле `Commit SHA` обязательно и должно содержать реальные значения short/full SHA.
+3. Псевдозначения (`WORKTREE`, `N/A`, `UNKNOWN`, `TBD`) запрещены для current baseline и archive baseline.
+4. Для минимизации ручных ошибок используйте `scripts/run_npc_bench.sh`: скрипт автоматически подставляет SHA в baseline-отчёт, если находит псевдозначение.
+

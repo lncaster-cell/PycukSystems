@@ -5,6 +5,7 @@
 - `docs/perf/npc_perf_gate.md` (guardrail criteria)
 - Актуальный отчёт: `docs/perf/reports/2026-02-24_npc_gate_report.md`
 
+- Commit SHA: **480698a (`480698a47df11cfb6ba52c4d90840253932e9d04`)**.
 ## Overall baseline linkage
 
 - Baseline reference: `docs/perf/npc_baseline_report.md`
