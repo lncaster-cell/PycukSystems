@@ -37,7 +37,6 @@
 
 - `npc_core.nss` — константы, runtime-internal declarations между include-юнитами и thin entrypoint-обёртки.
 - `npc_queue_inc.nss` — queue/pending/deferred internals (`NpcBhvrQueue*`, `NpcBhvrPending*`, overflow/deferred guardrails).
-- `npc_queue_pending_compat_inc.nss` — legacy-обёртки `NpcBhvrPending*` без суффикса `At` (оставлены только для внешней совместимости, runtime использует `*At`).
 - `npc_tick_inc.nss` — tick orchestration и бюджет/деградация (`NpcBhvrTick*`, runtime budget config, degraded carryover).
 - `npc_lifecycle_inc.nss` — area/player lifecycle (`NpcBhvrOnAreaEnter/Exit`, player-count cache, activate/pause/stop, module bootstrap).
 - `npc_registry_inc.nss` — registry internals (`NpcBhvrRegistry*`, индекс/слоты, idle broadcast).
