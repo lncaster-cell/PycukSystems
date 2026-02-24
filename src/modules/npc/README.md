@@ -26,6 +26,7 @@
 - Добавлены auto-start и auto-idle-stop механики area-loop.
 - RUNNING loop рескейджулится только в состоянии `RUNNING`; в `PAUSED` используется отдельный редкий watchdog-тик (`30s`) с отдельной метрикой.
 - Реализована bounded queue (`NPC_BHVR_QUEUE_MAX=64`) с bucket-приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
+- Coalesce повторных enqueue выполняется напрямую в `NpcBhvrQueueEnqueue`: существующий pending-subject не дублируется, а его приоритет пересчитывается через `NpcBhvrPriorityEscalate` (включая эскалацию `damage -> CRITICAL`).
 - Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
 - CRITICAL события обрабатываются через bypass fairness-бюджета.
 - `npc_pending_updated_at` хранится как `int`-timestamp с секундной точностью (на базе календарного дня и `HH:MM:SS`) и при частых обновлениях монотонно увеличивается минимум на 1.

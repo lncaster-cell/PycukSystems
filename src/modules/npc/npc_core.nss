@@ -288,25 +288,6 @@ void NpcBhvrPendingNpcClear(object oNpc)
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT);
 }
 
-int NpcBhvrQueueFindSubjectIndex(object oArea, int nPriority, object oSubject)
-{
-    int nDepth;
-    int nIndex;
-
-    nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
-    nIndex = 1;
-    while (nIndex <= nDepth)
-    {
-        if (GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex)) == oSubject)
-        {
-            return nIndex;
-        }
-        nIndex = nIndex + 1;
-    }
-
-    return -1;
-}
-
 void NpcBhvrQueueRemoveAt(object oArea, int nPriority, int nIndex)
 {
     int nDepth;
@@ -344,24 +325,6 @@ int NpcBhvrQueueEnqueueRaw(object oArea, object oSubject, int nPriority)
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth);
     NpcBhvrQueueSyncTotals(oArea);
     return TRUE;
-}
-
-int NpcBhvrQueueCoalescePriority(int nExistingPriority, int nIncomingPriority, string sReason)
-{
-    int nPriority;
-
-    nPriority = nExistingPriority;
-    if (nIncomingPriority < nPriority)
-    {
-        nPriority = nIncomingPriority;
-    }
-
-    if (sReason == "damage")
-    {
-        nPriority = NPC_BHVR_PRIORITY_CRITICAL;
-    }
-
-    return nPriority;
 }
 
 string NpcBhvrRegistrySlotKey(int nIndex)
