@@ -55,12 +55,12 @@ bash scripts/check_npc_lifecycle_contract.sh
 
 ## Scenario C — Stop/start с корректным таймером
 
-1. Запустить area в `RUNNING`, убедиться что таймер один (`nb_area_timer_running=TRUE`).
+1. Запустить area в `RUNNING`, убедиться что tick loop один (повторные scheduling не создают duplicate loop).
 2. Перевести в `STOPPED` (`NpcBhvrAreaStop`) и дождаться остановки loop.
 3. Повторно выполнить старт и убедиться, что не появляется duplicate loop.
 
 Ожидаемый результат:
-- после stop loop завершён и `nb_area_timer_running=FALSE`;
+- после stop loop завершён и в `STOPPED` не планируются новые тики;
 - повторный start поднимает ровно один loop;
 - метрики queue depth/buckets остаются консистентны.
 
