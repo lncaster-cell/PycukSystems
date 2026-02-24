@@ -9,6 +9,11 @@ const string NPC_BHVR_VAR_ACTIVITY_LAST = "npc_activity_last";
 const string NPC_BHVR_VAR_ACTIVITY_LAST_TS = "npc_activity_last_ts";
 const string NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE = "npc_activity_route_effective";
 const string NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK = "npc_activity_slot_fallback";
+const string NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE = "npc_activity_slot_effective";
+const string NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR = "npc_activity_resolved_hour";
+const string NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE = "npc_activity_area_effective";
+const string NPC_BHVR_VAR_ACTIVITY_INVALID_SLOT_LAST = "npc_activity_invalid_slot_last";
+const string NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE = "npc_activity_route_config_effective";
 
 const string NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX = "npc_route_profile_slot_";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT = "npc_route_profile_default";
@@ -1131,32 +1136,35 @@ void NpcBhvrActivityApplyPriorityRoute(object oNpc)
     NpcBhvrActivityApplyRouteState(oNpc, NPC_BHVR_ACTIVITY_ROUTE_PRIORITY, "idle_priority_patrol", 2);
 }
 
-void NpcBhvrActivityOnSpawn(object oNpc)
+void NpcBhvrActivityRefreshProfileState(object oNpc)
 {
     string sSlot;
+    string sSlotRaw;
     string sRouteConfigured;
     string sRoute;
-    int nWpCount;
-    int bWpLoop;
-    int nWpIndex;
+    string sAreaTag;
+    int nSlotFallback;
+    int nResolvedHour;
 
-    if (!GetIsObjectValid(oNpc))
-    {
-        return;
-    }
-
-    // Обязательная spawn-инициализация profile-state в npc_* namespace.
-    string sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
-    int nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
-
+    sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
     sSlot = NpcBhvrActivityResolveScheduledSlot(oNpc, sSlot);
     sRouteConfigured = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
         oNpc
     );
-
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
+    nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
+    nResolvedHour = GetTimeHour();
+
+    if (GetIsObjectValid(GetArea(oNpc)))
+    {
+        sAreaTag = GetTag(GetArea(oNpc));
+    }
+    else
+    {
+        sAreaTag = "";
+    }
 
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
     if (sRouteConfigured != "")
@@ -1168,12 +1176,44 @@ void NpcBhvrActivityOnSpawn(object oNpc)
         DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
     }
 
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE, sSlot);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR, nResolvedHour);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE, sAreaTag);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE, sRouteConfigured);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK, nSlotFallback);
+
     if (nSlotFallback)
     {
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL);
+        if (GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_INVALID_SLOT_LAST) != sSlotRaw)
+        {
+            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL);
+            SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_INVALID_SLOT_LAST, sSlotRaw);
+        }
     }
+    else
+    {
+        DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_INVALID_SLOT_LAST);
+    }
+}
+
+void NpcBhvrActivityOnSpawn(object oNpc)
+{
+    string sSlot;
+    string sRoute;
+    int nWpCount;
+    int bWpLoop;
+    int nWpIndex;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    // Обязательная spawn-инициализация profile-state в npc_* namespace.
+    NpcBhvrActivityRefreshProfileState(oNpc);
+    sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
+    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
     if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN) < 0)
     {
@@ -1202,6 +1242,18 @@ void NpcBhvrActivityOnSpawn(object oNpc)
 
 void NpcBhvrActivityOnIdleTick(object oNpc)
 {
+    string sSlot;
+    string sSlotRaw;
+    string sSlotCached;
+    string sRoute;
+    string sRouteConfigured;
+    string sRouteConfiguredCached;
+    string sAreaTag;
+    string sAreaCached;
+    int nRouteHint;
+    int nResolvedHour;
+    int bInvalidate;
+
     if (!GetIsObjectValid(oNpc))
     {
         return;
@@ -1214,22 +1266,53 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
         return;
     }
 
-    string sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
-    string sSlotRaw = sSlot;
-    string sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
-    int nRouteHint;
-    int nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
+    sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
+    sSlot = NpcBhvrActivityResolveScheduledSlot(oNpc, NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw));
+    sSlotCached = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
 
-    sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
-    sSlot = NpcBhvrActivityResolveScheduledSlot(oNpc, sSlot);
-    sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK, nSlotFallback);
-    if (nSlotFallback)
+    sRouteConfigured = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
+        oNpc
+    );
+    sRouteConfiguredCached = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE);
+
+    nResolvedHour = GetTimeHour();
+
+    if (GetIsObjectValid(GetArea(oNpc)))
     {
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL);
+        sAreaTag = GetTag(GetArea(oNpc));
     }
+    else
+    {
+        sAreaTag = "";
+    }
+    sAreaCached = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE);
+
+    bInvalidate = FALSE;
+    if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR) != nResolvedHour)
+    {
+        bInvalidate = TRUE;
+    }
+    else if (sSlotCached == "" || sSlotCached != sSlot)
+    {
+        bInvalidate = TRUE;
+    }
+    else if (sRouteConfiguredCached != sRouteConfigured)
+    {
+        bInvalidate = TRUE;
+    }
+    else if (sAreaCached != sAreaTag)
+    {
+        bInvalidate = TRUE;
+    }
+
+    if (bInvalidate)
+    {
+        NpcBhvrActivityRefreshProfileState(oNpc);
+    }
+
+    sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
+    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
     nRouteHint = NpcBhvrActivityMapRouteHint(sRoute);
 
