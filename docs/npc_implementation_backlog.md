@@ -6,11 +6,19 @@
 
 ## Текущий статус (обновлено: 2026-02-24)
 
+### Готово для NPC
+
 - Runtime foundation в `src/modules/npc/*`: **READY** (core lifecycle/queue/activity/metrics + thin-entrypoints).
 - Contract/self-check suite: **READY** (`scripts/test_npc_smoke.sh`, `scripts/check_npc_lifecycle_contract.sh`, `scripts/test_npc_fairness.sh`).
 - Schedule-aware activity foundation: **READY/DONE** (runtime-resolve slot по расписанию + e2e shell-check покрытие `npc_activity_slot`, `npc_activity_route_effective`, `npc_activity_last_ts`, включено в one-command smoke/contract поток через `scripts/test_npc_activity_contract.sh` и `scripts/test_npc_smoke.sh`).
-- Legacy cleanup milestone `tools/*`: **COMPLETED** (legacy-архив удалён из текущего дерева репозитория).
 - Perf/release gate: **BLOCKED** до публикации нового baseline (>=3 runs на сценарий, baseline freshness <=14 дней).
+
+### Готово как platform capability для других механик
+
+- Legacy cleanup milestone `tools/*`: **COMPLETED** (legacy-архив удалён из текущего дерева репозитория).
+- Общий модульный контракт выделен в `docs/module_contract.md`.
+- Reusable contract/smoke templates подготовлены: `scripts/contracts/module.contract.template`, `scripts/contracts/check_module_contract.template.sh`, `scripts/test_module_smoke.template.sh`.
+- Добавлен нейтральный skeleton модуля для масштабирования `src/modules/module_skeleton/*`.
 
 ---
 
