@@ -129,6 +129,8 @@ slot = floor(GetTimeHour() / 4)  // 0..5
 | `al_npc_0..al_npc_99` | object | плотный реестр NPC |
 | `al_slot_activity_<slot>` | int | fallback-активность для слота (если нет маршрута) |
 | `al_default_activity` | int | fallback-активность по умолчанию (если нет маршрута) |
+| `al_npc_reg_dropped_total` | int | сколько регистраций NPC было отклонено из-за переполнения лимита |
+| `al_npc_reg_dropped_last_tick` | int | отметка времени (минуты суток) последнего overflow регистрации |
 | `al_training_npc1_ref` / `al_training_npc2_ref` | object | ссылки на тренировочную пару (задаются в toolset) |
 | `al_training_npc1` / `al_training_npc2` | object | закешированные ссылки на тренировочную пару |
 | `al_training_partner_cached` | int | флаг кеша тренировочной пары |
@@ -389,7 +391,7 @@ OnExit или OnClientLeave:
 
 ## Ограничения и риски
 
-- **Лимит 100 NPC** на область (`AL_MAX_NPCS`). NPC сверх лимита не управляются.
+- **Лимит 100 NPC** на область (`AL_MAX_NPCS`). NPC сверх лимита не управляются, пишется явный overflow-лог и растёт счётчик `al_npc_reg_dropped_total`.
 - **Маршруты по слотам** кешируются и используются всегда, активность
   берётся с waypoint’а.
 - Первый вход игрока в область вызывает **полный обход объектов**
