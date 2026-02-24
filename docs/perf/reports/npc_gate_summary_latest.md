@@ -15,9 +15,10 @@
 
 | Guardrail | Scenario IDs / profiles | Raw check status | Baseline linkage | Final gate status | Notes |
 |---|---|---|---|---|---|
-| Registry overflow guardrail | `tick-budget-degraded` (overflow observed) | FAIL | FRESH | **FAIL** | overflow_rate=0.25 > 0.02 threshold. |
-| Tick budget / degraded-mode | `burst`, `tick-budget-degraded` | FAIL | FRESH | **FAIL** | degraded: budget_overrun_rate=0.65, deferred_rate=0.75. |
+| Registry overflow guardrail | `starvation-risk`, `overflow-guardrail` | PASS | FRESH | **PASS** | `run_npc_bench.sh`: 3/3 PASS в обоих профилях. |
+| Tick budget / degraded-mode | `burst`, `starvation-risk`, `tick-budget`, `tick-budget-degraded` | PASS | FRESH | **PASS** | budget/deferred сигналы присутствуют: 3/3 в каждом профиле. |
 | Automated fairness checks | `fairness-checks` (pause/resume) | PASS | FRESH | **PASS** | queue fairness analyzer: 3/3 PASS. |
+| Route cache warmup/rescan | `warmup-rescan` | PASS | FRESH | **PASS** | route_cache_warmup_rescan: 3/3 PASS, guardrail_status=PASS. |
 
 ## Machine-readable mirrors
 

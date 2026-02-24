@@ -1,0 +1,17 @@
+{
+  "timestamp": "20260224_092219",
+  "scenario_id": "warmup-rescan",
+  "source_fixture": "docs/perf/fixtures/npc/warmup_rescan.csv",
+  "runs": 3,
+  "baseline": {
+    "status": "FRESH",
+    "note": "baseline age 0 days",
+    "reference": "docs/perf/npc_baseline_report.md"
+  },
+  "guardrails": [
+    {"id": "registry_overflow", "status": "N/A", "passed_runs": 0, "total_runs": 3, "evidence": "Not part of selected profile"},
+    {"id": "tick_budget_degraded", "status": "N/A", "passed_runs": 0, "total_runs": 3, "evidence": "Not part of selected profile"},
+    {"id": "automated_fairness", "status": "N/A", "passed_runs": 0, "total_runs": 0, "evidence": "Not part of selected profile"},
+    {"id": "route_cache_warmup_rescan", "status": "PASS", "passed_runs": 3, "total_runs": 3, "evidence": "3/3 runs passed"}
+  ]
+}

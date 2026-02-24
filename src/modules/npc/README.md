@@ -12,7 +12,7 @@
 Используйте модуль как готовый runtime-пакет из `src/modules/npc/`:
 
 1. Подключите event hooks к thin-entrypoint скриптам (таблица «Карта hook-скриптов» ниже).
-2. Убедитесь, что include `npc_core` доступен всем entrypoint-файлам `npc_*.nss` / `npc_behavior_*.nss`.
+2. Убедитесь, что include `npc_core` доступен всем entrypoint-файлам `npc_*.nss`.
 3. Для приёмки запустите smoke/contract проверки:
    - `bash scripts/test_npc_smoke.sh`
    - `bash scripts/check_npc_lifecycle_contract.sh`
@@ -139,6 +139,48 @@ Tick/degraded telemetry в runtime включает:
 - Если расписание выключено, сохраняется текущий runtime slot после нормализации.
 
 Smoke-композит теперь включает `scripts/test_npc_activity_schedule_contract.sh` для валидации этих инвариантов.
+
+## Identifier constraints
+
+Для route-идентификаторов и route-tag в `npc_activity_inc.nss` действует единая политика нормализации перед построением runtime key/state:
+
+- Допустимые символы: только `a-z`, `0-9`, `_`.
+- Пустые значения запрещены (`non-empty`).
+- `routeId`:
+  - минимальная длина: `1`;
+  - максимальная длина: `32`.
+- `routeTag`:
+  - минимальная длина: `1`;
+  - максимальная длина: `24`.
+- При нарушении ограничений инкрементируется `npc_metric_activity_invalid_route_total`, а runtime использует детерминированный fallback:
+  - `routeId` -> `default_route`;
+  - `routeTag` -> `default`.
+
+Примеры:
+
+- Допустимые `routeId`: `default_route`, `priority_patrol`, `critical_safe`.
+- Недопустимые `routeId`: `""` (empty), `priority-patrol` (символ `-`), `Priority` (верхний регистр), строка длиннее 32.
+- Допустимые `routeTag`: `market_lane`, `north_gate_2`, `default`.
+- Недопустимые `routeTag`: `""` (empty), `market lane` (пробел), `tag!` (символ `!`), строка длиннее 24.
+
+
+## Ограничения длины идентификаторов (NWN2) и safe-лимиты
+
+Перед интеграцией контента разделяйте **формальный engine-лимит** и **операционный safe-limit**:
+
+- **Engine/формальный лимит**: идентификаторы в NWN2 обычно проходят до `63` символов (байтов) без немедленной ошибки компиляции/сохранения.
+- **Operational safe-limit (рекомендуется для production-контента)**: держать длину в диапазоне `<= 35`.
+- **Риск-зона `36+`**: растёт вероятность проблем с читаемостью, коллизиями усечённых имён в toolset/скриптовых пайплайнах и сложностью отладки на поздних этапах.
+- **Roster-tag**: использовать более строгий лимит `<= 24` (в массовом контенте и UI/экспорте это снижает риск конфликтов и «шумных» сокращений).
+
+> Практическое правило: если идентификатор может попасть в roster, журнал, экспорт или составные state-ключи — проектируйте его сразу как short-safe (`<=24` для roster-tag, `<=35` для остальных content-tag).
+
+| Тип идентификатора | Engine / формальный лимит | Рекомендация (safe-limit) | Пример |
+| --- | --- | --- | --- |
+| NPC tag (`Tag`) | до `63` | `<=35` (риск выше на `36+`) | `npc_bg_blacklake_guard_a01` |
+| Route tag (`npc_route_tag_*`) | до `63` | `<=35` (учитывать суффиксы `_i_of_N`) | `market_day_patrol` |
+| Activity/slot id (`npc_activity_id`, route activity id) | до `63` | `<=35` | `idle_vendor_day` |
+| Roster tag / roster-facing id | до `63` | `<=24` (более строгий лимит) | `bg_guard_a01` |
 
 
 ## Контракт pending-состояний (NPC-local и area-local)
