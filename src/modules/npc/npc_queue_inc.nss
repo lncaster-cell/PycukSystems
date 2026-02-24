@@ -3,6 +3,12 @@
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
 int NpcBhvrAreaIsRunning(object oArea);
 void NpcBhvrAreaActivate(object oArea);
+void NpcBhvrPendingNpcTouchAt(object oNpc, int nNow);
+void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow);
+void NpcBhvrPendingSetStatusTrackedAt(object oArea, object oNpc, int nStatus, int nNow);
+void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow);
+void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow);
+void NpcBhvrPendingAreaTouchAt(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus, int nNow);
 
 int NpcBhvrPendingNow()
 {
@@ -16,6 +22,9 @@ int NpcBhvrPendingNow()
     int nDays;
     int bLeapYear;
 
+    // Contract: callers on hot paths should snapshot this once per logical
+    // update (event/iteration) and pass it down through *TouchAt/*Set*At APIs
+    // to avoid repeated clock reads and to keep NPC/area pending mirrors aligned.
     // Snapshot calendar/time components once to avoid rollover races while
     // building the pending timestamp (e.g. midnight/year transitions).
     nCalendarYear = GetCalendarYear();
@@ -91,7 +100,11 @@ int NpcBhvrPendingNow()
 
 void NpcBhvrPendingNpcTouch(object oNpc)
 {
-    int nNow;
+    NpcBhvrPendingNpcTouchAt(oNpc, NpcBhvrPendingNow());
+}
+
+void NpcBhvrPendingNpcTouchAt(object oNpc, int nNow)
+{
     int nPrev;
 
     if (!GetIsObjectValid(oNpc))
@@ -99,7 +112,8 @@ void NpcBhvrPendingNpcTouch(object oNpc)
         return;
     }
 
-    nNow = NpcBhvrPendingNow();
+    // Contract: monotonic NPC-local updated_at. Even when caller provides
+    // nNow, we advance to prev + 1 on non-increasing timestamps.
     nPrev = GetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT);
     if (nNow <= nPrev)
     {
@@ -111,6 +125,11 @@ void NpcBhvrPendingNpcTouch(object oNpc)
 
 void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
 {
+    NpcBhvrPendingSetStatusAt(oNpc, nStatus, NpcBhvrPendingNow());
+}
+
+void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow)
+{
     if (!GetIsObjectValid(oNpc))
     {
         return;
@@ -119,7 +138,7 @@ void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
     // NPC-local pending status is authoritative for current NPC event-state and
     // must only be reset by explicit terminal clear-paths.
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS, nStatus);
-    NpcBhvrPendingNpcTouch(oNpc);
+    NpcBhvrPendingNpcTouchAt(oNpc, nNow);
 }
 
 int NpcBhvrQueueGetDeferredTotal(object oArea)
@@ -147,6 +166,11 @@ void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal)
 
 void NpcBhvrPendingSetStatusTracked(object oArea, object oNpc, int nStatus)
 {
+    NpcBhvrPendingSetStatusTrackedAt(oArea, oNpc, nStatus, NpcBhvrPendingNow());
+}
+
+void NpcBhvrPendingSetStatusTrackedAt(object oArea, object oNpc, int nStatus, int nNow)
+{
     int nPrevStatus;
     int nDeferredTotal;
 
@@ -167,7 +191,7 @@ void NpcBhvrPendingSetStatusTracked(object oArea, object oNpc, int nStatus)
         NpcBhvrQueueSetDeferredTotal(oArea, nDeferredTotal);
     }
 
-    NpcBhvrPendingSetStatus(oNpc, nStatus);
+    NpcBhvrPendingSetStatusAt(oNpc, nStatus, nNow);
 }
 
 int NpcBhvrPendingIsActive(object oNpc)
@@ -187,6 +211,11 @@ int NpcBhvrPendingIsActive(object oNpc)
 
 void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
 {
+    NpcBhvrPendingSetAt(oNpc, nPriority, sReason, nStatus, NpcBhvrPendingNow());
+}
+
+void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow)
+{
     if (!GetIsObjectValid(oNpc))
     {
         return;
@@ -194,10 +223,15 @@ void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
     SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
-    NpcBhvrPendingSetStatus(oNpc, nStatus);
+    NpcBhvrPendingSetStatusAt(oNpc, nStatus, nNow);
 }
 
 void NpcBhvrPendingSetTracked(object oArea, object oNpc, int nPriority, string sReason, int nStatus)
+{
+    NpcBhvrPendingSetTrackedAt(oArea, oNpc, nPriority, sReason, nStatus, NpcBhvrPendingNow());
+}
+
+void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow)
 {
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc))
     {
@@ -206,7 +240,7 @@ void NpcBhvrPendingSetTracked(object oArea, object oNpc, int nPriority, string s
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
     SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
-    NpcBhvrPendingSetStatusTracked(oArea, oNpc, nStatus);
+    NpcBhvrPendingSetStatusTrackedAt(oArea, oNpc, nStatus, nNow);
 }
 
 void NpcBhvrAreaRouteCacheWarmup(object oArea)
@@ -551,6 +585,11 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
 
 void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus)
 {
+    NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, nStatus, NpcBhvrPendingNow());
+}
+
+void NpcBhvrPendingAreaTouchAt(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus, int nNow)
+{
     string sNpcKey;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
@@ -558,14 +597,16 @@ void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int n
         return;
     }
 
-    // Area-local cache mirrors the last visible queue-state for diagnostics and
-    // should stay consistent with NPC-local status transitions.
+    // Contract: area-local cache mirrors the last visible queue-state for
+    // diagnostics and should stay consistent with NPC-local status transitions.
+    // Callers updating both mirrors in one logical step should pass the same
+    // nNow to NpcBhvrPendingAreaTouchAt(...) and NPC-local *At update.
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     NpcBhvrPendingAreaMigrateLegacy(oArea, oSubject, sNpcKey);
     SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
     SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nReasonCode);
     SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), NpcBhvrPendingStatusToString(nStatus));
-    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), NpcBhvrPendingNow());
+    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), nNow);
 }
 
 void NpcBhvrPendingAreaClear(object oArea, object oSubject)
@@ -706,6 +747,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     int bWasPendingActive;
     int nIndexedPriority;
     int nIndexedPosition;
+    int nNow;
     object oIndexedSubject;
     object oTail;
 
@@ -720,6 +762,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     }
 
     bWasPendingActive = NpcBhvrPendingIsActive(oSubject);
+    nNow = NpcBhvrPendingNow();
 
     nIndexedPriority = NpcBhvrQueueIndexPriority(oArea, oSubject);
     nIndexedPosition = NpcBhvrQueueIndexPosition(oArea, oSubject);
@@ -751,14 +794,14 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                     NpcBhvrQueueSyncTotals(oArea);
                 }
 
-                NpcBhvrPendingAreaTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+                NpcBhvrPendingAreaTouchAt(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
                 if (bWasPendingActive)
                 {
-                    NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+                    NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
                 }
                 else
                 {
-                    NpcBhvrPendingSetTracked(oArea, oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+                    NpcBhvrPendingSetTrackedAt(oArea, oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
                 }
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
                 return TRUE;
@@ -798,14 +841,14 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                 NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nIndex);
             }
 
-            NpcBhvrPendingAreaTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+            NpcBhvrPendingAreaTouchAt(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
             if (bWasPendingActive)
             {
-                NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+                NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
             }
             else
             {
-                NpcBhvrPendingSetTracked(oArea, oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+                NpcBhvrPendingSetTrackedAt(oArea, oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
             }
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
             return TRUE;
@@ -846,14 +889,14 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
                     NpcBhvrQueueIndexSet(oArea, oSubject, nExistingPriority, nIndex);
                 }
 
-                NpcBhvrPendingAreaTouch(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
+                NpcBhvrPendingAreaTouchAt(oArea, oSubject, nEscalatedPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
                 if (bWasPendingActive)
                 {
-                    NpcBhvrPendingSetStatusTracked(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED);
+                    NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
                 }
                 else
                 {
-                    NpcBhvrPendingSetTracked(oArea, oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+                    NpcBhvrPendingSetTrackedAt(oArea, oSubject, nEscalatedPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
                 }
                 NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_COALESCED_COUNT);
                 return TRUE;
@@ -872,8 +915,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_OVERFLOW_COUNT);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
             NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
-            NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
-            NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED);
+            NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
+            NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
             NpcBhvrPendingNpcClear(oSubject);
             NpcBhvrPendingAreaClear(oArea, oSubject);
             NpcBhvrQueueIndexClear(oArea, oSubject);
@@ -883,8 +926,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
 
     if (!NpcBhvrQueueEnqueueRaw(oArea, oSubject, nPriority))
     {
-        NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
-        NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
+        NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
         NpcBhvrPendingNpcClear(oSubject);
         NpcBhvrPendingAreaClear(oArea, oSubject);
         NpcBhvrQueueIndexClear(oArea, oSubject);
@@ -893,8 +936,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         return FALSE;
     }
 
-    NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED);
-    NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED);
+    NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
+    NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_QUEUED, nNow);
     NpcSqliteWriteBehindMarkDirty();
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_ENQUEUED_COUNT);
     return TRUE;
@@ -1146,4 +1189,3 @@ void NpcBhvrQueueMarkDeferredHead(object oArea)
         nPriority = nPriority + 1;
     }
 }
-
