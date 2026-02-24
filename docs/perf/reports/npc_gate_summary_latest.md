@@ -18,6 +18,7 @@
 | Registry overflow guardrail | `starvation-risk`, `overflow-guardrail` | PASS | FRESH | **PASS** | `run_npc_bench.sh`: 3/3 PASS в обоих профилях. |
 | Tick budget / degraded-mode | `burst`, `starvation-risk`, `tick-budget`, `tick-budget-degraded` | PASS | FRESH | **PASS** | budget/deferred сигналы присутствуют: 3/3 в каждом профиле. |
 | Automated fairness checks | `fairness-checks` (pause/resume) | PASS | FRESH | **PASS** | queue fairness analyzer: 3/3 PASS. |
+| Route cache warmup/rescan | `warmup-rescan` | PASS | FRESH | **PASS** | route_cache_warmup_rescan: 3/3 PASS, guardrail_status=PASS. |
 
 ## Machine-readable mirrors
 
