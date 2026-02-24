@@ -1244,59 +1244,7 @@ int NpcBhvrQueueProcessOne(object oArea)
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason)
 {
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_EVENTS_TOTAL);
-    NpcBhvrRecordDegradationReason(oArea, nReason);
-}
-
-void NpcBhvrRecordDegradationReason(object oArea, int nReason)
-{
     SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nReason);
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EVENT_BUDGET_TOTAL);
-        return;
-    }
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_SOFT_BUDGET_TOTAL);
-        return;
-    }
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EMPTY_QUEUE_TOTAL);
-        return;
-    }
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_OVERFLOW)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_OVERFLOW_TOTAL);
-        return;
-    }
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_QUEUE_PRESSURE_TOTAL);
-        return;
-    }
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_ROUTE_MISS)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_ROUTE_MISS_TOTAL);
-        return;
-    }
-
-    if (nReason == NPC_BHVR_DEGRADATION_REASON_DISABLED)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_DISABLED_TOTAL);
-        return;
-    }
-
-    if (nReason != NPC_BHVR_DEGRADATION_REASON_NONE)
-    {
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DIAGNOSTIC_DROPPED_TOTAL);
-    }
 }
 
 void NpcBhvrOnAreaTick(object oArea)
