@@ -122,6 +122,36 @@ void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
     NpcBhvrPendingNpcTouch(oNpc);
 }
 
+string NpcBhvrPendingStatusToString(int nStatus)
+{
+    if (nStatus == NPC_BHVR_PENDING_STATUS_QUEUED)
+    {
+        return NPC_BHVR_PENDING_STATUS_STR_QUEUED;
+    }
+
+    if (nStatus == NPC_BHVR_PENDING_STATUS_RUNNING)
+    {
+        return NPC_BHVR_PENDING_STATUS_STR_RUNNING;
+    }
+
+    if (nStatus == NPC_BHVR_PENDING_STATUS_PROCESSED)
+    {
+        return NPC_BHVR_PENDING_STATUS_STR_PROCESSED;
+    }
+
+    if (nStatus == NPC_BHVR_PENDING_STATUS_DEFERRED)
+    {
+        return NPC_BHVR_PENDING_STATUS_STR_DEFERRED;
+    }
+
+    if (nStatus == NPC_BHVR_PENDING_STATUS_DROPPED)
+    {
+        return NPC_BHVR_PENDING_STATUS_STR_DROPPED;
+    }
+
+    return "";
+}
+
 void NpcBhvrPendingNpcClear(object oNpc)
 {
     if (!GetIsObjectValid(oNpc))
@@ -259,7 +289,7 @@ int NpcBhvrPendingNowTs()
     return GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
 }
 
-void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, string sStatus)
+void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus)
 {
     string sNpcKey;
 
@@ -271,7 +301,7 @@ void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int n
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
     SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nReasonCode);
-    SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), sStatus);
+    SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), NpcBhvrPendingStatusToString(nStatus));
     SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), NpcBhvrPendingNowTs());
 }
 
@@ -522,8 +552,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
 
     if (!NpcBhvrQueueEnqueueRaw(oArea, oSubject, nPriority))
     {
-        NpcBhvrPendingTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
-        NpcBhvrPendingClear(oArea, oSubject);
+        NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
+        NpcBhvrPendingAreaClear(oArea, oSubject);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
         return FALSE;
     }
