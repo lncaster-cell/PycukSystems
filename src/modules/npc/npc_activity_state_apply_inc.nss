@@ -1,5 +1,9 @@
 // Route state application helpers.
 
+string NpcBhvrActivityResolveSlotEmote(object oNpc, string sSlot);
+int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId);
+int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId);
+
 string NpcBhvrActivityResolveAction(object oNpc, string sSlot, string sRouteId, int nWpIndex, int nWpCount)
 {
     string sEmote;
