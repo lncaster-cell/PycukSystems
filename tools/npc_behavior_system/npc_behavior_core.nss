@@ -1207,8 +1207,6 @@ void NpcBehaviorOnEndCombatRound(object oNpc)
         NpcBehaviorMarkHostileContact(oNpc);
         SetLocalInt(oNpc, NPC_VAR_STATE, NPC_STATE_ALERT);
     }
-
-    NpcBehaviorOnHeartbeat(oNpc);
 }
 
 void NpcBehaviorOnPhysicalAttacked(object oNpc)
@@ -1479,7 +1477,8 @@ void NpcBehaviorOnAreaTick(object oArea)
                 nPendingBefore = GetLocalInt(oObject, NPC_VAR_PENDING_TOTAL);
                 nPendingPriority = NpcBehaviorGetTopPendingPriority(oObject);
 
-                // Heartbeat dispatch is the single throttle gate: processed/skipped metrics are decided only by NpcBehaviorOnHeartbeat.
+                // Heartbeat dispatch through area tick is the single throttle gate:
+                // all processed/skipped/deferred semantics are decided only here via NpcBehaviorOnHeartbeat + area budget.
                 if (NpcBehaviorOnHeartbeat(oObject))
                 {
                     nProcessed = nProcessed + 1;

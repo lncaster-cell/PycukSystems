@@ -81,12 +81,12 @@ Phase 1 использует единый helper записи метрик `NpcB
 - `NpcBehaviorOnDeath` → `npc_metric_death_count`.
 - `NpcBehaviorOnDialogue` → `npc_metric_dialog_count`.
 - `NpcBehaviorOnHeartbeat` (P1) → `npc_metric_heartbeat_count`, при раннем выходе/skip также `npc_metric_heartbeat_skipped_count`.
-- `NpcBehaviorOnEndCombatRound` (P1, canonical) выполняет intake/coalesce, переход `COMBAT -> ALERT` при выходе из боя, пишет `npc_metric_combat_round_count`, затем heartbeat sync через `NpcBehaviorOnHeartbeat`.
+- `NpcBehaviorOnEndCombatRound` (P1, canonical) выполняет intake/coalesce, переход `COMBAT -> ALERT` при выходе из боя и пишет `npc_metric_combat_round_count`; прямой heartbeat-dispatch здесь не выполняется, обработка идет через `NpcBehaviorOnAreaTick` и очередь.
 - `NpcBehaviorOnCombatRound` сохранен как compatibility-wrapper и делегирует в `NpcBehaviorOnEndCombatRound`, чтобы исключить конкурирующие пути.
 - `NpcBehaviorOnAreaTick` (P1, area-level) аккумулирует на area:
-  - processed (`npc_area_metric_processed_count`) — heartbeat действительно выполнен (`NpcBehaviorOnHeartbeat == TRUE`),
-  - skipped (`npc_area_metric_skipped_count`) — heartbeat был запущен в рамках прохода, но завершился `FALSE` (invalid/dead/disabled/degraded/interval),
-  - deferred (`npc_area_metric_deferred_count`) — eligible NPC не дошли до попытки heartbeat в этом area-tick только из-за лимита budget/очереди,
+  - processed (`npc_area_metric_processed_count`) — heartbeat действительно выполнен (`NpcBehaviorOnHeartbeat == TRUE`) только в area-tick throttle-gate,
+  - skipped (`npc_area_metric_skipped_count`) — heartbeat был запущен из area-tick и завершился `FALSE` (invalid/dead/disabled/degraded/interval),
+  - deferred (`npc_area_metric_deferred_count`) — eligible NPC не дошли до попытки heartbeat в этом area-tick только из-за лимита budget/очереди (не включает combat-round intake),
   - queue overflow (`npc_area_metric_queue_overflow_count`).
 
 ### Intake policy after `NpcBehaviorTryIntakeEvent(...)`
