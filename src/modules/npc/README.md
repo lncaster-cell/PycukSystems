@@ -131,9 +131,10 @@ Tick/degraded telemetry в runtime включает:
   - `npc_schedule_start_critical` / `npc_schedule_end_critical`,
   - `npc_schedule_start_priority` / `npc_schedule_end_priority`.
 - Правила интерпретации окна:
-  - `start == end` -> окно на 24 часа;
+  - `start == end` -> специальный «пустой» window (в `NpcBhvrActivityIsHourInWindow` возвращается `FALSE`, т.е. слот по этому окну никогда не активируется);
   - `start < end` -> обычное дневное окно `[start, end)`;
   - `start > end` -> ночное окно с переходом через полночь (например, `22 -> 6`).
+- Причина для `start == end`: защита от неявного always-on, когда ключи расписания отсутствуют и `GetLocalInt` даёт `0` для `start/end`.
 - Приоритет резолва slot по расписанию: `critical` -> `priority` -> `default`.
 - Если расписание выключено, сохраняется текущий runtime slot после нормализации.
 
