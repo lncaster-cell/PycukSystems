@@ -1,0 +1,5 @@
+tick,lifecycle_state,area_tick_latency_ms,queue_depth,deferred_events,overflow_events,budget_overrun,route_cache_warmup_ok,route_cache_rescan_ok,route_cache_guardrail_status
+1,RUNNING,5,8,0,0,0,1,1,PASS
+2,RUNNING,5,9,0,0,0,1,1,PASS
+3,RUNNING,6,9,0,0,0,1,1,PASS
+4,RUNNING,6,10,0,0,0,1,1,PASS

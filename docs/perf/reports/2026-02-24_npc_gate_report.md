@@ -10,6 +10,7 @@
 - `burst` → `benchmarks/npc_baseline/results/20260224_090137`
 - `pause-resume` (mapped to `fairness-checks`) → `benchmarks/npc_baseline/results/20260224_090145`
 - `tick-budget-degraded` → `benchmarks/npc_baseline/results/20260224_090154`
+- `warmup-rescan` → `benchmarks/npc_baseline/results/20260224_092219`
 
 ## Aggregated results
 
@@ -19,6 +20,7 @@
 | burst | 18.05 / 19.00 | 48.20 / 52.00 | 0.35 | 0.10 | 0.00 | PASS (на границе deferred/overrun) |
 | pause-resume (`fairness-checks`) | N/A | N/A | N/A | N/A | N/A | PASS (queue fairness analyzer 3/3) |
 | tick-budget-degraded | 21.05 / 22.00 | 91.20 / 95.00 | 0.75 | 0.65 | 0.25 | FAIL |
+| warmup-rescan | N/A | N/A | N/A | N/A | N/A | PASS (`route_cache_warmup_rescan`: 3/3) |
 
 ## Raw artifacts (рядом с отчётом)
 Сырые CSV/логи/summary сохранены рядом с отчётом в каталоге:
@@ -26,6 +28,7 @@
 - `docs/perf/reports/2026-02-24_artifacts/20260224_090137`
 - `docs/perf/reports/2026-02-24_artifacts/20260224_090145`
 - `docs/perf/reports/2026-02-24_artifacts/20260224_090154`
+- `docs/perf/reports/2026-02-24_artifacts/20260224_092219`
 
 ## Gate decision
-**NO-GO (FAIL)**: baseline теперь свежий, но пороги degraded-профиля не пройдены.
+**NO-GO (FAIL)**: baseline свежий, warmup/rescan guardrail PASS, но пороги degraded-профиля не пройдены.

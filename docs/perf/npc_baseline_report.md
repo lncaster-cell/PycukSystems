@@ -5,7 +5,7 @@
 
 ## 1. Контекст последнего валидного прогона
 - Дата: **2026-02-24**.
-- Commit SHA: **60a5091**.
+- Commit SHA: **TBD (updated after merge)**.
 - Ветка: **work**.
 - Окружение (локально/CI): **локально, fixture-driven прогон (`scripts/run_npc_bench.sh`)**.
 - Конфигурация стенда: **Linux 6.12.47 x86_64, Python 3.10.19, RUNS=3 на сценарий**.
@@ -15,6 +15,7 @@
 - burst: 3 прогона (`benchmarks/npc_baseline/results/20260224_090137`).
 - pause-resume (profile `fairness-checks`): 3 прогона (`benchmarks/npc_baseline/results/20260224_090145`).
 - fault profile `tick-budget-degraded`: 3 прогона (`benchmarks/npc_baseline/results/20260224_090154`).
+- route-cache profile `warmup-rescan`: 3 прогона (`benchmarks/npc_baseline/results/20260224_092219`).
 
 ## 3. Агрегированные метрики (минимум 3 прогона)
 
@@ -26,6 +27,7 @@
 | burst | 18.05 / 19.00 | 48.20 / 52.00 | 0.35 | 0.10 | 0.00 | PASS |
 | pause-resume (`fairness-checks`) | N/A (fairness-only fixture) | N/A (fairness-only fixture) | N/A | N/A | N/A | PASS (`analyze_area_queue_fairness.py`: 3/3) |
 | tick-budget-degraded | 21.05 / 22.00 | 91.20 / 95.00 | 0.75 | 0.65 | 0.25 | FAIL (превышены пороги p95/queue/deferred/overrun/overflow) |
+| warmup-rescan | N/A (route-cache guardrail fixture) | N/A | N/A | N/A | N/A | PASS (`route_cache_warmup_rescan`: 3/3) |
 
 ## 4. Привязка baseline к guardrails
 
@@ -34,6 +36,7 @@
 | Registry overflow | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`registry_overflow`) | FAIL (overflow_rate=0.25 в `tick-budget-degraded`) |
 | Tick budget / degraded-mode | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`tick_budget_degraded`) | FAIL (budget_overrun_rate=0.65, deferred_rate=0.75 в degraded) |
 | Automated fairness | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`automated_fairness`) | PASS (pause/resume fairness profile: 3/3) |
+| Route cache warmup/rescan | `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`route_cache_warmup_rescan`) | PASS (`warmup-rescan`: 3/3, guardrail status=PASS) |
 
 ## 5. Baseline freshness policy
 - Для perf-gate сравнений baseline должен быть **не старше 14 дней**.
