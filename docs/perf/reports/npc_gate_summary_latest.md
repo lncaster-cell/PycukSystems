@@ -3,20 +3,21 @@
 Источник данных для этого snapshot:
 - `docs/perf/npc_baseline_report.md` (baseline freshness/reference-point)
 - `docs/perf/npc_perf_gate.md` (guardrail criteria)
+- Актуальный отчёт: `docs/perf/reports/2026-02-24_npc_gate_report.md`
 
 ## Overall baseline linkage
 
 - Baseline reference: `docs/perf/npc_baseline_report.md`
-- Baseline freshness: **BLOCKED** (`Дата = N/A`)
-- Итог: все guardrails, требующие baseline-сравнения, маркируются `BLOCKED`.
+- Baseline freshness: **FRESH** (`Дата = 2026-02-24`)
+- Итог: baseline-связка активна; guardrails имеют фактические статусы (PASS/FAIL), без `BLOCKED`.
 
 ## Guardrail status table
 
 | Guardrail | Scenario IDs / profiles | Raw check status | Baseline linkage | Final gate status | Notes |
 |---|---|---|---|---|---|
-| Registry overflow guardrail | `starvation-risk`, `overflow-guardrail` | PASS (скриптовый критерий определён) | BLOCKED | **BLOCKED** | Требуется свежий baseline-run (<=14 дней). |
-| Tick budget / degraded-mode | `burst`, `starvation-risk`, `tick-budget`, `tick-budget-degraded` | PASS (скриптовый критерий определён) | BLOCKED | **BLOCKED** | Требуется fresh baseline и запись p95/p99. |
-| Automated fairness checks | `steady`, `burst`, `starvation-risk`, `fairness-checks` + fault fixtures | PASS (self-check критерий определён) | BLOCKED | **BLOCKED** | До обновления baseline release-gate не может быть GO. |
+| Registry overflow guardrail | `tick-budget-degraded` (overflow observed) | FAIL | FRESH | **FAIL** | overflow_rate=0.25 > 0.02 threshold. |
+| Tick budget / degraded-mode | `burst`, `tick-budget-degraded` | FAIL | FRESH | **FAIL** | degraded: budget_overrun_rate=0.65, deferred_rate=0.75. |
+| Automated fairness checks | `fairness-checks` (pause/resume) | PASS | FRESH | **PASS** | queue fairness analyzer: 3/3 PASS. |
 
 ## Machine-readable mirrors
 

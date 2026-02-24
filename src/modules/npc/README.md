@@ -160,7 +160,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 - **Runtime MVP:** `READY` — core lifecycle/queue/activity/metrics и thin-entrypoints подключены в `src/modules/npc/*`.
 - **Fairness/lifecycle self-check:** `READY` — автоматические проверки доступны через `scripts/test_npc_fairness.sh` и `scripts/check_npc_lifecycle_contract.sh`.
-- **Perf baseline/perf-gate:** `BLOCKED` — актуальный валидный baseline (>=3 runs, <=14 days) отсутствует; см. `docs/perf/npc_baseline_report.md`.
+- **Perf baseline/perf-gate:** `FAIL` — baseline обновлён (>=3 runs, <=14 days), но `tick-budget-degraded` не проходит пороги; см. `docs/perf/npc_baseline_report.md`.
 - **Runtime dashboards:** `BLOCKED` — артефакты конфигураций дашбордов не зафиксированы в репозитории.
 
 ## Карта hook-скриптов (thin entrypoints)
