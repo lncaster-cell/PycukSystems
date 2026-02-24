@@ -34,6 +34,8 @@ const int NPC_BHVR_TICK_SOFT_BUDGET_MS_DEFAULT = 25;
 const int NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS = 8;
 const int NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP = 64;
 const int NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP = 1000;
+const float NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC = 1.0;
+const float NPC_BHVR_AREA_TICK_INTERVAL_PAUSED_WATCHDOG_SEC = 30.0;
 
 const string NPC_BHVR_VAR_AREA_STATE = "npc_area_state";
 const string NPC_BHVR_VAR_AREA_TIMER_RUNNING = "npc_area_timer_running";
@@ -437,7 +439,7 @@ void NpcBhvrAreaActivate(object oArea)
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
     {
         SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, TRUE);
-        DelayCommand(1.0, ExecuteScript("npc_area_tick", oArea));
+        DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
     }
 }
 
@@ -937,7 +939,20 @@ void NpcBhvrOnAreaTick(object oArea)
         }
     }
 
-    DelayCommand(1.0, ExecuteScript("npc_area_tick", oArea));
+    if (NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_RUNNING)
+    {
+        DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
+        return;
+    }
+
+    if (NpcBhvrAreaGetState(oArea) == NPC_BHVR_AREA_STATE_PAUSED)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_PAUSED_WATCHDOG_TICK_COUNT);
+        DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_PAUSED_WATCHDOG_SEC, ExecuteScript("npc_area_tick", oArea));
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
 }
 
 void NpcBhvrBootstrapModuleAreas()
