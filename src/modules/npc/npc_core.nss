@@ -126,6 +126,7 @@ int NpcBhvrRegistryRemove(object oArea, object oNpc);
 void NpcBhvrRegistryBroadcastIdleTick(object oArea);
 void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
 int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority);
+object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex);
 int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
 int NpcBhvrQueueCountDeferred(object oArea);
 int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount);
@@ -458,37 +459,30 @@ void NpcBhvrPendingNpcClear(object oNpc)
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT);
 }
 
-void NpcBhvrQueueRemoveAt(object oArea, int nPriority, int nIndex)
+object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
 {
     int nDepth;
-    object oShifted;
     object oRemoved;
+    object oTail;
 
     nDepth = NpcBhvrQueueGetDepthForPriority(oArea, nPriority);
     if (nIndex < 1 || nIndex > nDepth)
     {
-        return;
+        return OBJECT_INVALID;
     }
 
     oRemoved = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
-    if (GetIsObjectValid(oRemoved))
+    if (nIndex != nDepth)
     {
-        NpcBhvrQueueIndexClear(oArea, oRemoved);
-    }
-
-    while (nIndex < nDepth)
-    {
-        oShifted = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex + 1));
-        SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oShifted);
-        if (GetIsObjectValid(oShifted))
-        {
-            NpcBhvrQueueIndexSet(oArea, oShifted, nPriority, nIndex);
-        }
-        nIndex = nIndex + 1;
+        oTail = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
+        SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex), oTail);
     }
 
     DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
     NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+    NpcBhvrQueueSyncTotals(oArea);
+
+    return oRemoved;
 }
 
 // Inserts into priority queue and guarantees totals refresh on successful insert.
@@ -1386,14 +1380,7 @@ int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority)
         return FALSE;
     }
 
-    oDropped = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
-    DeleteLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nDepth));
-    if (GetIsObjectValid(oDropped))
-    {
-        NpcBhvrQueueIndexClear(oArea, oDropped);
-    }
-    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
-    NpcBhvrQueueSyncTotals(oArea);
+    oDropped = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nDepth);
 
     if (GetIsObjectValid(oDropped))
     {
@@ -1521,6 +1508,10 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
         return 0;
     }
 
+    // Deferred trim is pressure-relief only; it intentionally permits swap-tail
+    // removal (non-FIFO) because relative deferred order is not semantically
+    // significant, unlike dequeue paths that must preserve FIFO ordering.
+
     nTrimmed = 0;
     nPriority = NPC_BHVR_PRIORITY_LOW;
     while (nPriority >= NPC_BHVR_PRIORITY_CRITICAL && nTrimmed < nTrimCount)
@@ -1532,7 +1523,7 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
             oSubject = GetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nIndex));
             if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
             {
-                NpcBhvrQueueRemoveAt(oArea, nPriority, nIndex);
+                oSubject = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nIndex);
                 NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
                 NpcBhvrPendingNpcClear(oSubject);
@@ -1547,6 +1538,8 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
 
         nPriority = nPriority - 1;
     }
+
+    NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea));
 
     return nTrimmed;
 }
