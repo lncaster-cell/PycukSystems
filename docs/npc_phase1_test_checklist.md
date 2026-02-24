@@ -162,7 +162,7 @@ rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue|On[A-Za-z]+" "$MODULE_D
 
 ```bash
 # RUNS должен быть целым числом >= 1 (например, RUNS=3).
-RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
+RUNS=3 bash scripts/run_npc_bench.sh steady
 ```
 
 

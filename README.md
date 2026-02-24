@@ -148,10 +148,24 @@ NWNX include-файлы вынесены в `third_party/nwnx_includes/`.
 Для запуска baseline-бенчмарка используйте:
 
 ```bash
-RUNS=3 bash scripts/run_npc_bench.sh scenario_a_nominal
+RUNS=3 bash scripts/run_npc_bench.sh steady
 ```
 
 Ограничение: переменная `RUNS` должна быть целым числом `>= 1`.
+
+Поддерживаемые `profile` (должны совпадать с `resolve_fixture()` в `scripts/run_npc_bench.sh`):
+
+- `steady`
+- `burst`
+- `starvation-risk`
+- `overflow-guardrail`
+- `tick-budget`
+- `tick-budget-degraded`
+- `fairness-checks`
+- `warmup-rescan`
+
+> [!IMPORTANT]
+> При неизвестном `profile` скрипт завершится с ошибкой (`[ERR] Unknown scenario/profile: ...`) и кодом выхода `2`.
 
 ### Как запускать baseline для Module 3
 
