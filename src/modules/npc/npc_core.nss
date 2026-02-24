@@ -63,6 +63,8 @@ const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
+const string NPC_BHVR_VAR_ROUTES_CACHED = "routes_cached";
+const string NPC_BHVR_VAR_ROUTES_CACHE_VERSION = "routes_cache_version";
 
 const int NPC_BHVR_PENDING_STATUS_NONE = 0;
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
@@ -90,6 +92,36 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
 int NpcBhvrRegistryInsert(object oArea, object oNpc);
 int NpcBhvrRegistryRemove(object oArea, object oNpc);
 void NpcBhvrRegistryBroadcastIdleTick(object oArea);
+void NpcBhvrAreaRouteCacheWarmup(object oArea);
+void NpcBhvrAreaRouteCacheInvalidate(object oArea);
+
+void NpcBhvrAreaRouteCacheWarmup(object oArea)
+{
+    int nCachedBefore;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    nCachedBefore = GetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHED);
+    NpcBhvrActivityRouteCacheWarmup(oArea);
+    if (nCachedBefore == TRUE)
+    {
+        return;
+    }
+}
+
+void NpcBhvrAreaRouteCacheInvalidate(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    NpcBhvrActivityRouteCacheInvalidate(oArea);
+    SetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHE_VERSION, GetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHE_VERSION) + 1);
+}
 
 int NpcBhvrPendingNow()
 {
@@ -805,6 +837,7 @@ void NpcBhvrAreaActivate(object oArea)
     }
 
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
+    NpcBhvrAreaRouteCacheWarmup(oArea);
 
     // Contract: один area-loop на область.
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
@@ -833,6 +866,7 @@ void NpcBhvrAreaStop(object oArea)
     }
 
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
+    NpcBhvrAreaRouteCacheInvalidate(oArea);
     NpcBhvrQueueClear(oArea);
 }
 
@@ -1505,6 +1539,7 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
     if (!GetIsPC(oExiting))
     {
         NpcBhvrRegistryRemove(oArea, oExiting);
+        NpcBhvrAreaRouteCacheInvalidate(oArea);
         return;
     }
 
