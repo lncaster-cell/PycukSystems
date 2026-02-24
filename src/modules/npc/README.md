@@ -10,6 +10,7 @@
 - Реализована bounded queue (`NPC_BHVR_QUEUE_MAX=64`) с bucket-приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
 - Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
 - CRITICAL события обрабатываются через bypass fairness-бюджета.
+- `npc_pending_updated_at` хранится как `int`-timestamp с секундной точностью (на базе календарного дня и `HH:MM:SS`) и при частых обновлениях монотонно увеличивается минимум на 1.
 
 ## Базовые include-файлы
 

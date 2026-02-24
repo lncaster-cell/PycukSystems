@@ -81,7 +81,74 @@ void NpcBhvrRegistryBroadcastIdleTick(object oArea);
 
 int NpcBhvrPendingNow()
 {
-    return GetCalendarYear() * 1000000 + GetCalendarMonth() * 10000 + GetCalendarDay() * 100 + GetTimeHour();
+    int nYear;
+    int nMonth;
+    int nDays;
+    int bLeapYear;
+
+    nYear = GetCalendarYear() - 2000;
+    nMonth = GetCalendarMonth();
+
+    if (nYear < 0)
+    {
+        nYear = 0;
+    }
+
+    nDays = nYear * 365 + (nYear + 3) / 4 - (nYear + 99) / 100 + (nYear + 399) / 400;
+
+    if (nMonth > 1)
+    {
+        nDays += 31;
+    }
+    if (nMonth > 2)
+    {
+        nDays += 28;
+    }
+    if (nMonth > 3)
+    {
+        nDays += 31;
+    }
+    if (nMonth > 4)
+    {
+        nDays += 30;
+    }
+    if (nMonth > 5)
+    {
+        nDays += 31;
+    }
+    if (nMonth > 6)
+    {
+        nDays += 30;
+    }
+    if (nMonth > 7)
+    {
+        nDays += 31;
+    }
+    if (nMonth > 8)
+    {
+        nDays += 31;
+    }
+    if (nMonth > 9)
+    {
+        nDays += 30;
+    }
+    if (nMonth > 10)
+    {
+        nDays += 31;
+    }
+    if (nMonth > 11)
+    {
+        nDays += 30;
+    }
+
+    bLeapYear = (GetCalendarYear() % 400 == 0) || (GetCalendarYear() % 4 == 0 && GetCalendarYear() % 100 != 0);
+    if (bLeapYear && nMonth > 2)
+    {
+        nDays += 1;
+    }
+
+    nDays += GetCalendarDay() - 1;
+    return nDays * 86400 + GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
 }
 
 int NpcBhvrPendingIsActive(object oNpc)
@@ -101,12 +168,22 @@ int NpcBhvrPendingIsActive(object oNpc)
 
 void NpcBhvrPendingNpcTouch(object oNpc)
 {
+    int nNow;
+    int nPrev;
+
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT, NpcBhvrPendingNow());
+    nNow = NpcBhvrPendingNow();
+    nPrev = GetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT);
+    if (nNow <= nPrev)
+    {
+        nNow = nPrev + 1;
+    }
+
+    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT, nNow);
 }
 
 void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
