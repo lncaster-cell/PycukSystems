@@ -89,6 +89,7 @@ string NPC_VAR_METRIC_AREA_SKIPPED = "npc_area_metric_skipped_count";
 // Только deferred по budget/очереди area-tick (не включает heartbeat skip/guard причины).
 string NPC_VAR_METRIC_AREA_DEFERRED = "npc_area_metric_deferred_count";
 string NPC_VAR_METRIC_AREA_OVERFLOW = "npc_area_metric_queue_overflow_count";
+string NPC_VAR_COALESCE_SEEN_PREFIX = "npc_coalesce_seen_";
 
 int NpcBehaviorOnHeartbeat(object oNpc);
 int NpcBehaviorConsumePending(object oNpc, int nPriority);
@@ -566,8 +567,10 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
 {
     object oArea;
     string sCoalesceVar;
+    string sCoalesceSeenVar;
     int nNow;
     int nLast;
+    int bCoalesceSeen;
     int bQueued;
 
     if (!GetIsObjectValid(oNpc))
@@ -579,9 +582,13 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
     if (sCoalesceKey != "")
     {
         sCoalesceVar = "npc_coalesce_" + sCoalesceKey;
+        sCoalesceSeenVar = NPC_VAR_COALESCE_SEEN_PREFIX + sCoalesceKey;
         nLast = GetLocalInt(oNpc, sCoalesceVar);
+        bCoalesceSeen = (GetLocalInt(oNpc, sCoalesceSeenVar) != 0);
 
-        if (nLast > 0 && NpcBehaviorElapsedSec(nNow, nLast) < NPC_COALESCE_WINDOW_SEC && nPriority < NPC_EVENT_PRIORITY_CRITICAL)
+        // 00:00:00 (nLast == 0) — валидный timestamp, поэтому проверяем отдельный флаг seen.
+        // NpcBehaviorElapsedSec корректно работает и для wrap через сутки, и для nNow == nLast == 0.
+        if (bCoalesceSeen && NpcBehaviorElapsedSec(nNow, nLast) < NPC_COALESCE_WINDOW_SEC && nPriority < NPC_EVENT_PRIORITY_CRITICAL)
         {
             NpcBehaviorMetricInc(oNpc, NPC_VAR_DEFERRED_EVENTS);
             return FALSE;
@@ -599,6 +606,7 @@ int NpcBehaviorTryIntakeEvent(object oNpc, int nPriority, string sCoalesceKey)
     if (sCoalesceVar != "")
     {
         SetLocalInt(oNpc, sCoalesceVar, nNow);
+        SetLocalInt(oNpc, sCoalesceSeenVar, TRUE);
     }
 
     NpcBehaviorPendingAdjust(oNpc, nPriority, 1);
