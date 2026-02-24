@@ -87,6 +87,13 @@
 - значения `< 1` считаются невалидными и нормализуются к дефолтам состояния (`idle=6`, `combat=2`);
 - сравнение "пора ли обрабатывать" выполняется в одной шкале `elapsed_seconds >= interval_seconds`.
 
+
+### Контракт idle broadcast
+
+- На каждом `RUNNING` area-tick при `queue_pending_total == 0` выполняется registry-wide idle broadcast (`NpcBhvrRegistryBroadcastIdleTick`).
+- Idle broadcast обходит только валидных NPC текущей области и вызывает `NpcBhvrActivityOnIdleTick` для поддержания фонового поведения в отсутствие событий очереди.
+- Если pending-очередь не пуста, idle broadcast в этом тике не выполняется: бюджет полностью резервируется под drain очереди и не конкурирует с event processing.
+
 ## 3. Fairness между областями и hot-area streak
 
 ### Базовая fairness-политика

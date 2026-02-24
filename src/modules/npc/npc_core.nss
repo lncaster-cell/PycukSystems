@@ -1431,6 +1431,13 @@ void NpcBhvrOnAreaTick(object oArea)
     if (nAreaState == NPC_BHVR_AREA_STATE_RUNNING)
     {
         nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+        if (nPendingBefore <= 0)
+        {
+            // Idle broadcast runs only when queue is empty: keeps ambient NPC activity alive
+            // without competing with queued event processing budget.
+            NpcBhvrRegistryBroadcastIdleTick(oArea);
+        }
+
         nMaxEvents = NpcBhvrGetTickMaxEvents(oArea);
         if (nMaxEvents > NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP)
         {
