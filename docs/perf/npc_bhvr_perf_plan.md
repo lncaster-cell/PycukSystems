@@ -46,6 +46,7 @@
 ## Fixture-профили
 
 - `docs/perf/fixtures/npc_bhvr/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
+- `docs/perf/fixtures/npc_bhvr/steady_decimal_latency.csv` — стабильная нагрузка с дробным latency/queue_depth; ожидаемый результат анализатора: `[OK]`.
 - `docs/perf/fixtures/npc_bhvr/burst.csv` — кратковременные всплески очереди и латентности.
 - `docs/perf/fixtures/npc_bhvr/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
 

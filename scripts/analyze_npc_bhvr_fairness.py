@@ -49,9 +49,18 @@ def percentile(values: list[float], percent: float) -> float:
     return sorted_values[lower] * (1 - weight) + sorted_values[upper] * weight
 
 
-def parse_number(raw: str, row_index: int, column_name: str) -> int:
+def parse_int(raw: str, row_index: int, column_name: str) -> int:
     try:
         return int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"[FAIL] invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
+        )
+
+
+def parse_float(raw: str, row_index: int, column_name: str) -> float:
+    try:
+        return float(raw)
     except (TypeError, ValueError):
         raise ValueError(
             f"[FAIL] invalid numeric value (row index={row_index}, column name={column_name}, raw value={raw!r})"
@@ -93,20 +102,20 @@ def main() -> int:
     try:
         for row_index, row in enumerate(rows, start=1):
             lifecycle_state = (row.get("lifecycle_state") or "").strip().upper()
-            parse_number(row.get("tick"), row_index, "tick")
+            parse_int(row.get("tick"), row_index, "tick")
 
             if lifecycle_state != "RUNNING":
                 continue
 
             running_rows += 1
-            area_tick_latency_ms = parse_number(row.get("area_tick_latency_ms"), row_index, "area_tick_latency_ms")
-            queue_depth = parse_number(row.get("queue_depth"), row_index, "queue_depth")
-            deferred_events = parse_number(row.get("deferred_events"), row_index, "deferred_events")
-            overflow_events = parse_number(row.get("overflow_events"), row_index, "overflow_events")
-            budget_overrun = parse_number(row.get("budget_overrun"), row_index, "budget_overrun")
+            area_tick_latency_ms = parse_float(row.get("area_tick_latency_ms"), row_index, "area_tick_latency_ms")
+            queue_depth = parse_float(row.get("queue_depth"), row_index, "queue_depth")
+            deferred_events = parse_int(row.get("deferred_events"), row_index, "deferred_events")
+            overflow_events = parse_int(row.get("overflow_events"), row_index, "overflow_events")
+            budget_overrun = parse_int(row.get("budget_overrun"), row_index, "budget_overrun")
 
-            latency_values.append(float(area_tick_latency_ms))
-            queue_values.append(float(queue_depth))
+            latency_values.append(area_tick_latency_ms)
+            queue_values.append(queue_depth)
 
             if deferred_events > 0:
                 deferred_ticks += 1
