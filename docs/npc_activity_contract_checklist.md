@@ -59,6 +59,7 @@
 
 Инварианты e2e-уровня для расписаний:
 - переходы `npc_activity_slot` по времени детерминированы: `critical` имеет приоритет над `priority`, вне окон — fallback в `default`;
+- после schedule-aware resolve dispatch-ветка выбирается строго по приоритету `critical > priority > default` (через `NpcBhvrActivityApplyCriticalSafeRoute` / `NpcBhvrActivityApplyPriorityRoute` / `NpcBhvrActivityApplyDefaultRoute`), а не по предыдущему runtime-slot;
 - boundary-кейсы проверяются явно: границы часа (`start` включительно, `end` исключительно) и граница суток (`23:59:59 -> 00:00:00`);
 - при пустом расписании (`npc_schedule_start_* / npc_schedule_end_*` не заданы или невалидны) слот не «залипает» в старом состоянии и fallback-ится в `default`;
 - `npc_activity_route_effective` следует fallback-цепочке независимо от невалидного configured route;
