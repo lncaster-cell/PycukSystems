@@ -119,11 +119,6 @@ int NpcBhvrPendingNow()
     return nDayBaseSec + nHour * 3600 + nMinute * 60 + nSecond;
 }
 
-void NpcBhvrPendingNpcTouch(object oNpc)
-{
-    NpcBhvrPendingNpcTouchAt(oNpc, NpcBhvrPendingNow());
-}
-
 void NpcBhvrPendingNpcTouchAt(object oNpc, int nNow)
 {
     int nPrev;
@@ -142,11 +137,6 @@ void NpcBhvrPendingNpcTouchAt(object oNpc, int nNow)
     }
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT, nNow);
-}
-
-void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
-{
-    NpcBhvrPendingSetStatusAt(oNpc, nStatus, NpcBhvrPendingNow());
 }
 
 void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow)
@@ -207,11 +197,6 @@ int NpcBhvrPendingIsActive(object oNpc)
         || nStatus == NPC_BHVR_PENDING_STATUS_DEFERRED;
 }
 
-void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
-{
-    NpcBhvrPendingSetAt(oNpc, nPriority, sReason, nStatus, NpcBhvrPendingNow());
-}
-
 void NpcBhvrPendingSetAtIntReason(object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow);
 
 void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow)
@@ -234,11 +219,6 @@ void NpcBhvrPendingSetAtIntReason(object oNpc, int nPriority, int nReasonCode, i
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
     NpcBhvrPendingSetStatusAt(oNpc, nStatus, nNow);
-}
-
-void NpcBhvrPendingSetTracked(object oArea, object oNpc, int nPriority, string sReason, int nStatus)
-{
-    NpcBhvrPendingSetTrackedAt(oArea, oNpc, nPriority, sReason, nStatus, NpcBhvrPendingNow());
 }
 
 void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow)

@@ -37,6 +37,7 @@
 
 - `npc_core.nss` — константы, runtime-internal declarations между include-юнитами и thin entrypoint-обёртки.
 - `npc_queue_inc.nss` — queue/pending/deferred internals (`NpcBhvrQueue*`, `NpcBhvrPending*`, overflow/deferred guardrails).
+- `npc_queue_pending_compat_inc.nss` — legacy-обёртки `NpcBhvrPending*` без суффикса `At` (оставлены только для внешней совместимости, runtime использует `*At`).
 - `npc_tick_inc.nss` — tick orchestration и бюджет/деградация (`NpcBhvrTick*`, runtime budget config, degraded carryover).
 - `npc_lifecycle_inc.nss` — area/player lifecycle (`NpcBhvrOnAreaEnter/Exit`, player-count cache, activate/pause/stop, module bootstrap).
 - `npc_registry_inc.nss` — registry internals (`NpcBhvrRegistry*`, индекс/слоты, idle broadcast).
@@ -227,7 +228,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 ## Контракт pending-состояний (NPC-local и area-local)
 
-- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC); `NpcBhvrQueueEnqueue` явно выставляет `queued` через `NpcBhvrPendingSet`, а queue-processing переводит статус в `running/deferred/processed`.
+- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC); `NpcBhvrQueueEnqueue` и queue-processing используют runtime API `NpcBhvrPendingSetTrackedAtIntReason`/`NpcBhvrPendingSetStatusTrackedAt` (единый `nNow`) для переходов `queued/running/deferred/processed/dropped`.
 - `area-local` (`npc_queue_pending_*` на area) — диагностическое/наблюдаемое зеркало последнего состояния, обновляется через `NpcBhvrPendingAreaTouch`.
 - Временная модель (`*_updated_at`) едина для обоих хранилищ: используется `NpcBhvrPendingNow()` (секундный timestamp на базе календарного дня + `HH:MM:SS`).
 - Для `NPC-local` timestamp дополнительно поддерживает монотонность при частых апдейтах (минимум `+1` при коллизии секунды); `area-local` пишет то же текущее значение времени без отдельного источника часов.
