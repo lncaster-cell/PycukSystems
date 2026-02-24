@@ -1,4 +1,0 @@
-guardrail,status,scenario_id,profile,runs_passed,runs_total,evidence
-registry_overflow,N/A,fairness-checks,fairness-checks,0,0,"Not part of selected profile"
-tick_budget_degraded,N/A,fairness-checks,fairness-checks,0,0,"Not part of selected profile"
-automated_fairness,BLOCKED,fairness-checks,fairness-checks,3,3,"3/3 runs passed; baseline baseline date is N/A"
