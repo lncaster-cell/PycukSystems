@@ -24,6 +24,9 @@ const int NPC_BHVR_ACTIVITY_HINT_IDLE = 1;
 const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
 const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
+const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL = 1;
+const int NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL = 2;
+
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
 {
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
@@ -36,7 +39,7 @@ int NpcBhvrActivityIsSupportedRoute(string sRouteId)
         || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
 }
 
-string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId)
+string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope, int nSource)
 {
     if (sRouteId == "")
     {
@@ -45,6 +48,16 @@ string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId)
 
     if (!NpcBhvrActivityIsSupportedRoute(sRouteId))
     {
+        NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
+        if (nSource == NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL)
+        {
+            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_NPC_LOCAL_TOTAL);
+        }
+        else if (nSource == NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL)
+        {
+            NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_AREA_LOCAL_TOTAL);
+        }
+
         return "";
     }
 
@@ -61,21 +74,31 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
     }
 
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE));
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot))
+        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
+        oNpc,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
     );
     if (sRoute != "")
     {
         return sRoute;
     }
 
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT));
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
+        oNpc,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
+    );
+    if (sRoute != "")
+    {
+        return sRoute;
+    }
+
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
+        oNpc,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
+    );
     if (sRoute != "")
     {
         return sRoute;
@@ -88,14 +111,20 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
     }
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot))
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
+        oArea,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
     );
     if (sRoute != "")
     {
         return sRoute;
     }
 
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT));
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
+        oArea,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_AREA_LOCAL
+    );
     if (sRoute != "")
     {
         return sRoute;
@@ -201,7 +230,9 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     // Обязательная spawn-инициализация profile-state в npc_* namespace.
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT));
     sRouteConfigured = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE)
+        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
+        oNpc,
+        NPC_BHVR_ACTIVITY_ROUTE_SOURCE_NPC_LOCAL
     );
 
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);

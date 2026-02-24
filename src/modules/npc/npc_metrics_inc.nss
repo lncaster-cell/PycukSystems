@@ -32,6 +32,9 @@ const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EVENT_BUDGET_TOTAL = "npc_met
 const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_SOFT_BUDGET_TOTAL = "npc_metric_degradation_by_reason_soft_budget_total";
 const string NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EMPTY_QUEUE_TOTAL = "npc_metric_degradation_by_reason_empty_queue_total";
 const string NPC_BHVR_METRIC_DIAGNOSTIC_DROPPED_TOTAL = "npc_metric_diagnostic_dropped_total";
+const string NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL = "npc_metric_activity_invalid_route_total";
+const string NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_NPC_LOCAL_TOTAL = "npc_metric_activity_invalid_route_npc_local_total";
+const string NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_AREA_LOCAL_TOTAL = "npc_metric_activity_invalid_route_area_local_total";
 // pending_age_ms: интегральный возраст хвоста pending (pending_count * tick_ms surrogate).
 const string NPC_BHVR_METRIC_PENDING_AGE_MS = "npc_metric_pending_age_ms";
 // paused_watchdog_tick_count: редкий watchdog-тик в PAUSED, отдельный от RUNNING tick-loop.
