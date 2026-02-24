@@ -67,8 +67,9 @@ bash scripts/run_npc_bench.sh fairness-checks
 ```
 
 `run_npc_bench.sh` теперь автоматически:
-- запускает `scripts/analyze_npc_fairness.py` для каждого `run_*.csv`;
-- запускает `scripts/analyze_area_queue_fairness.py` там, где fixture содержит `processed_*` колонки, и всегда передаёт обязательные флаги (`--max-starvation-window`, `--enforce-pause-zero`, `--max-post-resume-drain-ticks`, `--min-resume-transitions`);
+- запускает `scripts/bench/analyze_single_run.py` для каждого `run_*.csv` (единый проход для fairness/overflow/budget/warmup);
+- всегда передаёт обязательные fairness-флаги (`--max-starvation-window`, `--enforce-pause-zero`, `--max-post-resume-drain-ticks`, `--min-resume-transitions`);
+- пишет gate-summary через `scripts/bench/write_gate_summary.py` (CSV + JSON из одного payload).
 - формирует `summary.md` с явным PASS/FAIL по guardrail-проверкам.
 
 ## Audit-derived guardrails
