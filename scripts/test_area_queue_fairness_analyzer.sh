@@ -8,7 +8,7 @@ PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_viola
 LONG_BURST_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_long_burst.csv"
 PAUSE_RESUME_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_resume_fault_injection.csv"
 RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_violation.csv"
-PARTIAL_PROCESSED_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_pause_zero_partial_processed.csv"
+RESUME_DRAIN_EOF_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/area_queue_fairness_resume_drain_eof_violation.csv"
 
 expect_fail() {
   local description="$1"
@@ -69,5 +69,14 @@ expect_fail "post-resume drain latency threshold" \
     --enforce-pause-zero \
     --min-resume-transitions 1 \
     --max-post-resume-drain-ticks 1
+
+expect_fail "post-resume drain latency threshold at EOF" \
+  python3 "$ANALYZER" \
+    --input "$RESUME_DRAIN_EOF_FAIL_FIXTURE" \
+    --max-starvation-window 4 \
+    --buckets LOW,NORMAL \
+    --enforce-pause-zero \
+    --min-resume-transitions 1 \
+    --max-post-resume-drain-ticks 0
 
 echo "[OK] analyzer self-tests passed"

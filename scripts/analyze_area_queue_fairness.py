@@ -26,6 +26,33 @@ BUCKET_COLUMN = {
 }
 
 
+def evaluate_post_resume_window(
+    args: argparse.Namespace,
+    buckets: list[str],
+    parsed_numbers: dict[str, int],
+    resume_window_tick: int,
+    resume_window_violations: int,
+) -> tuple[int, int]:
+    if resume_window_tick < 0 or args.max_post_resume_drain_ticks < 0:
+        return resume_window_tick, resume_window_violations
+
+    bucket_processed = False
+    for b in buckets:
+        col = BUCKET_COLUMN[b]
+        if parsed_numbers.get(col, 0) > 0:
+            bucket_processed = True
+            break
+
+    if bucket_processed:
+        return -1, resume_window_violations
+
+    resume_window_tick += 1
+    if resume_window_tick > args.max_post_resume_drain_ticks:
+        return -1, resume_window_violations + 1
+
+    return resume_window_tick, resume_window_violations
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--input", required=True, help="Path to fairness CSV")
@@ -146,21 +173,13 @@ def main() -> int:
 
         running_ticks += 1
 
-        if resume_window_tick >= 0 and args.max_post_resume_drain_ticks >= 0:
-            bucket_processed = False
-            for b in buckets:
-                col = BUCKET_COLUMN[b]
-                if parsed_numbers.get(col, 0) > 0:
-                    bucket_processed = True
-                    break
-
-            if bucket_processed:
-                resume_window_tick = -1
-            else:
-                resume_window_tick += 1
-                if resume_window_tick > args.max_post_resume_drain_ticks:
-                    resume_window_violations += 1
-                    resume_window_tick = -1
+        resume_window_tick, resume_window_violations = evaluate_post_resume_window(
+            args,
+            buckets,
+            parsed_numbers,
+            resume_window_tick,
+            resume_window_violations,
+        )
 
         for b in buckets:
             col = BUCKET_COLUMN[b]
@@ -174,6 +193,15 @@ def main() -> int:
 
     for b in buckets:
         worst[b] = max(worst[b], streak[b])
+
+    if args.max_post_resume_drain_ticks >= 0 and resume_window_tick >= 0:
+        resume_window_tick, resume_window_violations = evaluate_post_resume_window(
+            args,
+            buckets,
+            {},
+            resume_window_tick,
+            resume_window_violations,
+        )
 
     print(f"[INFO] analyzed rows: {len(rows)}, running_ticks: {running_ticks}")
     print(f"[INFO] resume_transitions: {resume_transitions}")
