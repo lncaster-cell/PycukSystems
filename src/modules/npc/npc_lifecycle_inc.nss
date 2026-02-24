@@ -26,30 +26,7 @@ void NpcBhvrAreaSetState(object oArea, int nState)
 }
 
 
-int NpcBhvrCountPlayersInArea(object oArea)
-{
-    object oIter;
-    int nPlayers;
-
-    if (!GetIsObjectValid(oArea))
-    {
-        return 0;
-    }
-
-    oIter = GetFirstObjectInArea(oArea);
-    while (GetIsObjectValid(oIter))
-    {
-        if (GetIsPC(oIter) && !GetIsDM(oIter))
-        {
-            nPlayers = nPlayers + 1;
-        }
-        oIter = GetNextObjectInArea(oArea);
-    }
-
-    return nPlayers;
-}
-
-int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
+int NpcBhvrCountPlayersInAreaInternal(object oArea, object oExclude)
 {
     object oIter;
     int nPlayers;
@@ -70,6 +47,16 @@ int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
     }
 
     return nPlayers;
+}
+
+int NpcBhvrCountPlayersInArea(object oArea)
+{
+    return NpcBhvrCountPlayersInAreaInternal(oArea, OBJECT_INVALID);
+}
+
+int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
+{
+    return NpcBhvrCountPlayersInAreaInternal(oArea, oExclude);
 }
 
 int NpcBhvrGetCachedPlayerCount(object oArea)
