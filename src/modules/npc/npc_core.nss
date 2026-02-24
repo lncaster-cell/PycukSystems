@@ -156,6 +156,9 @@ int NpcBhvrTickStateBudgetFlags(int nTickState);
 int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEvents, int nSoftBudgetMs, int nCarryoverEvents);
 int NpcBhvrTickApplyDegradationAndCarryover(object oArea, int nTickState);
 int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarryoverEvents);
+void NpcBhvrTickPrepareBudgets(object oArea);
+void NpcBhvrTickHandleBacklogTelemetry(object oArea, int nPendingAfter);
+void NpcBhvrTickHandleIdleStop(object oArea, int nPendingAfter);
 void NpcBhvrTickFlushWriteBehind();
 void NpcBhvrTickScheduleNext(object oArea);
 
@@ -2053,6 +2056,68 @@ void NpcBhvrTickFlushWriteBehind()
     }
 }
 
+void NpcBhvrTickPrepareBudgets(object oArea)
+{
+    int nMaxEvents;
+    int nSoftBudgetMs;
+    int nCarryoverEvents;
+
+    // Budget normalization boundary: держим все тик-лимиты в валидных диапазонах.
+    nMaxEvents = NpcBhvrGetTickMaxEvents(oArea);
+    if (nMaxEvents > NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP)
+    {
+        nMaxEvents = NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP;
+    }
+
+    nSoftBudgetMs = NpcBhvrGetTickSoftBudgetMs(oArea);
+    if (nSoftBudgetMs > NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP)
+    {
+        nSoftBudgetMs = NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP;
+    }
+
+    nCarryoverEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS);
+    if (nCarryoverEvents < 0)
+    {
+        nCarryoverEvents = 0;
+    }
+    if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
+    {
+        nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nMaxEvents);
+    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nSoftBudgetMs);
+    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
+}
+
+void NpcBhvrTickHandleBacklogTelemetry(object oArea, int nPendingAfter)
+{
+    int nBacklogAgeTicks;
+
+    // Backlog telemetry boundary: учитываем возраст backlog и pending-age метрику.
+    if (nPendingAfter > 0)
+    {
+        nBacklogAgeTicks = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS) + 1;
+        SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, nBacklogAgeTicks);
+        NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PENDING_AGE_MS, nPendingAfter * 1000);
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
+}
+
+void NpcBhvrTickHandleIdleStop(object oArea, int nPendingAfter)
+{
+    int nPlayers;
+
+    // Area stop policy boundary: cached player-count + empty-queue predicate.
+    nPlayers = NpcBhvrGetCachedPlayerCount(oArea);
+    if (nPlayers <= 0 && nPendingAfter <= 0)
+    {
+        NpcBhvrAreaStop(oArea);
+    }
+}
+
 void NpcBhvrTickScheduleNext(object oArea)
 {
     int nAreaState;
@@ -2078,14 +2143,12 @@ void NpcBhvrTickScheduleNext(object oArea)
 void NpcBhvrOnAreaTick(object oArea)
 {
     int nAreaState;
-    int nPlayers;
     int nPendingBefore;
     int nPendingAfter;
     int nMaxEvents;
     int nSoftBudgetMs;
     int nCarryoverEvents;
     int nTickState;
-    int nBacklogAgeTicks;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -2116,51 +2179,20 @@ void NpcBhvrOnAreaTick(object oArea)
             NpcBhvrRegistryBroadcastIdleTick(oArea);
         }
 
-        nMaxEvents = NpcBhvrGetTickMaxEvents(oArea);
-        if (nMaxEvents > NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP)
-        {
-            nMaxEvents = NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP;
-        }
-
-        nSoftBudgetMs = NpcBhvrGetTickSoftBudgetMs(oArea);
-        if (nSoftBudgetMs > NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP)
-        {
-            nSoftBudgetMs = NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP;
-        }
-
+        NpcBhvrTickPrepareBudgets(oArea);
+        nMaxEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS);
+        nSoftBudgetMs = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS);
         nCarryoverEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS);
-        if (nCarryoverEvents < 0)
-        {
-            nCarryoverEvents = 0;
-        }
-        if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
-        {
-            nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
-        }
 
+        // Tick pipeline: ProcessBudgetedWork -> ApplyDegradationAndCarryover -> ReconcileDeferredAndTrim.
         nTickState = NpcBhvrTickProcessBudgetedWork(oArea, nPendingBefore, nMaxEvents, nSoftBudgetMs, nCarryoverEvents);
         nCarryoverEvents = NpcBhvrTickApplyDegradationAndCarryover(oArea, nTickState);
         nPendingAfter = NpcBhvrTickReconcileDeferredAndTrim(oArea, nTickState, nCarryoverEvents);
 
-        if (nPendingAfter > 0)
-        {
-            nBacklogAgeTicks = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS) + 1;
-            SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, nBacklogAgeTicks);
-            NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PENDING_AGE_MS, nPendingAfter * 1000);
-        }
-        else
-        {
-            SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
-        }
+        NpcBhvrTickHandleBacklogTelemetry(oArea, nPendingAfter);
 
         NpcBhvrTickFlushWriteBehind();
-
-        // Auto-idle-stop: используем cached player-counter; full scan только в self-heal сценариях.
-        nPlayers = NpcBhvrGetCachedPlayerCount(oArea);
-        if (nPlayers <= 0 && nPendingAfter <= 0)
-        {
-            NpcBhvrAreaStop(oArea);
-        }
+        NpcBhvrTickHandleIdleStop(oArea, nPendingAfter);
     }
 
     NpcBhvrTickScheduleNext(oArea);
