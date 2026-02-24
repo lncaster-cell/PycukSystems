@@ -3,6 +3,9 @@
 > Этот файл (`docs/perf/npc_baseline_report.md`) используется perf-gate как current reference-point.
 > `docs/perf/reports/` используется только как historical archive baseline-отчётов.
 
+> Автоматический benchmark-прогон (`scripts/run_npc_bench.sh`) не должен менять этот файл; commit metadata сохраняется в run-артефакт (`analysis/baseline_meta.json`).
+> Для явного обновления `Commit SHA` используйте `scripts/update_baseline_report.sh` (вручную/в release pipeline).
+
 ## 1. Контекст последнего валидного прогона
 - Дата: **2026-02-24**.
 - Commit SHA: **290ab36** (`290ab36491c481e71e8cd0d16438b48a43f7463b`).

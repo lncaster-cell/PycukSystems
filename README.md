@@ -82,6 +82,14 @@ bash scripts/test_npc_activity_contract.sh
 RUNS=3 bash scripts/run_npc_bench.sh steady
 ```
 
+`run_npc_bench.sh` пишет только артефакты прогона в `benchmarks/npc_baseline/results/<timestamp>/` (включая `analysis/baseline_meta.json`) и **не изменяет tracked markdown-документы**.
+
+Если нужно обновить commit SHA в `docs/perf/npc_baseline_report.md`, это делается явно отдельной командой:
+
+```bash
+bash scripts/update_baseline_report.sh
+```
+
 Дополнительный анализ fairness:
 
 ```bash
