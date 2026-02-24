@@ -1000,13 +1000,15 @@ int NpcBhvrQueueCoalesceSubject(object oArea, object oSubject, int nFoundPriorit
     return TRUE;
 }
 
-void NpcBhvrQueueMarkDroppedOnEnqueueFailure(object oArea, object oSubject, int nPriority, int nReasonCode)
+void NpcBhvrQueueMarkDroppedOnEnqueueFailure(object oArea, object oSubject, int nPriority, int nReasonCode, int nNow)
 {
-    NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
-    NpcBhvrPendingSetTracked(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED);
+    NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
+    NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
     NpcBhvrPendingNpcClear(oSubject);
     NpcBhvrPendingAreaClear(oArea, oSubject);
     NpcBhvrQueueIndexClear(oArea, oSubject);
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
+    NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
 }
 
 int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReasonCode)
@@ -1016,6 +1018,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     int nFoundPriority;
     int nFoundIndex;
     int bWasPendingActive;
+    int nNow;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
     {
@@ -1026,6 +1029,8 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     {
         nPriority = NPC_BHVR_PRIORITY_NORMAL;
     }
+
+    nNow = NpcBhvrPendingNow();
 
     bWasPendingActive = NpcBhvrPendingIsActive(oSubject);
 
@@ -1051,26 +1056,14 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         if (!NpcBhvrQueueApplyOverflowGuardrail(oArea, nPriority, nReasonCode))
         {
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_OVERFLOW_COUNT);
-            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
-            NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
-            NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
-            NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
-            NpcBhvrPendingNpcClear(oSubject);
-            NpcBhvrPendingAreaClear(oArea, oSubject);
-            NpcBhvrQueueIndexClear(oArea, oSubject);
+            NpcBhvrQueueMarkDroppedOnEnqueueFailure(oArea, oSubject, nPriority, nReasonCode, nNow);
             return FALSE;
         }
     }
 
     if (!NpcBhvrQueueEnqueueRaw(oArea, oSubject, nPriority))
     {
-        NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
-        NpcBhvrPendingSetTrackedAt(oArea, oSubject, nPriority, IntToString(nReasonCode), NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
-        NpcBhvrPendingNpcClear(oSubject);
-        NpcBhvrPendingAreaClear(oArea, oSubject);
-        NpcBhvrQueueIndexClear(oArea, oSubject);
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
-        NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
+        NpcBhvrQueueMarkDroppedOnEnqueueFailure(oArea, oSubject, nPriority, nReasonCode, nNow);
         return FALSE;
     }
 
