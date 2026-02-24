@@ -121,6 +121,9 @@ string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
+int ReadRouteRuntimeIntWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, int nFallback);
+string ReadRouteRuntimeStringWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, string sFallback);
+int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag);
 
 #include "npc_activity_migration_inc"
 
@@ -515,70 +518,24 @@ int NpcBhvrActivityMapRouteHint(string sRouteId)
 int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId)
 {
     int nCount;
-    object oArea;
-    string sKey;
-    string sRouteIdNormalized;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return 0;
-    }
-
-    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_COUNT_KEY, "nb_rc_", oNpc);
-    nCount = NpcBhvrActivityReadMigratedRouteInt(oNpc, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_COUNT_PREFIX);
+    nCount = ReadRouteRuntimeIntWithFallback(
+        oNpc,
+        sRouteId,
+        NPC_BHVR_VAR_ROUTE_RUNTIME_COUNT_KEY,
+        "nb_rc_",
+        NPC_BHVR_VAR_ROUTE_COUNT_PREFIX,
+        0
+    );
     if (nCount > 0)
     {
         return nCount;
     }
 
-    oArea = GetArea(oNpc);
-    if (GetIsObjectValid(oArea))
-    {
-        sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_COUNT_KEY, "nb_rc_", oArea);
-        nCount = NpcBhvrActivityReadMigratedRouteInt(oArea, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_COUNT_PREFIX);
-        if (nCount > 0)
-        {
-            return nCount;
-        }
-    }
-
     return 0;
 }
 
-int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
+int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag)
 {
-    object oArea;
-    int nLoopFlag;
-    string sKey;
-    string sRouteIdNormalized;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return TRUE;
-    }
-
-    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_LOOP_KEY, "nb_rl_", oNpc);
-    nLoopFlag = NpcBhvrActivityReadMigratedRouteInt(oNpc, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_LOOP_PREFIX);
-    if (nLoopFlag > 0)
-    {
-        return TRUE;
-    }
-
-    if (nLoopFlag < 0)
-    {
-        return FALSE;
-    }
-
-    oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return TRUE;
-    }
-
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_LOOP_KEY, "nb_rl_", oArea);
-    nLoopFlag = NpcBhvrActivityReadMigratedRouteInt(oArea, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_LOOP_PREFIX);
     if (nLoopFlag > 0)
     {
         return TRUE;
@@ -592,35 +549,120 @@ int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
     return TRUE;
 }
 
+int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
+{
+    int nLoopFlag;
+
+    nLoopFlag = ReadRouteRuntimeIntWithFallback(
+        oNpc,
+        sRouteId,
+        NPC_BHVR_VAR_ROUTE_RUNTIME_LOOP_KEY,
+        "nb_rl_",
+        NPC_BHVR_VAR_ROUTE_LOOP_PREFIX,
+        0
+    );
+    return NpcBhvrActivityResolveLoopFlagOrDefault(nLoopFlag);
+}
+
 string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
 {
-    object oArea;
     string sTag;
+
+    sTag = ReadRouteRuntimeStringWithFallback(
+        oNpc,
+        sRouteId,
+        NPC_BHVR_VAR_ROUTE_RUNTIME_TAG_KEY,
+        "nb_rt_",
+        NPC_BHVR_VAR_ROUTE_TAG_PREFIX,
+        ""
+    );
+    return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
+}
+
+int ReadRouteRuntimeIntWithFallback(
+    object oNpc,
+    string sRouteId,
+    string sRuntimeKeyVar,
+    string sRouteKeyPrefix,
+    string sLegacyPrefix,
+    int nFallback
+)
+{
+    int nValue;
+    object oArea;
     string sKey;
     string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
-        return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
+        return nFallback;
     }
 
     sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_TAG_KEY, "nb_rt_", oNpc);
-    sTag = NpcBhvrActivityReadMigratedRouteString(oNpc, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_TAG_PREFIX);
-    if (sTag != "")
+    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oNpc);
+    nValue = NpcBhvrActivityReadMigratedRouteInt(oNpc, sRouteIdNormalized, sKey, sLegacyPrefix);
+    if (nValue != 0)
     {
-        return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
+        return nValue;
     }
 
     oArea = GetArea(oNpc);
-    if (GetIsObjectValid(oArea))
+    if (!GetIsObjectValid(oArea))
     {
-        sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_TAG_KEY, "nb_rt_", oArea);
-        sTag = NpcBhvrActivityReadMigratedRouteString(oArea, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_TAG_PREFIX);
-        return NpcBhvrActivityNormalizeRouteTagOrDefault(sTag, oNpc);
+        return nFallback;
     }
 
-    return NpcBhvrActivityNormalizeRouteTagOrDefault("", oNpc);
+    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oArea);
+    nValue = NpcBhvrActivityReadMigratedRouteInt(oArea, sRouteIdNormalized, sKey, sLegacyPrefix);
+    if (nValue != 0)
+    {
+        return nValue;
+    }
+
+    return nFallback;
+}
+
+string ReadRouteRuntimeStringWithFallback(
+    object oNpc,
+    string sRouteId,
+    string sRuntimeKeyVar,
+    string sRouteKeyPrefix,
+    string sLegacyPrefix,
+    string sFallback
+)
+{
+    object oArea;
+    string sKey;
+    string sValue;
+    string sRouteIdNormalized;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return sFallback;
+    }
+
+    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oNpc);
+    sValue = NpcBhvrActivityReadMigratedRouteString(oNpc, sRouteIdNormalized, sKey, sLegacyPrefix);
+    if (sValue != "")
+    {
+        return sValue;
+    }
+
+    oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        return sFallback;
+    }
+
+    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, sRuntimeKeyVar, sRouteKeyPrefix, oArea);
+    sValue = NpcBhvrActivityReadMigratedRouteString(oArea, sRouteIdNormalized, sKey, sLegacyPrefix);
+    if (sValue != "")
+    {
+        return sValue;
+    }
+
+    return sFallback;
 }
 
 string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope)
@@ -702,6 +744,7 @@ int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int n
 {
     int nActivity;
     object oArea;
+    string sRuntimeKey;
     string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc) || nWpIndex < 0)
@@ -710,10 +753,11 @@ int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int n
     }
 
     sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
+    sRuntimeKey = NpcBhvrActivityRoutePointActivityKey(sRouteIdNormalized, nWpIndex);
     nActivity = NpcBhvrActivityReadMigratedRouteInt(
         oNpc,
         sRouteIdNormalized,
-        NpcBhvrActivityRoutePointActivityKey(sRouteIdNormalized, nWpIndex),
+        sRuntimeKey,
         NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX
     );
     if (nActivity > 0)
@@ -730,7 +774,7 @@ int NpcBhvrActivityResolveRoutePointActivity(object oNpc, string sRouteId, int n
     nActivity = NpcBhvrActivityReadMigratedRouteInt(
         oArea,
         sRouteIdNormalized,
-        NpcBhvrActivityRoutePointActivityKey(sRouteIdNormalized, nWpIndex),
+        sRuntimeKey,
         NPC_BHVR_VAR_ROUTE_ACTIVITY_PREFIX
     );
     if (nActivity > 0)
@@ -889,31 +933,15 @@ string NpcBhvrActivityResolveSlotEmote(object oNpc, string sSlot)
 int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
 {
     int nPause;
-    object oArea;
-    string sKey;
-    string sRouteIdNormalized;
 
-    if (!GetIsObjectValid(oNpc))
-    {
-        return 0;
-    }
-
-    sRouteIdNormalized = NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, oNpc);
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oNpc, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_PAUSE_KEY, "nb_rp_", oNpc);
-    nPause = NpcBhvrActivityReadMigratedRouteInt(oNpc, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX);
-    if (nPause > 0)
-    {
-        return nPause;
-    }
-
-    oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return 0;
-    }
-
-    sKey = NpcBhvrActivityGetPrewarmedRuntimeKey(oArea, sRouteIdNormalized, NPC_BHVR_VAR_ROUTE_RUNTIME_PAUSE_KEY, "nb_rp_", oArea);
-    nPause = NpcBhvrActivityReadMigratedRouteInt(oArea, sRouteIdNormalized, sKey, NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX);
+    nPause = ReadRouteRuntimeIntWithFallback(
+        oNpc,
+        sRouteId,
+        NPC_BHVR_VAR_ROUTE_RUNTIME_PAUSE_KEY,
+        "nb_rp_",
+        NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX,
+        0
+    );
     if (nPause > 0)
     {
         return nPause;
