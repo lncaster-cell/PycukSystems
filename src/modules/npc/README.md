@@ -42,6 +42,7 @@ Tick/degraded telemetry в runtime включает:
   - `npc_activity_slot` (по умолчанию `default`),
   - `npc_activity_route` (явно сконфигурированный route-profile на NPC; если пусто — используется fallback-цепочка),
   - `npc_activity_route_effective` (диагностическое зеркало effective route-profile после fallback-резолва),
+  - `npc_activity_slot_fallback` (`0|1`, признак fallback в `default` при невалидном slot),
   - `npc_activity_state` (начальное состояние `spawn_ready`),
   - `npc_activity_cooldown` (неотрицательный cooldown/state gate),
   - `npc_activity_last` (последняя activity transition),
@@ -77,8 +78,10 @@ Tick/degraded telemetry в runtime включает:
   - `last_ts` обновлён,
   - `cooldown >= 0`.
 - **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (slot нормализуется, невалидный route отбрасывается и заменяется fallback-резолвом).
+- **Допустимые значения `slot`:** только `default|priority|critical`. Любое другое значение (включая пустую строку) считается невалидным и принудительно нормализуется в `default`.
 - **Выход `NpcBhvrActivityOnIdleTick`:**
   - при `cooldown > 0` выполняется только декремент cooldown на 1 и early-return;
+  - при невалидном `slot` выставляется `npc_activity_slot_fallback=1` и инкрементируется метрика `npc_metric_activity_invalid_slot_total`;
   - при `cooldown == 0` выполняется ровно одна ветка диспетчера:
     1) `critical_safe` -> `state/last=idle_critical_safe`, `cooldown=1`;
     2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown=2`;
