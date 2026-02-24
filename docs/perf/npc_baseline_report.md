@@ -14,14 +14,10 @@
 - steady: N/A
 - burst: N/A
 - starvation-risk: N/A
-
-### Legacy → current naming mapping
-
-| Legacy ID | Current scenario ID (CLI) |
-|---|---|
-| `scenario_a_nominal` | `steady` |
-| `scenario_b_combat_spike` | `burst` |
-| `scenario_c_recovery` | `starvation-risk` |
+- fault profile `overflow-guardrail`: N/A
+- fault profile `tick-budget`: N/A
+- fault profile `tick-budget-degraded`: N/A
+- fault profile `fairness-checks`: N/A
 
 ## 3. Агрегированные метрики (минимум 3 прогона)
 
@@ -33,12 +29,13 @@
 | db flush p95 (ms) | N/A | N/A | N/A | N/A | N/A | baseline +10% max | BLOCKED (нет валидных данных) |
 | budget overrun (%) | N/A | N/A | N/A | N/A | N/A | <= 1 | BLOCKED (нет валидных данных) |
 
-## 4. Сравнение с предыдущим baseline
-- Базовый commit/дата: N/A.
-- Δ p95 area-tick latency: N/A.
-- Δ p99 queue depth: N/A.
-- Δ dropped/deferred: N/A.
-- Δ db flush p95: N/A.
+## 4. Привязка baseline к guardrails
+
+| Guardrail | Gate linkage | Current status |
+|---|---|---|
+| Registry overflow | сравнение через `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`registry_overflow`) | BLOCKED (нет свежего baseline) |
+| Tick budget / degraded-mode | сравнение через `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`tick_budget_degraded`) | BLOCKED (нет свежего baseline) |
+| Automated fairness | сравнение через `docs/perf/npc_perf_gate.md` + `run_npc_bench.sh` (`automated_fairness`) | BLOCKED (нет свежего baseline) |
 
 ## 5. Baseline freshness policy
 - Для perf-gate сравнений baseline должен быть **не старше 14 дней**.
@@ -51,4 +48,4 @@
 ## 6. Вывод (go/no-go)
 - Решение: **BLOCKED**.
 - Обоснование: текущий current baseline не содержит подтверждённых валидных telemetry-данных.
-- Rollback/mitigation: выполнить свежий baseline-run по `scripts/run_npc_bench.sh` и обновить current baseline + архив.
+- Rollback/mitigation: выполнить свежий baseline-run по `scripts/run_npc_bench.sh`, обновить current baseline и `docs/perf/reports/npc_gate_summary_latest.md`.

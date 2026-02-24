@@ -8,3 +8,7 @@
 - **Current baseline**: только `docs/perf/npc_baseline_report.md` (reference-point для perf-gate).
 - **Archive baseline**: `docs/perf/reports/*` (исторические отчёты только для трендов).
 - При обновлении current baseline предыдущая версия переносится в архив с датой.
+
+
+Дополнительно:
+- `npc_gate_summary_latest.md` — единый snapshot статусов guardrails (PASS/FAIL/BLOCKED) с привязкой к current baseline.

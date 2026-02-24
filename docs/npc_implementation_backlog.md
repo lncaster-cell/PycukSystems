@@ -133,3 +133,16 @@ fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*l
   - удаляются только каталоги, для которых есть зафиксированная миграционная заметка (перенесено/отброшено);
   - после удаления проходят контрактные проверки и perf-gate;
   - в README остаётся однозначный статус: `tools/*` не active runtime.
+
+
+### Task C4 — Guardrail run split + unified gate summary (выполнено)
+- **Артефакты:**
+  - `scripts/run_npc_bench.sh`
+  - `scripts/test_npc_fairness.sh`
+  - `scripts/test_area_queue_fairness_analyzer.sh`
+  - `docs/perf/reports/npc_gate_summary_latest.md`
+- **Definition of Done:**
+  - каждый guardrail имеет отдельный профиль прогона (`overflow-guardrail`, `tick-budget`, `tick-budget-degraded`, `fairness-checks`);
+  - для каждого прогона публикуются machine-readable итоги (`gate_summary.json`/`gate_summary.csv`);
+  - при stale/absent baseline итог автоматически помечается `BLOCKED`;
+  - M3-CHECK-01/03/04 отражены как фактически внедрённые в матрице.
