@@ -39,14 +39,14 @@ Tick/degraded telemetry в runtime включает:
 
 - Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
   - `npc_activity_slot` (по умолчанию `default`),
-  - `npc_activity_route` (эффективный route-profile после резолва fallback-цепочки),
-  - `npc_activity_route_effective` (диагностическое зеркало effective route-profile),
+  - `npc_activity_route` (явно сконфигурированный route-profile на NPC; если пусто — используется fallback-цепочка),
+  - `npc_activity_route_effective` (диагностическое зеркало effective route-profile после fallback-резолва),
   - `npc_activity_state` (начальное состояние `spawn_ready`),
   - `npc_activity_cooldown` (неотрицательный cooldown/state gate),
   - `npc_activity_last` (последняя activity transition),
   - `npc_activity_last_ts` (timestamp последнего transition в секундах игрового времени).
 - Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
-  1) `npc_activity_route` на NPC;
+  1) `npc_activity_route` на NPC (если явно задан);
   2) `npc_route_profile_slot_<slot>` на NPC;
   3) `npc_route_profile_default` на NPC;
   4) `npc_route_profile_slot_<slot>` на area;
@@ -64,7 +64,8 @@ Tick/degraded telemetry в runtime включает:
 - **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` и `npc_route_profile_default` на NPC/area; `npc_activity_cooldown` может быть отрицательным.
 - **Выход `NpcBhvrActivityOnSpawn`:**
   - `slot` нормализован в поддерживаемые значения (`default|priority|critical`),
-  - `route` и `npc_activity_route_effective` выставлены как effective route-profile (`default_route|priority_patrol|critical_safe`) после fallback-резолва,
+  - `npc_activity_route` сохраняет только явно заданный route (или очищается, если route не задан),
+  - `npc_activity_route_effective` выставляется как effective route-profile (`default_route|priority_patrol|critical_safe`) после fallback-резолва,
   - `state=spawn_ready`,
   - `last=spawn_ready`,
   - `last_ts` обновлён,

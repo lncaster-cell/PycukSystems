@@ -164,6 +164,7 @@ void NpcBhvrActivityApplyPriorityRoute(object oNpc)
 void NpcBhvrActivityOnSpawn(object oNpc)
 {
     string sSlot;
+    string sRouteConfigured;
     string sRoute;
 
     if (!GetIsObjectValid(oNpc))
@@ -173,10 +174,24 @@ void NpcBhvrActivityOnSpawn(object oNpc)
 
     // Обязательная spawn-инициализация profile-state в npc_* namespace.
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT));
+    sRouteConfigured = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+    if (sRouteConfigured != "")
+    {
+        sRouteConfigured = NpcBhvrActivityAdapterNormalizeRoute(sRouteConfigured);
+    }
+
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
 
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sRoute);
+    if (sRouteConfigured != "")
+    {
+        SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sRouteConfigured);
+    }
+    else
+    {
+        DeleteLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+    }
+
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
 
     NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
@@ -208,7 +223,6 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlot);
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sRoute);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
 
     nRouteHint = NpcBhvrActivityMapRouteHint(sRoute);
