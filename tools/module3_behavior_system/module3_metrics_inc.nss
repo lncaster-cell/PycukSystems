@@ -14,6 +14,7 @@ const string MODULE3_METRIC_MODULE_LOAD_COUNT = "module3_metric_module_load_coun
 const string MODULE3_METRIC_QUEUE_OVERFLOW_COUNT = "module3_metric_queue_overflow_count";
 const string MODULE3_METRIC_QUEUE_DEFERRED_COUNT = "module3_metric_queue_deferred_count";
 const string MODULE3_METRIC_QUEUE_ENQUEUED_COUNT = "module3_metric_queue_enqueued_count";
+const string MODULE3_METRIC_QUEUE_STARVATION_GUARD_TRIPS = "module3_metric_queue_starvation_guard_trips";
 
 void Module3MetricAdd(object oScope, string sMetric, int nDelta)
 {
