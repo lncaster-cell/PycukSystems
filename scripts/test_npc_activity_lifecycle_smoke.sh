@@ -78,7 +78,7 @@ expect_contains(idle, 'if (nCooldown > 0)', 'idle cooldown gate')
 expect_contains(idle, 'SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1);', 'idle cooldown gate')
 expect_regex(
     idle,
-    r'if \(nCooldown > 0\)\s*\{\s*SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1\);\s*return;\s*\}\s*\n\s*string sSlot = GetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT\);',
+    r'if \(nCooldown > 0\)\s*\{\s*SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown - 1\);\s*return;\s*\}\s*\n\s*string sSlotRaw = GetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT\);\s*\n\s*string sSlot = sSlotRaw;',
     'idle cooldown gate',
 )
 

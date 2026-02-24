@@ -42,6 +42,19 @@
 
 **Что считается fail:** отсутствие приоритета critical над priority, множественный dispatch за один idle tick, либо неверный cooldown после dispatch.
 
+## 5) Waypoint/route-point runtime semantics
+
+Порт AmbientLiveV2 data-layer считается обязательным: mapping activity-id -> metadata (custom/numeric anims, requirements) не должен деградировать относительно legacy `al_acts_inc.nss`.
+
+Инварианты для `NpcBhvrActivityApplyRouteState` и `NpcBhvrActivityOnIdleTick`:
+- при наличии `npc_route_count_<routeId> > 0` route-dispatch использует waypoint-индекс `npc_activity_wp_index`;
+- loop-policy берётся из `npc_route_loop_<routeId>` (`>0` loop, `<0` stop-at-tail, `0` default loop);
+- `npc_activity_route_tag` участвует в формировании состояния `<base_state>_<tag>_<i>_of_<N>`;
+- `npc_activity_slot_emote` резолвится через slot-aware цепочку `NPC-local(slot) -> area-local(slot) -> area-global -> NPC-global`;
+- `npc_activity_action` вычисляется детерминированно из slot/route/waypoint (`critical => guard_hold`, `priority_patrol => patrol_move/patrol_scan`, `default => ambient_*`), а `npc_route_pause_ticks_<routeId>` добавляется к cooldown.
+
+**Что считается fail:** waypoint-индекс не обновляется после dispatch, route-tag игнорируется при наличии waypoint-count, или slot-emote не резолвится по slot-aware цепочке.
+
 ---
 
 ## Как проверить (команды из `scripts/`)
@@ -75,7 +88,22 @@ bash scripts/test_npc_fairness.sh
 - любая строка вида `[FAIL] ...`;
 - нет финального `[OK] NPC Bhvr fairness analyzer tests passed`.
 
-### 3. Компиляционный smoke-check include/runtime контура
+
+### 3. Activity route/waypoint contract
+
+```bash
+bash scripts/test_npc_activity_route_contract.sh
+bash scripts/test_npc_activity_waypoint_contract.sh
+```
+
+**Pass признаки:**
+- есть `[OK] npc_activity route contract tests passed`;
+- есть `[OK] NPC activity waypoint contract tests passed`.
+
+**Fail признаки:**
+- `[FAIL]` по любому из контрактов route/waypoint.
+
+### 4. Компиляционный smoke-check include/runtime контура
 
 ```bash
 bash scripts/compile.sh check
