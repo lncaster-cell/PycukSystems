@@ -137,6 +137,7 @@ string NpcBhvrActivityScheduleEndKey(string sSlot)
     return NPC_BHVR_VAR_ACTIVITY_SCHEDULE_END_PREFIX + sSlot;
 }
 
+// Contract: see schedule-aware slot section in src/modules/npc/README.md.
 int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
 {
     if (nStart < 0 || nStart > 23 || nEnd < 0 || nEnd > 23)
