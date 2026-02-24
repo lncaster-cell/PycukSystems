@@ -10,7 +10,8 @@
 - Contract/self-check suite: **READY** (`scripts/test_npc_smoke.sh`, `scripts/check_npc_lifecycle_contract.sh`, `scripts/test_npc_fairness.sh`).
 - Schedule-aware activity foundation: **READY/DONE** (runtime-resolve slot по расписанию + e2e shell-check покрытие `npc_activity_slot`, `npc_activity_route_effective`, `npc_activity_last_ts`, включено в one-command smoke/contract поток через `scripts/test_npc_activity_contract.sh` и `scripts/test_npc_smoke.sh`).
 - Legacy cleanup milestone `tools/*`: **COMPLETED** (архив в `docs/legacy/tools_reference/*`).
-- Perf/release gate: **BLOCKED** до публикации нового baseline (>=3 runs на сценарий, baseline freshness <=14 дней).
+- Perf/release gate: **FAIL** (baseline свежий, но gate в статусе **NO-GO/FAIL** из-за провала `tick-budget-degraded`).
+- Source of truth для статуса gate: `docs/perf/reports/npc_gate_summary_latest.md`, `docs/perf/npc_baseline_report.md`.
 
 ---
 
@@ -121,4 +122,3 @@ fairness/lifecycle self-check (`scripts/test_npc_fairness.sh`, `scripts/check_*l
 
 
 ---
-
