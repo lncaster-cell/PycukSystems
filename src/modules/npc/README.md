@@ -40,7 +40,8 @@ Tick/degraded telemetry в runtime включает:
 - `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
 - `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
 - `npc_metric_degradation_events_total`,
-- reason-specific: `npc_metric_degradation_by_reason_event_budget_total`, `npc_metric_degradation_by_reason_soft_budget_total`, `npc_metric_degradation_by_reason_empty_queue_total`,
+- reason-specific: `npc_metric_degradation_by_reason_event_budget_total`, `npc_metric_degradation_by_reason_soft_budget_total`, `npc_metric_degradation_by_reason_empty_queue_total`, `npc_metric_degradation_by_reason_overflow_total`, `npc_metric_degradation_by_reason_queue_pressure_total`, `npc_metric_degradation_by_reason_route_miss_total`, `npc_metric_degradation_by_reason_disabled_total`,
+- `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
 - `npc_metric_diagnostic_dropped_total` для нераспознанных reason-code.
 
 
