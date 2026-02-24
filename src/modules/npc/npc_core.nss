@@ -24,6 +24,10 @@ const int NPC_BHVR_DEGRADATION_REASON_NONE = 0;
 const int NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET = 1;
 const int NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET = 2;
 const int NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE = 3;
+const int NPC_BHVR_DEGRADATION_REASON_OVERFLOW = 4;
+const int NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE = 5;
+const int NPC_BHVR_DEGRADATION_REASON_ROUTE_MISS = 6;
+const int NPC_BHVR_DEGRADATION_REASON_DISABLED = 7;
 
 const string NPC_BHVR_PENDING_STATUS_STR_QUEUED = "queued";
 const string NPC_BHVR_PENDING_STATUS_STR_RUNNING = "running";
@@ -92,36 +96,8 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
 int NpcBhvrRegistryInsert(object oArea, object oNpc);
 int NpcBhvrRegistryRemove(object oArea, object oNpc);
 void NpcBhvrRegistryBroadcastIdleTick(object oArea);
-void NpcBhvrAreaRouteCacheWarmup(object oArea);
-void NpcBhvrAreaRouteCacheInvalidate(object oArea);
-
-void NpcBhvrAreaRouteCacheWarmup(object oArea)
-{
-    int nCachedBefore;
-
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    nCachedBefore = GetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHED);
-    NpcBhvrActivityRouteCacheWarmup(oArea);
-    if (nCachedBefore == TRUE)
-    {
-        return;
-    }
-}
-
-void NpcBhvrAreaRouteCacheInvalidate(object oArea)
-{
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    NpcBhvrActivityRouteCacheInvalidate(oArea);
-    SetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHE_VERSION, GetLocalInt(oArea, NPC_BHVR_VAR_ROUTES_CACHE_VERSION) + 1);
-}
+void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
+void NpcBhvrRecordDegradationReason(object oArea, int nReason);
 
 int NpcBhvrPendingNow()
 {
@@ -952,6 +928,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_OVERFLOW_COUNT);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
+        NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
         NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
         NpcBhvrPendingAreaClear(oArea, oSubject);
         return FALSE;
@@ -962,6 +939,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, nReasonCode, NPC_BHVR_PENDING_STATUS_DROPPED);
         NpcBhvrPendingAreaClear(oArea, oSubject);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
+        NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_OVERFLOW);
         return FALSE;
     }
 
@@ -1206,8 +1184,14 @@ int NpcBhvrQueueProcessOne(object oArea)
     int nPriority;
     object oSubject;
 
-    if (!GetIsObjectValid(oArea) || !NpcBhvrAreaIsRunning(oArea))
+    if (!GetIsObjectValid(oArea))
     {
+        return FALSE;
+    }
+
+    if (!NpcBhvrAreaIsRunning(oArea))
+    {
+        NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_DISABLED);
         return FALSE;
     }
 
@@ -1228,6 +1212,7 @@ int NpcBhvrQueueProcessOne(object oArea)
     if (!GetIsObjectValid(oSubject))
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DROPPED_COUNT);
+        NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_ROUTE_MISS);
         return TRUE;
     }
 
@@ -1255,6 +1240,13 @@ int NpcBhvrQueueProcessOne(object oArea)
 }
 
 
+
+void NpcBhvrRecordDegradationEvent(object oArea, int nReason)
+{
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_EVENTS_TOTAL);
+    NpcBhvrRecordDegradationReason(oArea, nReason);
+}
+
 void NpcBhvrRecordDegradationReason(object oArea, int nReason)
 {
     SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nReason);
@@ -1274,6 +1266,30 @@ void NpcBhvrRecordDegradationReason(object oArea, int nReason)
     if (nReason == NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE)
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_EMPTY_QUEUE_TOTAL);
+        return;
+    }
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_OVERFLOW)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_OVERFLOW_TOTAL);
+        return;
+    }
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_QUEUE_PRESSURE_TOTAL);
+        return;
+    }
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_ROUTE_MISS)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_ROUTE_MISS_TOTAL);
+        return;
+    }
+
+    if (nReason == NPC_BHVR_DEGRADATION_REASON_DISABLED)
+    {
+        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_BY_REASON_DISABLED_TOTAL);
         return;
     }
 
@@ -1298,7 +1314,6 @@ void NpcBhvrOnAreaTick(object oArea)
     int nSoftBudgetReached;
     int nBacklogAgeTicks;
     int nPendingBefore;
-    int nDegradationReason;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -1328,30 +1343,23 @@ void NpcBhvrOnAreaTick(object oArea)
 
         nSpentEvents = 0;
         nSpentBudgetMs = 0;
-        nDegradationReason = NPC_BHVR_DEGRADATION_REASON_NONE;
         while (TRUE)
         {
             nEventsBudgetLeft = nMaxEvents - nSpentEvents;
             if (nEventsBudgetLeft <= 0)
             {
                 nEventBudgetReached = TRUE;
-                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
                 break;
             }
 
             if (nSpentBudgetMs + NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS > nSoftBudgetMs)
             {
                 nSoftBudgetReached = TRUE;
-                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
                 break;
             }
 
             if (!NpcBhvrQueueProcessOne(oArea))
             {
-                if (GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL) > 0)
-                {
-                    nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE;
-                }
                 break;
             }
 
@@ -1373,8 +1381,7 @@ void NpcBhvrOnAreaTick(object oArea)
         {
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
-            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADATION_EVENTS_TOTAL);
-            NpcBhvrRecordDegradationReason(oArea, nDegradationReason);
+            NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
             NpcBhvrQueueMarkDeferredHead(oArea);
             SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK) + 1);

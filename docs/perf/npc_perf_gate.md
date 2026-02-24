@@ -65,7 +65,7 @@
 
 ## 3) Silent degradation diagnostics guardrail *(future/blocked)*
 
-**Статус:** PARTIAL — базовая reason-specific degradation telemetry внедрена в runtime (`degradation_events_total`, `degradation_by_reason_*`, `diagnostic_dropped_total`); full fault-injection matrix остаётся в работе.
+**Статус:** PARTIAL — базовая reason-specific degradation telemetry внедрена в runtime (`degradation_events_total`, `degradation_by_reason_*` в т.ч. `overflow|queue_pressure|route_miss|disabled`, `diagnostic_dropped_total`); full fault-injection matrix остаётся в работе.
 
 **Цель:** убедиться, что деградационные ветки не остаются «тихими».
 
@@ -77,8 +77,8 @@
 ### Проверки
 
 - каждый fault-кейс увеличивает `degradation_events_total`;
-- reason-specific счётчики (`degradation_by_reason_*`) растут строго по ожидаемой причине;
-- diagnostic stream содержит соответствующий reason-code;
+- reason-specific счётчики (`degradation_by_reason_*`) растут строго по ожидаемой причине, включая `overflow|queue_pressure|route_miss|disabled`;
+- diagnostic stream и `npc_tick_last_degradation_reason` содержат соответствующий reason-code;
 - `diagnostic_dropped_total` не превышает установленный лимит rate-limit policy.
 
 ### Gate
