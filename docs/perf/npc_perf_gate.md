@@ -98,7 +98,7 @@
 - `--max-post-resume-drain-ticks <N>`
 - `--min-resume-transitions <N>`
 
-Базовый smoke-прогон выполняется через `scripts/test_npc_fairness.sh` и использует фиксированный набор флагов выше.
+Базовый smoke-прогон выполняется через `scripts/test_npc_smoke.sh`: он запускает `scripts/test_npc_fairness.sh` и `scripts/test_npc_activity_route_contract.sh` с фиксированным набором флагов выше.
 
 ### Gate
 
