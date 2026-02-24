@@ -1,6 +1,24 @@
-# NPC Bhvr behavior runtime contour (skeleton)
+# NPC behavior runtime contour
 
-Каталог содержит официальный подготовительный runtime-контур для NPC Bhvr.
+Каталог содержит официальный подготовительный runtime-контур для NPC.
+
+> Примечание по неймингу: префикс `NpcBhvr*` в именах функций и константа `NPC_BHVR_*`
+> сохранены как часть уже принятого API-контракта, но сам модуль в документации
+> далее именуется просто `NPC`.
+
+
+## Готовый модуль: что подключать в toolset
+
+Используйте модуль как готовый runtime-пакет из `src/modules/npc/`:
+
+1. Подключите event hooks к thin-entrypoint скриптам (таблица «Карта hook-скриптов» ниже).
+2. Убедитесь, что include `npc_core` доступен всем entrypoint-файлам `npc_*.nss` / `npc_behavior_*.nss`.
+3. Для приёмки запустите smoke/contract проверки:
+   - `bash scripts/test_npc_smoke.sh`
+   - `bash scripts/check_npc_lifecycle_contract.sh`
+   - `bash scripts/test_npc_fairness.sh`
+
+После этих шагов модуль считается готовым к интеграции в модуль NWN2 (при корректной привязке hook-скриптов).
 
 ## Статус runtime foundation (Phase A)
 
@@ -108,7 +126,7 @@ Tick/degraded telemetry в runtime включает:
 ## Current readiness snapshot
 
 - **Runtime MVP:** `READY` — core lifecycle/queue/activity/metrics и thin-entrypoints подключены в `src/modules/npc/*`.
-- **Fairness/lifecycle self-check:** `READY` — автоматические проверки доступны через `scripts/test_npc_fairness.sh` и `scripts/check_lifecycle_contract.sh`.
+- **Fairness/lifecycle self-check:** `READY` — автоматические проверки доступны через `scripts/test_npc_fairness.sh` и `scripts/check_npc_lifecycle_contract.sh`.
 - **Perf baseline/perf-gate:** `BLOCKED` — актуальный валидный baseline (>=3 runs, <=14 days) отсутствует; см. `docs/perf/npc_baseline_report.md`.
 - **Runtime dashboards:** `BLOCKED` — артефакты конфигураций дашбордов не зафиксированы в репозитории.
 

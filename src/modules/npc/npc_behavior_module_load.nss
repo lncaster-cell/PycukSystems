@@ -1,4 +1,4 @@
-// NPC Bhvr: module OnModuleLoad entrypoint (thin wrapper).
+// NPC behavior: module OnModuleLoad entrypoint (thin wrapper).
 
 #include "npc_core"
 

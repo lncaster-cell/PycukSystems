@@ -1,4 +1,4 @@
-// NPC Bhvr: OnSpawn entrypoint (thin wrapper).
+// NPC behavior: OnSpawn entrypoint (thin wrapper).
 
 #include "npc_core"
 
