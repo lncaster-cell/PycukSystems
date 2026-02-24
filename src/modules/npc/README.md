@@ -205,8 +205,10 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 - **Runtime MVP:** `READY` — core lifecycle/queue/activity/metrics и thin-entrypoints подключены в `src/modules/npc/*`.
 - **Fairness/lifecycle self-check:** `READY` — автоматические проверки доступны через `scripts/test_npc_fairness.sh` и `scripts/check_npc_lifecycle_contract.sh`.
-- **Perf baseline/perf-gate:** `BLOCKED` — актуальный валидный baseline (>=3 runs, <=14 days) отсутствует; см. `docs/perf/npc_baseline_report.md`.
+- **Perf baseline/perf-gate:** `GO (PASS)` — baseline свежий и валидный (>=3 runs, <=14 days), активные guardrails в статусе PASS; см. `docs/perf/npc_baseline_report.md` и `docs/perf/reports/npc_gate_summary_latest.md`.
 - **Runtime dashboards:** `READY` — артефакты дашбордов зафиксированы в `docs/perf/dashboards/` (`tick_orchestration`, `db_flush`, `ai_step_cost`).
+
+Правило консистентности: при обновлении baseline в `docs/perf/npc_baseline_report.md` обязательно синхронизируйте status-блоки в `README.md` (раздел "Текущий этап разработки / Phase 1 snapshot") и в этой секции.
 
 ## Карта hook-скриптов (thin entrypoints)
 
