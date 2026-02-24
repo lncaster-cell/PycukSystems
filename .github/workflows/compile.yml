@@ -1,9 +1,6 @@
 name: NWN Script Compiler
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - dev
@@ -22,7 +19,7 @@ on:
 
 jobs:
   compile-pr:
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' }}
     runs-on: windows-latest
     strategy:
       fail-fast: false

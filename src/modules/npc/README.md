@@ -35,11 +35,11 @@
 
 ## Базовые include-файлы
 
-- `npc_core.nss` — lifecycle area-controller, bounded queue с приоритетами, routing хуков в core.
+- `npc_core.nss` — только константы, forward declarations и thin entrypoint-обёртки.
 - `npc_queue_inc.nss` — queue/pending/deferred internals (`NpcBhvrQueue*`, `NpcBhvrPending*`, overflow/deferred guardrails).
 - `npc_tick_inc.nss` — tick orchestration и бюджет/деградация (`NpcBhvrTick*`, runtime budget config, degraded carryover).
-- `npc_lifecycle_inc.nss` — area lifecycle/state-machine (`NpcBhvrArea*`, area tick/maintenance loop, module-area bootstrap).
-- `npc_registry_inc.nss` — registry и кеш игроков (`NpcBhvrRegistry*`, `NpcBhvrGetCachedPlayerCount`, recount helpers).
+- `npc_lifecycle_inc.nss` — area/player lifecycle (`NpcBhvrOnAreaEnter/Exit`, player-count cache, activate/pause/stop, module bootstrap).
+- `npc_registry_inc.nss` — registry internals (`NpcBhvrRegistry*`, индекс/слоты, idle broadcast).
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
 
@@ -179,6 +179,14 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 - Допустимые `routeTag`: `market_lane`, `north_gate_2`, `default`.
 - Недопустимые `routeTag`: `""` (empty), `market lane` (пробел), `tag!` (символ `!`), строка длиннее 24.
 
+
+
+### Runtime split (hot-path mapping)
+
+- `npc_queue_inc.nss` — **queue hot-path**: enqueue/dequeue, drop/overflow guardrails, deferred reconcile/trim.
+- `npc_tick_inc.nss` — **tick hot-path**: budgeted processing, degradation/carryover, deferred reconcile stage.
+- `npc_lifecycle_inc.nss` — **lifecycle hot-path**: area/player enter-exit, player-count cache, area activate/pause/stop, loop orchestration.
+- `npc_core.nss` — стабильная фасадная точка include: константы + forward declarations + тонкие wrappers entrypoint-ов.
 
 ## Ограничения длины идентификаторов (NWN2) и safe-лимиты
 

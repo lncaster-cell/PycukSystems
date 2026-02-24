@@ -1061,6 +1061,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
 
     oArea = GetArea(oNpc);
     sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
+    nSlotFallback = NpcBhvrActivityAdapterWasSlotFallback(sSlotRaw);
     sSlot = NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw);
     nSlotFallback = sSlotRaw != "" && sSlot != sSlotRaw;
     nResolvedHour = GetTimeHour();
@@ -1116,7 +1117,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
     }
 }
 
-void NpcBhvrActivityOnSpawn(object oNpc)
+void NpcBhvrActivityInitRuntimeState(object oNpc)
 {
     string sSlot;
     string sRoute;
@@ -1129,8 +1130,6 @@ void NpcBhvrActivityOnSpawn(object oNpc)
         return;
     }
 
-    // Обязательная spawn-инициализация profile-state в npc_* namespace.
-    NpcBhvrActivityRefreshProfileState(oNpc);
     sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
     sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
@@ -1156,6 +1155,18 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, FALSE);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, FALSE);
 
+}
+
+void NpcBhvrActivityOnSpawn(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    // Spawn order: profile refresh -> runtime init -> transition stamp.
+    NpcBhvrActivityRefreshProfileState(oNpc);
+    NpcBhvrActivityInitRuntimeState(oNpc);
     NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
 }
 
