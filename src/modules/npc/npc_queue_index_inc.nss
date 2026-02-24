@@ -90,12 +90,3 @@ void NpcBhvrQueueIndexSet(object oArea, object oSubject, int nPriority, int nInd
     SetLocalInt(oArea, NpcBhvrQueueIndexKey(sNpcKey), nPriority * 1000 + nIndex);
 }
 
-int NpcBhvrQueuePackLocation(int nPriority, int nIndex)
-{
-    if (nPriority < NPC_BHVR_PRIORITY_CRITICAL || nPriority > NPC_BHVR_PRIORITY_LOW || nIndex <= 0 || nIndex > NPC_BHVR_QUEUE_MAX)
-    {
-        return 0;
-    }
-
-    return nPriority * 1000 + nIndex;
-}

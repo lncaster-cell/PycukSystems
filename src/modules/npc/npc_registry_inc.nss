@@ -289,10 +289,3 @@ void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick)
     }
 }
 
-void NpcBhvrRegistryBroadcastIdleTick(object oArea)
-{
-    int nCount;
-
-    nCount = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
-    NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, nCount);
-}

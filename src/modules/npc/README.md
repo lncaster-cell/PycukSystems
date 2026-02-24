@@ -46,16 +46,21 @@
 
 ### Deprecated/compat API
 
-- `npc_compat_inc.nss` — legacy-совместимость для потенциальных внешних include-контрактов; функции помечены как deprecated wrappers и делегируют во внутренние runtime-реализации:
+- `npc_legacy_compat_inc.nss` — **external-only** legacy include (не подключается `npc_core` и не участвует в основном runtime).
+  Поддерживаемые legacy-обёртки:
   - `NpcBhvrAreaSetState`
   - `NpcBhvrCountPlayersInArea`
   - `NpcBhvrCountPlayersInAreaExcluding`
   - `NpcBhvrGetCachedPlayerCount`
-- В текущем runtime-контуре (`npc_tick_inc`, `npc_lifecycle_inc`) используются только внутренние версии:
+  - `NpcBhvrRegistryBroadcastIdleTick`
+  - `NpcBhvrQueuePackLocation`
+- `npc_compat_inc.nss` оставлен как runtime-empty заглушка для обратной совместимости по имени include.
+- В текущем runtime-контуре (`npc_tick_inc`, `npc_lifecycle_inc`, `npc_registry_inc`, `npc_queue_index_inc`) используются только внутренние версии API:
   - `NpcBhvrAreaSetStateInternal`
   - `NpcBhvrCountPlayersInAreaInternalApi`
   - `NpcBhvrCountPlayersInAreaExcludingInternalApi`
   - `NpcBhvrGetCachedPlayerCountInternal`
+  - `NpcBhvrRegistryBroadcastIdleTickBudgeted`
 
 Tick/degraded telemetry в runtime включает:
 - `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
