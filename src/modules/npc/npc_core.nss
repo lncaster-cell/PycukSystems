@@ -4,8 +4,8 @@
 // 2) bounded queue + priority buckets,
 // 3) единый вход в метрики через helper API.
 
-#include "npc_activity_inc"
 #include "npc_metrics_inc"
+#include "npc_activity_inc"
 
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;
