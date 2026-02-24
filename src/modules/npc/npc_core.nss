@@ -786,6 +786,29 @@ int NpcBhvrCountPlayersInArea(object oArea)
     return nPlayers;
 }
 
+int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude)
+{
+    object oIter;
+    int nPlayers;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    oIter = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oIter))
+    {
+        if (oIter != oExclude && GetIsPC(oIter) && !GetIsDM(oIter))
+        {
+            nPlayers = nPlayers + 1;
+        }
+        oIter = GetNextObjectInArea(oArea);
+    }
+
+    return nPlayers;
+}
+
 int NpcBhvrQueuePickPriority(object oArea)
 {
     int nCriticalDepth;
@@ -1212,8 +1235,10 @@ void NpcBhvrOnAreaExit(object oArea, object oExiting)
         return;
     }
 
-    nPlayers = NpcBhvrCountPlayersInArea(oArea);
-    if (GetIsPC(oExiting) && nPlayers <= 0)
+    // Порядок событий движка: OnExit может сработать до фактического удаления oExiting
+    // из area-итерации, поэтому при подсчёте исключаем выходящий объект явно.
+    nPlayers = NpcBhvrCountPlayersInAreaExcluding(oArea, oExiting);
+    if (nPlayers <= 0)
     {
         NpcBhvrAreaPause(oArea);
     }
