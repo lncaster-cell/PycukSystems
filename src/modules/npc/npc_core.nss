@@ -23,7 +23,6 @@ const int NPC_BHVR_REASON_DAMAGE = 2;
 const int NPC_BHVR_DEGRADATION_REASON_NONE = 0;
 const int NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET = 1;
 const int NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET = 2;
-const int NPC_BHVR_DEGRADATION_REASON_EMPTY_QUEUE = 3;
 const int NPC_BHVR_DEGRADATION_REASON_OVERFLOW = 4;
 const int NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE = 5;
 const int NPC_BHVR_DEGRADATION_REASON_ROUTE_MISS = 6;
@@ -70,10 +69,6 @@ const string NPC_BHVR_VAR_REGISTRY_PREFIX = "npc_registry_";
 const string NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX = "npc_registry_index_";
 const string NPC_BHVR_VAR_NPC_UID = "npc_uid";
 const string NPC_BHVR_VAR_NPC_UID_COUNTER = "npc_uid_counter";
-const string NPC_BHVR_VAR_ROUTES_CACHED = "routes_cached";
-const string NPC_BHVR_VAR_ROUTES_CACHE_VERSION = "routes_cache_version";
-
-const int NPC_BHVR_PENDING_STATUS_NONE = 0;
 const int NPC_BHVR_PENDING_STATUS_QUEUED = 1;
 const int NPC_BHVR_PENDING_STATUS_RUNNING = 2;
 const int NPC_BHVR_PENDING_STATUS_PROCESSED = 3;
@@ -1384,6 +1379,7 @@ void NpcBhvrOnAreaTick(object oArea)
     int nCarryoverEvents;
     int nDeferredCount;
     int nDeferredOverflow;
+    int nDegradationReason;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -1460,6 +1456,16 @@ void NpcBhvrOnAreaTick(object oArea)
         nCarryoverEvents = 0;
         if (nBudgetExceeded)
         {
+            nDegradationReason = NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE;
+            if (nEventBudgetReached)
+            {
+                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
+            }
+            else if (nSoftBudgetReached)
+            {
+                nDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
+            }
+
             nCarryoverEvents = nPendingAfter;
             if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
             {
@@ -1468,7 +1474,7 @@ void NpcBhvrOnAreaTick(object oArea)
 
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
-            NpcBhvrRecordDegradationEvent(oArea, NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE);
+            NpcBhvrRecordDegradationEvent(oArea, nDegradationReason);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
             NpcBhvrQueueMarkDeferredHead(oArea);
             SetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK) + 1);
