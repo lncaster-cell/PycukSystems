@@ -56,7 +56,6 @@ const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
 const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
 // AmbientLiveV2 activity IDs (ported from legacy AL data layer).
-const int NPC_BHVR_ACTIVITY_ID_HIDDEN = 0;
 const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;
 const int NPC_BHVR_ACTIVITY_ID_ACT_TWO = 2;
 const int NPC_BHVR_ACTIVITY_ID_DINNER = 3;

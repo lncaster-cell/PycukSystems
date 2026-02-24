@@ -41,7 +41,7 @@ Tick/degraded telemetry в runtime включает:
 - `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
 - `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
 - `npc_metric_degradation_events_total`,
-- `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
+- `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `EVENT_BUDGET|SOFT_BUDGET|OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
 
 
 ## Activity primitives runtime-контракт
