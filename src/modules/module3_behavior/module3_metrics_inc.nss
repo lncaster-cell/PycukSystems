@@ -16,10 +16,14 @@ const string MODULE3_METRIC_QUEUE_COALESCED_COUNT = "module3_metric_queue_coales
 const string MODULE3_METRIC_QUEUE_DEFERRED_COUNT = "module3_metric_queue_deferred_count";
 const string MODULE3_METRIC_QUEUE_DROPPED_COUNT = "module3_metric_queue_dropped_count";
 const string MODULE3_METRIC_QUEUE_ENQUEUED_COUNT = "module3_metric_queue_enqueued_count";
+// queue_coalesced_count: повторное событие схлопнуто в существующую pending-запись без дубля в очереди.
+const string MODULE3_METRIC_QUEUE_COALESCED_COUNT = "module3_metric_queue_coalesced_count";
 const string MODULE3_METRIC_QUEUE_STARVATION_GUARD_TRIPS = "module3_metric_queue_starvation_guard_trips";
+
+// Tick-budget/degraded-mode metrics.
+const string MODULE3_METRIC_PROCESSED_TOTAL = "module3_metric_processed_total";
 const string MODULE3_METRIC_TICK_BUDGET_EXCEEDED_TOTAL = "module3_metric_tick_budget_exceeded_total";
 const string MODULE3_METRIC_DEGRADED_MODE_TOTAL = "module3_metric_degraded_mode_total";
-const string MODULE3_METRIC_PROCESSED_TOTAL = "module3_metric_processed_total";
 const string MODULE3_METRIC_PENDING_AGE_MS = "module3_metric_pending_age_ms";
 
 void Module3MetricAdd(object oScope, string sMetric, int nDelta)

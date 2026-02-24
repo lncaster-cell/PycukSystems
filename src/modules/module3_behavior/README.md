@@ -21,16 +21,43 @@
 
 `module3_activity_inc.nss` теперь фиксирует минимальный runtime-layer поверх AL-подхода через `module3_*` keyspace (без прямого использования `al_*` locals в core-flow):
 
+- AL-понятия (`slot-group`, `route-profile`, `activity transition`) обязаны проходить через adapter-helpers include-файла:
+  - `Module3ActivityAdapterNormalizeSlot`,
+  - `Module3ActivityAdapterNormalizeRoute`,
+  - `Module3ActivityMapRouteHint`,
+  - `Module3ActivityAdapterStampTransition`.
+
 - Spawn-инициализация профиля NPC (`Module3ActivityOnSpawn`) обязана выставлять:
   - `module3_activity_slot` (по умолчанию `default`),
   - `module3_activity_route` (по умолчанию `default_route`),
   - `module3_activity_state` (начальное состояние `spawn_ready`),
-  - `module3_activity_cooldown` (неотрицательный cooldown/state gate).
+  - `module3_activity_cooldown` (неотрицательный cooldown/state gate),
+  - `module3_activity_last` (последняя activity transition),
+  - `module3_activity_last_ts` (timestamp последнего transition в секундах игрового времени).
 - Idle-dispatch (`Module3ActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
-  - priority-ветка: `slot=priority` **или** route-map -> `priority_patrol`;
+  - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
+  - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
   - fallback: `default_route` c состоянием `idle_default`.
 - Mapping-слой (`Module3ActivityMapRouteHint`) выполняет трансляцию route-id -> activity hint, чтобы AL-семантика подключалась через адаптер, а не через прямой `al_*` namespace.
-- Примитивы `Module3ActivityApplyPriorityRoute/Module3ActivityApplyDefaultRoute` задают только минимальные state/cooldown эффекты и могут расширяться в следующих фазах без изменения контракта entrypoint/core.
+- Примитивы `Module3ActivityApplyCriticalSafeRoute/Module3ActivityApplyPriorityRoute/Module3ActivityApplyDefaultRoute` задают только минимальные state/cooldown эффекты и могут расширяться в следующих фазах без изменения контракта entrypoint/core.
+
+### Контракт входных/выходных состояний activity primitives
+
+- **Вход для `Module3ActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `module3_activity_slot|route`; `module3_activity_cooldown` может быть отрицательным.
+- **Выход `Module3ActivityOnSpawn`:**
+  - `slot` и `route` нормализованы в поддерживаемые значения (`default|priority|critical`, `default_route|priority_patrol|critical_safe`),
+  - `state=spawn_ready`,
+  - `last=spawn_ready`,
+  - `last_ts` обновлён,
+  - `cooldown >= 0`.
+- **Вход для `Module3ActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (будут нормализованы).
+- **Выход `Module3ActivityOnIdleTick`:**
+  - при `cooldown > 0` выполняется только декремент cooldown на 1 и early-return;
+  - при `cooldown == 0` выполняется ровно одна ветка диспетчера:
+    1) `critical_safe` -> `state/last=idle_critical_safe`, `cooldown=1`;
+    2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown=2`;
+    3) `default` -> `state/last=idle_default`, `cooldown=1`;
+  - после dispatch `last_ts` всегда отражает момент последнего transition.
 
 ## Карта hook-скриптов (thin entrypoints)
 

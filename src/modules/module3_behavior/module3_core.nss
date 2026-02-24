@@ -32,6 +32,8 @@ const int MODULE3_STARVATION_STREAK_LIMIT = 3;
 const int MODULE3_TICK_MAX_EVENTS_DEFAULT = 4;
 const int MODULE3_TICK_SOFT_BUDGET_MS_DEFAULT = 25;
 const int MODULE3_TICK_SIMULATED_EVENT_COST_MS = 8;
+const int MODULE3_TICK_MAX_EVENTS_HARD_CAP = 64;
+const int MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP = 1000;
 
 const string MODULE3_VAR_AREA_STATE = "module3_area_state";
 const string MODULE3_VAR_AREA_TIMER_RUNNING = "module3_area_timer_running";
@@ -45,6 +47,174 @@ const string MODULE3_VAR_TICK_DEGRADED_MODE = "module3_tick_degraded_mode";
 const string MODULE3_VAR_TICK_DEGRADED_STREAK = "module3_tick_degraded_streak";
 const string MODULE3_VAR_TICK_PROCESSED = "module3_tick_processed";
 const string MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS = "module3_queue_backlog_age_ticks";
+
+const int MODULE3_PENDING_STATUS_NONE = 0;
+const int MODULE3_PENDING_STATUS_QUEUED = 1;
+const int MODULE3_PENDING_STATUS_RUNNING = 2;
+const int MODULE3_PENDING_STATUS_PROCESSED = 3;
+const int MODULE3_PENDING_STATUS_DEFERRED = 4;
+const int MODULE3_PENDING_STATUS_DROPPED = 5;
+
+const string MODULE3_VAR_PENDING_PRIORITY = "module3_pending_priority";
+const string MODULE3_VAR_PENDING_REASON = "module3_pending_reason";
+const string MODULE3_VAR_PENDING_STATUS = "module3_pending_status";
+const string MODULE3_VAR_PENDING_UPDATED_TS = "module3_pending_updated_ts";
+
+string Module3QueueDepthKey(int nPriority);
+string Module3QueueSubjectKey(int nPriority, int nIndex);
+int Module3QueueGetDepthForPriority(object oArea, int nPriority);
+void Module3QueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
+void Module3QueueSyncTotals(object oArea);
+
+int Module3PendingNow()
+{
+    return GetCalendarYear() * 1000000 + GetCalendarMonth() * 10000 + GetCalendarDay() * 100 + GetTimeHour();
+}
+
+int Module3PendingIsActive(object oNpc)
+{
+    int nStatus;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return FALSE;
+    }
+
+    nStatus = GetLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS);
+    return nStatus == MODULE3_PENDING_STATUS_QUEUED
+        || nStatus == MODULE3_PENDING_STATUS_RUNNING
+        || nStatus == MODULE3_PENDING_STATUS_DEFERRED;
+}
+
+void Module3PendingTouch(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_TS, Module3PendingNow());
+}
+
+void Module3PendingSet(object oNpc, int nPriority, string sReason, int nStatus)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_PRIORITY, nPriority);
+    SetLocalString(oNpc, MODULE3_VAR_PENDING_REASON, sReason);
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS, nStatus);
+    Module3PendingTouch(oNpc);
+}
+
+void Module3PendingSetStatus(object oNpc, int nStatus)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS, nStatus);
+    Module3PendingTouch(oNpc);
+}
+
+void Module3PendingClear(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_PRIORITY);
+    DeleteLocalString(oNpc, MODULE3_VAR_PENDING_REASON);
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_STATUS);
+    DeleteLocalInt(oNpc, MODULE3_VAR_PENDING_UPDATED_TS);
+}
+
+int Module3QueueFindSubjectIndex(object oArea, int nPriority, object oSubject)
+{
+    int nDepth;
+    int nIndex;
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority);
+    nIndex = 1;
+    while (nIndex <= nDepth)
+    {
+        if (GetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex)) == oSubject)
+        {
+            return nIndex;
+        }
+        nIndex = nIndex + 1;
+    }
+
+    return -1;
+}
+
+void Module3QueueRemoveAt(object oArea, int nPriority, int nIndex)
+{
+    int nDepth;
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority);
+    if (nIndex < 1 || nIndex > nDepth)
+    {
+        return;
+    }
+
+    while (nIndex < nDepth)
+    {
+        SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex), GetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nIndex + 1)));
+        nIndex = nIndex + 1;
+    }
+
+    DeleteLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth));
+    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth - 1);
+}
+
+int Module3QueueEnqueueRaw(object oArea, object oSubject, int nPriority)
+{
+    int nDepth;
+    int nTotal;
+
+    nTotal = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
+    if (nTotal >= MODULE3_QUEUE_MAX)
+    {
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_OVERFLOW_COUNT);
+        return FALSE;
+    }
+
+    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority) + 1;
+    SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth), oSubject);
+    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth);
+    Module3QueueSyncTotals(oArea);
+    return TRUE;
+}
+
+int Module3QueueCoalescePriority(int nExistingPriority, int nIncomingPriority, string sReason)
+{
+    int nPriority;
+
+    nPriority = nExistingPriority;
+    if (nIncomingPriority < nPriority)
+    {
+        nPriority = nIncomingPriority;
+    }
+
+    if (sReason == "damage")
+    {
+        if (nPriority == MODULE3_PRIORITY_NORMAL)
+        {
+            nPriority = MODULE3_PRIORITY_HIGH;
+        }
+        else if (nPriority == MODULE3_PRIORITY_HIGH)
+        {
+            nPriority = MODULE3_PRIORITY_CRITICAL;
+        }
+    }
+
+    return nPriority;
+}
 
 string Module3QueueDepthKey(int nPriority)
 {
@@ -353,9 +523,12 @@ int Module3QueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         return FALSE;
     }
 
-    nDepth = Module3QueueGetDepthForPriority(oArea, nPriority) + 1;
-    SetLocalObject(oArea, Module3QueueSubjectKey(nPriority, nDepth), oSubject);
-    Module3QueueSetDepthForPriority(oArea, nPriority, nDepth);
+    if (!Module3QueueEnqueueRaw(oArea, oSubject, nPriority))
+    {
+        Module3PendingSet(oSubject, nPriority, sReason, MODULE3_PENDING_STATUS_DROPPED);
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
+        return FALSE;
+    }
 
     Module3QueueSyncTotals(oArea);
     Module3PendingTouch(oArea, oSubject, nPriority, nReasonCode, MODULE3_PENDING_STATUS_QUEUED);
@@ -516,6 +689,26 @@ int Module3GetTickMaxEvents(object oArea)
     return nValue;
 }
 
+void Module3SetTickMaxEvents(object oArea, int nValue)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (nValue <= 0)
+    {
+        nValue = MODULE3_TICK_MAX_EVENTS_DEFAULT;
+    }
+
+    if (nValue > MODULE3_TICK_MAX_EVENTS_HARD_CAP)
+    {
+        nValue = MODULE3_TICK_MAX_EVENTS_HARD_CAP;
+    }
+
+    SetLocalInt(oArea, MODULE3_VAR_TICK_MAX_EVENTS, nValue);
+}
+
 int Module3GetTickSoftBudgetMs(object oArea)
 {
     int nValue;
@@ -527,6 +720,26 @@ int Module3GetTickSoftBudgetMs(object oArea)
     }
 
     return nValue;
+}
+
+void Module3SetTickSoftBudgetMs(object oArea, int nValue)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (nValue <= 0)
+    {
+        nValue = MODULE3_TICK_SOFT_BUDGET_MS_DEFAULT;
+    }
+
+    if (nValue > MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP)
+    {
+        nValue = MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP;
+    }
+
+    SetLocalInt(oArea, MODULE3_VAR_TICK_SOFT_BUDGET_MS, nValue);
 }
 
 int Module3QueueProcessOne(object oArea)
@@ -556,6 +769,15 @@ int Module3QueueProcessOne(object oArea)
     oSubject = Module3QueueDequeueFromPriority(oArea, nPriority);
     if (!GetIsObjectValid(oSubject))
     {
+        Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
+        return;
+    }
+
+    Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_RUNNING);
+
+    if (GetArea(oSubject) != oArea)
+    {
+        Module3PendingSetStatus(oSubject, MODULE3_PENDING_STATUS_DEFERRED);
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DROPPED_COUNT);
         return FALSE;
@@ -575,10 +797,13 @@ void Module3OnAreaTick(object oArea)
     int nProcessedThisTick;
     int nPendingAfter;
     int nSoftBudgetMs;
-    int nSoftBudgetReached;
     int nBudgetExceeded;
     int nMaxEvents;
-    int nSpentMs;
+    int nEventsBudgetLeft;
+    int nSpentBudgetMs;
+    int nSpentEvents;
+    int nEventBudgetReached;
+    int nSoftBudgetReached;
     int nBacklogAgeTicks;
 
     if (!GetIsObjectValid(oArea))
@@ -595,27 +820,49 @@ void Module3OnAreaTick(object oArea)
     if (Module3AreaGetState(oArea) == MODULE3_AREA_STATE_RUNNING)
     {
         nMaxEvents = Module3GetTickMaxEvents(oArea);
-        nSoftBudgetMs = Module3GetTickSoftBudgetMs(oArea);
-        while (nProcessedThisTick < nMaxEvents)
+        if (nMaxEvents > MODULE3_TICK_MAX_EVENTS_HARD_CAP)
         {
+            nMaxEvents = MODULE3_TICK_MAX_EVENTS_HARD_CAP;
+        }
+
+        nSoftBudgetMs = Module3GetTickSoftBudgetMs(oArea);
+        if (nSoftBudgetMs > MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP)
+        {
+            nSoftBudgetMs = MODULE3_TICK_SOFT_BUDGET_MS_HARD_CAP;
+        }
+
+        nSpentEvents = 0;
+        nSpentBudgetMs = 0;
+        while (TRUE)
+        {
+            nEventsBudgetLeft = nMaxEvents - nSpentEvents;
+            if (nEventsBudgetLeft <= 0)
+            {
+                nEventBudgetReached = TRUE;
+                break;
+            }
+
+            if (nSpentBudgetMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS > nSoftBudgetMs)
+            {
+                nSoftBudgetReached = TRUE;
+                break;
+            }
+
             if (!Module3QueueProcessOne(oArea))
             {
                 break;
             }
 
-            nProcessedThisTick = nProcessedThisTick + 1;
-            nSpentMs = nSpentMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS;
-            if (nSpentMs >= nSoftBudgetMs)
-            {
-                nSoftBudgetReached = TRUE;
-                break;
-            }
+            nSpentEvents = nSpentEvents + 1;
+            nSpentBudgetMs = nSpentBudgetMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS;
         }
+
+        nProcessedThisTick = nSpentEvents;
 
         SetLocalInt(oArea, MODULE3_VAR_TICK_PROCESSED, nProcessedThisTick);
         nPendingAfter = GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL);
 
-        nBudgetExceeded = nSoftBudgetReached && nPendingAfter > 0;
+        nBudgetExceeded = (nSoftBudgetReached || nEventBudgetReached) && nPendingAfter > 0;
         SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
 
         if (nBudgetExceeded)

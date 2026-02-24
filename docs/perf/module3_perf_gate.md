@@ -114,7 +114,8 @@
 ### Проверки
 
 - за тик обрабатывается не более `module3_tick_max_events` событий (`processed_total` растёт bounded-инкрементом);
-- при переполнении soft budget растут `tick_budget_exceeded_total` и `degraded_mode_total`;
+- tick-loop прекращает обработку при достижении soft-бюджета `module3_tick_soft_budget_ms` **или** event budget;
+- при наличии хвоста после budget cutoff включается degraded-mode и растут `tick_budget_exceeded_total` и `degraded_mode_total`;
 - `queue_deferred_count` растёт только когда есть хвост после budget cutoff;
 - backlog-age surrogate `pending_age_ms` увеличивается, пока есть pending, и перестаёт расти после drain.
 
