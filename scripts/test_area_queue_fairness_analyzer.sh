@@ -26,6 +26,12 @@ python3 "$ANALYZER" \
   --buckets LOW,NORMAL \
   --enforce-pause-zero
 
+python3 "$ANALYZER" \
+  --input "$PARTIAL_PROCESSED_FIXTURE" \
+  --max-starvation-window 10 \
+  --buckets LOW,NORMAL \
+  --enforce-pause-zero
+
 expect_fail "pause-zero violation fixture" \
   python3 "$ANALYZER" \
     --input "$PAUSE_FAIL_FIXTURE" \
