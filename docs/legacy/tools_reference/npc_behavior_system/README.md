@@ -1,4 +1,7 @@
-# NPC Behavior Module (Phase 1 MVP, revised)
+# NPC Behavior Module (legacy/reference)
+
+> ⚠️ Статус: legacy. Активная разработка и production runtime-код ведутся в `src/modules/npc/`.
+> Данный каталог сохранён как исторический reference и подлежит удалению после полного переноса документации.
 
 Цель: централизовать системную логику NPC в одном `include`, а в event-hook скриптах оставить только thin-entrypoint.
 
@@ -8,9 +11,9 @@
 
 ## Source of truth for runtime scripts
 
-- Production runtime-скрипты NPC behavior system поддерживаются в каталоге `tools/npc_behavior_system/`.
-- Каталог `src/modules/npc_behavior/` является redirect/документационным слоем и не должен рассматриваться как источник runtime-кода.
-- При обновлении документации и ссылок используйте `tools/npc_behavior_system/*` как canonical path, чтобы избежать дрейфа путей.
+- Production runtime-скрипты NPC behavior system поддерживаются в каталоге `src/modules/npc/`.
+- Каталог `src/modules/npc_behavior/` используется как redirect-слой для совместимости ссылок.
+- Каталог `tools/npc_behavior_system/` не является canonical path.
 
 ## Hook-скрипты (entrypoints)
 

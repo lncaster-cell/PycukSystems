@@ -32,24 +32,15 @@ scripts/contracts/<module_prefix>.contract
 
 ```bash
 bash scripts/check_lifecycle_contract.sh \
-  tools/npc_behavior_system/npc_behavior_core.nss \
-  src/controllers/lifecycle_controller.nss \
-  npc_behavior
-```
-
-Или совместимый legacy-вариант:
-
-```bash
-bash scripts/check_area_lifecycle_contract.sh
-```
-
-### NPC Bhvr (заготовка)
-
-```bash
-bash scripts/check_lifecycle_contract.sh \
   src/modules/npc/npc_core.nss \
   src/controllers/lifecycle_controller.nss \
   npc
 ```
 
-Пока профиль `npc.contract` пустой, проверка только подтверждает валидность путей и загрузку профиля.
+Эквивалентный short-runner:
+
+```bash
+bash scripts/check_area_lifecycle_contract.sh
+```
+
+Пока профиль `npc.contract` пустой, проверка подтверждает валидность путей и загрузку профиля.
