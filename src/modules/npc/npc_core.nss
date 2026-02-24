@@ -57,6 +57,8 @@ const string NPC_BHVR_VAR_QUEUE_CURSOR = "npc_queue_cursor";
 const string NPC_BHVR_VAR_FAIRNESS_STREAK = "npc_fairness_streak";
 const string NPC_BHVR_VAR_TICK_MAX_EVENTS = "npc_tick_max_events";
 const string NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS = "npc_tick_soft_budget_ms";
+const string NPC_BHVR_CFG_TICK_MAX_EVENTS = "npc_cfg_tick_max_events";
+const string NPC_BHVR_CFG_TICK_SOFT_BUDGET_MS = "npc_cfg_tick_soft_budget_ms";
 const string NPC_BHVR_VAR_TICK_DEGRADED_MODE = "npc_tick_degraded_mode";
 const string NPC_BHVR_VAR_TICK_DEGRADED_STREAK = "npc_tick_degraded_streak";
 const string NPC_BHVR_VAR_TICK_DEGRADED_TOTAL = "npc_tick_degraded_total";
@@ -182,21 +184,6 @@ int NpcBhvrPendingNow()
     return nDays * 86400 + GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond();
 }
 
-int NpcBhvrPendingIsActive(object oNpc)
-{
-    int nStatus;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return FALSE;
-    }
-
-    nStatus = GetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
-    return nStatus == NPC_BHVR_PENDING_STATUS_QUEUED
-        || nStatus == NPC_BHVR_PENDING_STATUS_RUNNING
-        || nStatus == NPC_BHVR_PENDING_STATUS_DEFERRED;
-}
-
 void NpcBhvrPendingNpcTouch(object oNpc)
 {
     int nNow;
@@ -215,19 +202,6 @@ void NpcBhvrPendingNpcTouch(object oNpc)
     }
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT, nNow);
-}
-
-void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus)
-{
-    if (!GetIsObjectValid(oNpc))
-    {
-        return;
-    }
-
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
-    SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS, nStatus);
-    NpcBhvrPendingNpcTouch(oNpc);
 }
 
 void NpcBhvrPendingSetStatus(object oNpc, int nStatus)
@@ -806,6 +780,7 @@ void NpcBhvrAreaActivate(object oArea)
         return;
     }
 
+    NpcBhvrApplyTickRuntimeConfig(oArea);
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrAreaRouteCacheWarmup(oArea);
 
@@ -1297,6 +1272,39 @@ void NpcBhvrSetTickSoftBudgetMs(object oArea, int nValue)
     SetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nValue);
 }
 
+void NpcBhvrApplyTickRuntimeConfig(object oArea)
+{
+    object oModule;
+    int nConfigured;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    oModule = GetModule();
+
+    nConfigured = GetLocalInt(oArea, NPC_BHVR_CFG_TICK_MAX_EVENTS);
+    if (nConfigured <= 0)
+    {
+        nConfigured = GetLocalInt(oModule, NPC_BHVR_CFG_TICK_MAX_EVENTS);
+    }
+    if (nConfigured > 0 || GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS) <= 0)
+    {
+        NpcBhvrSetTickMaxEvents(oArea, nConfigured);
+    }
+
+    nConfigured = GetLocalInt(oArea, NPC_BHVR_CFG_TICK_SOFT_BUDGET_MS);
+    if (nConfigured <= 0)
+    {
+        nConfigured = GetLocalInt(oModule, NPC_BHVR_CFG_TICK_SOFT_BUDGET_MS);
+    }
+    if (nConfigured > 0 || GetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS) <= 0)
+    {
+        NpcBhvrSetTickSoftBudgetMs(oArea, nConfigured);
+    }
+}
+
 int NpcBhvrQueueProcessOne(object oArea)
 {
     int nTotalDepth;
@@ -1541,6 +1549,8 @@ void NpcBhvrBootstrapModuleAreas()
     oArea = GetFirstArea();
     while (GetIsObjectValid(oArea))
     {
+        NpcBhvrApplyTickRuntimeConfig(oArea);
+
         if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_STATE) == NPC_BHVR_AREA_STATE_RUNNING)
         {
             NpcBhvrAreaActivate(oArea);

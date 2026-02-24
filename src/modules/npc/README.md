@@ -30,6 +30,7 @@
 - Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
 - CRITICAL события обрабатываются через bypass fairness-бюджета.
 - `npc_pending_updated_at` хранится как `int`-timestamp с секундной точностью (на базе календарного дня и `HH:MM:SS`) и при частых обновлениях монотонно увеличивается минимум на 1.
+- Tick perf-budget runtime API (боевой путь): `NpcBhvrSetTickMaxEvents` и `NpcBhvrSetTickSoftBudgetMs` применяются через `NpcBhvrApplyTickRuntimeConfig` в bootstrap (`NpcBhvrBootstrapModuleAreas`) и при активации area (`NpcBhvrAreaActivate`), с override-цепочкой `area cfg -> module cfg -> defaults` по ключам `npc_cfg_tick_max_events` и `npc_cfg_tick_soft_budget_ms`.
 
 ## Базовые include-файлы
 
@@ -42,6 +43,12 @@ Tick/degraded telemetry в runtime включает:
 - `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
 - `npc_metric_degradation_events_total`,
 - `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
+
+### Perf-budget runtime application
+
+- Runtime-пределы тика (`max events` и `soft budget ms`) применяются через `NpcBhvrApplyTickRuntimeConfig`.
+- Источники конфигурации (по приоритету): area-local (`npc_cfg_tick_max_events`, `npc_cfg_tick_soft_budget_ms`) -> module-local (те же ключи на `GetModule()`) -> встроенные defaults (`NPC_BHVR_TICK_MAX_EVENTS_DEFAULT`, `NPC_BHVR_TICK_SOFT_BUDGET_MS_DEFAULT`).
+- Точка применения в lifecycle: bootstrap всех областей на module-load и каждое `NpcBhvrAreaActivate`, чтобы настройки оставались консистентными после pause/resume.
 
 
 ## Activity primitives runtime-контракт
@@ -186,7 +193,8 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 ## Контракт pending-состояний (NPC-local и area-local)
 
-- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC).
+- Источник истины для pending-статуса — `NPC-local` (`npc_pending_*` на объекте NPC), и в execution-path используются только явные переходы `NpcBhvrPendingSetStatus` + terminal clear (`NpcBhvrPendingNpcClear`).
+- Legacy-helper'ы `NpcBhvrPendingIsActive` и `NpcBhvrPendingSet` удалены как неиспользуемые: активность/состояние pending вычисляется напрямую по `npc_pending_status` в рабочем пути очереди (`deferred`-ветки trim/count/process), без альтернативных веток на удалённые функции.
 - `area-local` (`npc_queue_pending_*` на area) — диагностическое/наблюдаемое зеркало последнего состояния, обновляется через `NpcBhvrPendingAreaTouch`.
 - `deferred` при `GetArea(oSubject) != oArea` фиксируется **в обоих хранилищах** и не очищается неявно в этом же шаге.
 - Очистка pending (`NpcBhvrPendingNpcClear` и `NpcBhvrPendingAreaClear`) допустима только на явных terminal-переходах (`processed`, `dropped`, удаление/смерть NPC, очистка очереди/area shutdown).
