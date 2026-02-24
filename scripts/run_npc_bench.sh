@@ -190,6 +190,12 @@ budget_pass=0
 warmup_runs=0
 warmup_pass=0
 
+if head -n1 "${SOURCE_FIXTURE}" | rg -q "processed_low"; then
+  HAS_QUEUE_COLUMNS="true"
+else
+  HAS_QUEUE_COLUMNS="false"
+fi
+
 for i in $(seq 1 "${RUNS}"); do
   run_csv="${RAW_DIR}/run_${i}.csv"
   npc_log="${ANALYSIS_DIR}/run_${i}_npc_fairness.log"
@@ -202,7 +208,7 @@ for i in $(seq 1 "${RUNS}"); do
   fi
   ((npc_runs += 1))
 
-  if head -n1 "${run_csv}" | rg -q "processed_low"; then
+  if [[ "${HAS_QUEUE_COLUMNS}" == "true" ]]; then
     if python3 "${QUEUE_ANALYZER}" --input "${run_csv}" "${QUEUE_FLAGS[@]}" >"${queue_log}" 2>&1; then
       ((queue_pass += 1))
     fi
