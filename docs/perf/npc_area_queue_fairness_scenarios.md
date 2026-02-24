@@ -5,7 +5,7 @@
 ## Общие условия
 
 - Контрольный модуль: `src/modules/npc/*`.
-- Lifecycle area: `RUNNING/PAUSED/STOPPED` через module API `NpcBehaviorArea*` (backed by `NpcControllerArea*`).
+- Lifecycle area: `RUNNING/PAUSED/STOPPED` через актуальный API `NpcBhvrAreaActivate/Pause/Stop`.
 - Ключевые метрики:
   - `npc_area_metric_processed_count`
   - `npc_area_metric_skipped_count`
@@ -20,11 +20,18 @@
 bash scripts/check_area_lifecycle_contract.sh
 ```
 
-Проверка валидирует, что `npc_behavior_core.nss` использует `src/controllers/lifecycle_controller.nss` как единую точку lifecycle-контракта и не дублирует legacy area lifecycle vars.
+Проверка валидирует, что `src/modules/npc/npc_core.nss` соответствует текущему lifecycle-контракту и не дублирует legacy area lifecycle vars.
+
+## Источник истины
+
+- Core-реализация lifecycle/queue/handlers: `src/modules/npc/npc_core.nss`.
+- Контрактные ожидания и паттерны проверки: `scripts/contracts/npc.contract`.
+
+При обновлении сценариев и терминов синхронизируйте названия только с этими двумя файлами, чтобы избежать повторного дрейфа.
 
 ## Scenario A — Burst fairness без starvation
 
-1. Поднять area в состоянии `RUNNING` (`NpcBehaviorAreaActivate`).
+1. Поднять area в состоянии `RUNNING` (`NpcBhvrAreaActivate`).
 2. Создать burst событий в очередь с mix приоритетов: LOW/NORMAL/HIGH/CRITICAL.
 3. Прогнать не менее 120 area-tick итераций.
 4. Проверить, что LOW/NORMAL события не голодают: каждый bucket получает обработку в пределах окна 10 tick.
@@ -37,9 +44,9 @@ bash scripts/check_area_lifecycle_contract.sh
 ## Scenario B — Pause/resume без потери очереди
 
 1. Запустить area в `RUNNING` и накопить pending очередь.
-2. Перевести area в `PAUSED` через module API (`NpcBehaviorAreaPause`, внутри вызывает controller).
-3. Убедиться, что `NpcBehaviorAreaTickLoop` не обрабатывает очередь до `RUNNING`.
-4. Вернуть `RUNNING` через `NpcBehaviorAreaResume`, продолжить тики и сравнить pending до/после.
+2. Перевести area в `PAUSED` через module API (`NpcBhvrAreaPause`).
+3. Убедиться, что entrypoint `npc_area_tick.nss` (handler `NpcBhvrOnAreaTick`) не обрабатывает очередь до возврата `RUNNING`.
+4. Вернуть `RUNNING` через `NpcBhvrAreaActivate`, продолжить тики и сравнить pending до/после.
 
 Ожидаемый результат:
 - во время `PAUSED` нет роста `processed_count`;
@@ -49,7 +56,7 @@ bash scripts/check_area_lifecycle_contract.sh
 ## Scenario C — Stop/start с корректным таймером
 
 1. Запустить area в `RUNNING`, убедиться что таймер один (`nb_area_timer_running=TRUE`).
-2. Перевести в `STOPPED` (`NpcBehaviorAreaDeactivate`) и дождаться остановки loop.
+2. Перевести в `STOPPED` (`NpcBhvrAreaStop`) и дождаться остановки loop.
 3. Повторно выполнить старт и убедиться, что не появляется duplicate loop.
 
 Ожидаемый результат:
