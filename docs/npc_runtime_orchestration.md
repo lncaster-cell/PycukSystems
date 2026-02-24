@@ -23,6 +23,7 @@
     - запуск тикового цикла с warmup-ограничением.
 
 - В `PAUSED` допускается только редкий watchdog-тик (отдельный интервал, по умолчанию `30s`) и отдельная метрика `paused_watchdog_tick_count`, чтобы не смешивать его с рабочим `RUNNING` loop.
+- Тяжёлый full-reconcile deferred-очереди выполняется в отдельном maintenance loop (`npc_area_maintenance`) по редкому watchdog-таймеру и на переходах состояния area (`pause/resume/stop`), а не в каждом runtime-цикле.
 
 - **Пауза (`PAUSE`)**
   - Триггер: в области нет игроков дольше `idlePauseAfter` (local `npc_area_idle_pause_after_sec`, default 30s); при обработке `OnAreaExit` пауза допускается только когда `active_pc_count == 0`.

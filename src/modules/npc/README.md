@@ -25,6 +25,7 @@
 - Реализован lifecycle area-controller: `RUNNING/PAUSED/STOPPED`.
 - Добавлены auto-start и auto-idle-stop механики area-loop.
 - RUNNING loop рескейджулится только в состоянии `RUNNING`; в `PAUSED` используется отдельный редкий watchdog-тик (`30s`) с отдельной метрикой.
+- Тяжёлый deferred full-reconcile вынесен из hot-path `NpcBhvrOnAreaTick` в отдельный maintenance entrypoint `npc_area_maintenance` (редкий watchdog + state transitions pause/resume/stop).
 - Реализована bounded queue (`NPC_BHVR_QUEUE_MAX=64`) с bucket-приоритетами `CRITICAL/HIGH/NORMAL/LOW`.
 - Coalesce повторных enqueue выполняется напрямую в `NpcBhvrQueueEnqueue`: существующий pending-subject не дублируется, а его приоритет пересчитывается через `NpcBhvrPriorityEscalate` (включая эскалацию `damage -> CRITICAL`).
 - Включён starvation guard для неблокирующей ротации non-critical bucket-очередей.
@@ -42,6 +43,7 @@ Tick/degraded telemetry в runtime включает:
 - `npc_metric_processed_total` (обработанные события за тик без двойного инкремента),
 - `npc_metric_tick_budget_exceeded_total`, `npc_metric_degraded_mode_total`,
 - `npc_metric_degradation_events_total`,
+- `npc_metric_maintenance_self_heal_count` (количество self-heal reconcile в maintenance loop),
 - `npc_tick_last_degradation_reason` всегда отражает последний reason-code деградации (включая `EVENT_BUDGET|SOFT_BUDGET|OVERFLOW|QUEUE_PRESSURE|ROUTE_MISS|DISABLED`);
 
 - Tick budget-параметры (`npc_tick_max_events`, `npc_tick_soft_budget_ms`) нормализуются и фиксируются при `NpcBhvrAreaActivate` через `NpcBhvrSetTickMaxEvents/NpcBhvrSetTickSoftBudgetMs` (с hard-cap), после чего используются в `NpcBhvrOnAreaTick`.
@@ -234,6 +236,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 | Area OnExit | `npc_area_exit.nss` | `NpcBhvrOnAreaExit` |
 | OnModuleLoad | `npc_module_load.nss` | `NpcBhvrOnModuleLoad` |
 | Area tick loop | `npc_area_tick.nss` | `NpcBhvrOnAreaTick` |
+| Area maintenance loop | `npc_area_maintenance.nss` | `NpcBhvrOnAreaMaintenance` |
 
 ## Норматив
 

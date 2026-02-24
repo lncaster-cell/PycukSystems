@@ -15,6 +15,7 @@ HAS_CORE_PATTERNS=(
   'void NpcBhvrAreaPause\(object oArea\)'
   'void NpcBhvrAreaStop\(object oArea\)'
   'void NpcBhvrOnAreaTick\(object oArea\)'
+  'void NpcBhvrOnAreaMaintenance\(object oArea\)'
   'void NpcBhvrOnModuleLoad\(\)'
 )
 

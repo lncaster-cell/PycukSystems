@@ -51,9 +51,12 @@ const int NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS = 4;
 const int NPC_BHVR_TICK_DEFERRED_CAP = 16;
 const float NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC = 1.0;
 const float NPC_BHVR_AREA_TICK_INTERVAL_PAUSED_WATCHDOG_SEC = 30.0;
+const float NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC = 60.0;
 
 const string NPC_BHVR_VAR_AREA_STATE = "npc_area_state";
 const string NPC_BHVR_VAR_AREA_TIMER_RUNNING = "npc_area_timer_running";
+const string NPC_BHVR_VAR_MAINT_TIMER_RUNNING = "npc_area_maint_timer_running";
+const string NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG = "npc_area_maint_self_heal";
 const string NPC_BHVR_VAR_QUEUE_DEPTH = "npc_queue_depth";
 const string NPC_BHVR_VAR_QUEUE_PENDING_TOTAL = "npc_queue_pending_total";
 const string NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL = "npc_queue_deferred_total";
@@ -93,7 +96,7 @@ const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 // Актуальный публичный набор внутренних helper-функций деградации/очереди:
 // NpcBhvrRecordDegradationEvent, NpcBhvrQueueDropTailFromPriority,
 // NpcBhvrQueueApplyOverflowGuardrail, NpcBhvrQueueCountDeferred,
-// NpcBhvrQueueGetDeferredTotalReconciled, NpcBhvrQueueTrimDeferredOverflow.
+// NpcBhvrQueueGetDeferredTotalReconciledOnDemand, NpcBhvrQueueTrimDeferredOverflow.
 string NpcBhvrQueueDepthKey(int nPriority);
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
 int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
@@ -120,8 +123,12 @@ int NpcBhvrQueueCountDeferred(object oArea);
 int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount);
 int NpcBhvrQueueGetDeferredTotal(object oArea);
 void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal);
-int NpcBhvrQueueGetDeferredTotalReconciled(object oArea);
+int NpcBhvrQueueDeferredLooksDesynced(object oArea);
+int NpcBhvrQueueGetDeferredTotalReconciledOnDemand(object oArea);
+int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal);
 void NpcBhvrPendingSetStatusTracked(object oArea, object oNpc, int nStatus);
+void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec);
+void NpcBhvrOnAreaMaintenance(object oArea);
 
 int NpcBhvrPendingIsActive(object oNpc);
 void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus);
@@ -886,6 +893,7 @@ void NpcBhvrQueueClear(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, 0);
     SetLocalInt(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
     NpcBhvrQueueSyncTotals(oArea);
 }
 
@@ -933,6 +941,9 @@ void NpcBhvrAreaActivate(object oArea)
         SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, TRUE);
         DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
     }
+
+    NpcBhvrOnAreaMaintenance(oArea);
+    NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
 void NpcBhvrAreaPause(object oArea)
@@ -944,6 +955,8 @@ void NpcBhvrAreaPause(object oArea)
 
     // Pause only toggles lifecycle state; queue/pending counters remain untouched.
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_PAUSED);
+    NpcBhvrOnAreaMaintenance(oArea);
+    NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
 void NpcBhvrAreaStop(object oArea)
@@ -953,7 +966,9 @@ void NpcBhvrAreaStop(object oArea)
         return;
     }
 
+    NpcBhvrOnAreaMaintenance(oArea);
     NpcBhvrAreaSetState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
     NpcBhvrAreaRouteCacheInvalidate(oArea);
     NpcBhvrQueueClear(oArea);
 }
@@ -1216,31 +1231,46 @@ int NpcBhvrQueueCountDeferred(object oArea)
     return nCount;
 }
 
-int NpcBhvrQueueGetDeferredTotalReconciled(object oArea)
+int NpcBhvrQueueDeferredLooksDesynced(object oArea)
 {
     int nDeferredCount;
-    int nDeferredActual;
+    int nPendingTotal;
 
     nDeferredCount = NpcBhvrQueueGetDeferredTotal(oArea);
-    if (nDeferredCount > GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL))
-    {
-        nDeferredActual = NpcBhvrQueueCountDeferred(oArea);
-        NpcBhvrQueueSetDeferredTotal(oArea, nDeferredActual);
-        return nDeferredActual;
-    }
+    nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
 
-    // Guardrail reconcile: periodic scan to repair rare edge-case desync paths.
-    if (NpcBhvrPendingNow() % 30 == 0)
+    return nDeferredCount < 0 || nDeferredCount > nPendingTotal;
+}
+
+int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal)
+{
+    int nDeferredActual;
+    int nDeferredBefore;
+
+    nDeferredBefore = NpcBhvrQueueGetDeferredTotal(oArea);
+    nDeferredActual = NpcBhvrQueueCountDeferred(oArea);
+    if (nDeferredActual != nDeferredBefore)
     {
-        nDeferredActual = NpcBhvrQueueCountDeferred(oArea);
-        if (nDeferredActual != nDeferredCount)
+        if (bMarkSelfHeal)
         {
-            NpcBhvrQueueSetDeferredTotal(oArea, nDeferredActual);
-            return nDeferredActual;
+            SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, TRUE);
+            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_MAINT_SELF_HEAL_COUNT);
         }
+
+        NpcBhvrQueueSetDeferredTotal(oArea, nDeferredActual);
     }
 
-    return nDeferredCount;
+    return nDeferredActual;
+}
+
+int NpcBhvrQueueGetDeferredTotalReconciledOnDemand(object oArea)
+{
+    if (NpcBhvrQueueDeferredLooksDesynced(oArea))
+    {
+        return NpcBhvrQueueReconcileDeferredTotal(oArea, FALSE);
+    }
+
+    return NpcBhvrQueueGetDeferredTotal(oArea);
 }
 
 int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
@@ -1635,6 +1665,7 @@ void NpcBhvrOnAreaTick(object oArea)
     if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
     {
         SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
+        SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
         return;
     }
 
@@ -1740,7 +1771,8 @@ void NpcBhvrOnAreaTick(object oArea)
             SetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, NPC_BHVR_DEGRADATION_REASON_NONE);
         }
 
-        nDeferredCount = NpcBhvrQueueGetDeferredTotalReconciled(oArea);
+        // Lightweight guard only: full deferred reconcile moved to maintenance entrypoint.
+        nDeferredCount = NpcBhvrQueueGetDeferredTotalReconciledOnDemand(oArea);
         if (nDeferredCount > NPC_BHVR_TICK_DEFERRED_CAP)
         {
             nDeferredOverflow = nDeferredCount - NPC_BHVR_TICK_DEFERRED_CAP;
@@ -1803,6 +1835,44 @@ void NpcBhvrOnAreaTick(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
 }
 
+void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec)
+{
+    if (!GetIsObjectValid(oArea) || fDelaySec <= 0.0)
+    {
+        return;
+    }
+
+    if (GetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING) == TRUE)
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, TRUE);
+    DelayCommand(fDelaySec, ExecuteScript("npc_area_maintenance", oArea));
+}
+
+void NpcBhvrOnAreaMaintenance(object oArea)
+{
+    int nAreaState;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
+
+    nAreaState = NpcBhvrAreaGetState(oArea);
+    if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
+    {
+        return;
+    }
+
+    NpcBhvrQueueReconcileDeferredTotal(oArea, TRUE);
+    NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
+}
+
 void NpcBhvrBootstrapModuleAreas()
 {
     object oArea;
@@ -1815,6 +1885,10 @@ void NpcBhvrBootstrapModuleAreas()
         if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_STATE) == NPC_BHVR_AREA_STATE_RUNNING)
         {
             NpcBhvrAreaActivate(oArea);
+        }
+        else if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_STATE) == NPC_BHVR_AREA_STATE_PAUSED)
+        {
+            NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
         }
         oArea = GetNextArea();
     }
