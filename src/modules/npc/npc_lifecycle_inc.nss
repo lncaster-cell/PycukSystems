@@ -189,7 +189,18 @@ void NpcBhvrOnAreaTickImpl(object oArea)
 
         // Idle budget is adaptive: under queue pressure we throttle registry idle fan-out,
         // and when queue normalizes it automatically returns to base value.
-        NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NpcBhvrTickResolveIdleBudget(oArea, nPendingBefore));
+        // Idle broadcast gate: skip fan-out when queue already has pending work.
+        if (nPendingBefore <= 0)
+        {
+            NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NpcBhvrTickResolveIdleBudget(oArea, nPendingBefore));
+        }
+        else
+        {
+            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_IDLE_SKIPPED_QUEUE_PRESSURE_TOTAL);
+            // Keep idle per-tick snapshots consistent when idle fan-out is gated.
+            NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK, 0);
+            NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_REMAINING, 0);
+        }
 
         NpcBhvrTickPrepareBudgets(oArea);
         nMaxEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS);

@@ -92,9 +92,10 @@
 
 ### Контракт idle broadcast
 
-- На каждом `RUNNING` area-tick при `queue_pending_total == 0` выполняется registry-wide idle broadcast (`NpcBhvrRegistryBroadcastIdleTick`).
+- На каждом `RUNNING` area-tick idle fan-out запускается только при `queue_pending_total <= 0`: вызывается budgeted broadcast (`NpcBhvrRegistryBroadcastIdleTickBudgeted`) с бюджетом из `NpcBhvrTickResolveIdleBudget`.
 - Idle broadcast обходит только валидных NPC текущей области и вызывает `NpcBhvrActivityOnIdleTick` для поддержания фонового поведения в отсутствие событий очереди.
-- Если pending-очередь не пуста, idle broadcast в этом тике не выполняется: бюджет полностью резервируется под drain очереди и не конкурирует с event processing.
+- Если pending-очередь не пуста, idle broadcast в этом тике пропускается (gate по queue pressure): бюджет полностью резервируется под drain очереди и не конкурирует с event processing.
+- При срабатывании gate инкрементируется метрика `npc_metric_idle_skipped_queue_pressure_total`, а per-tick снимки idle (`npc_metric_idle_processed_per_tick`, `npc_metric_idle_remaining`) принудительно выставляются в `0`, чтобы не переносить значения с предыдущего тика.
 
 ## 3. Fairness между областями и hot-area streak
 
