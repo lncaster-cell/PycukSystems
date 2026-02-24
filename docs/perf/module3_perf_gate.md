@@ -116,10 +116,11 @@
 - за тик обрабатывается не более `module3_tick_max_events` событий (`processed_total` растёт bounded-инкрементом);
 - tick-loop прекращает обработку при достижении soft-бюджета `module3_tick_soft_budget_ms` **или** event budget;
 - при наличии хвоста после budget cutoff включается degraded-mode и растут `tick_budget_exceeded_total` и `degraded_mode_total`;
+- `tick_budget_exceeded_total` и `degraded_mode_total` синхронно увеличиваются только при budget cutoff с ненулевым хвостом pending;
 - `queue_deferred_count` растёт только когда есть хвост после budget cutoff;
-- backlog-age surrogate `pending_age_ms` увеличивается, пока есть pending, и перестаёт расти после drain.
+- backlog-age surrogate `pending_age_ms` (pending * 1000 ms per tick) увеличивается, пока есть pending, и перестаёт расти после drain.
 
 ### Gate
 
-- **PASS:** budget-ограничение соблюдается, деградация наблюдаема, хвост очереди дренируется в последующих тиках без reordering.
+- **PASS:** budget-ограничение соблюдается по обоим лимитам (`max events per tick` и `soft time budget`), деградация наблюдаема, хвост очереди дренируется в последующих тиках без reordering.
 - **FAIL:** tick обрабатывает сверх budget, либо нет явной телеметрии budget/degraded-path.

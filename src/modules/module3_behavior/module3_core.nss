@@ -45,6 +45,8 @@ const string MODULE3_VAR_TICK_MAX_EVENTS = "module3_tick_max_events";
 const string MODULE3_VAR_TICK_SOFT_BUDGET_MS = "module3_tick_soft_budget_ms";
 const string MODULE3_VAR_TICK_DEGRADED_MODE = "module3_tick_degraded_mode";
 const string MODULE3_VAR_TICK_DEGRADED_STREAK = "module3_tick_degraded_streak";
+const string MODULE3_VAR_TICK_DEGRADED_TOTAL = "module3_tick_degraded_total";
+const string MODULE3_VAR_TICK_BUDGET_EXCEEDED_TOTAL = "module3_tick_budget_exceeded_total";
 const string MODULE3_VAR_TICK_PROCESSED = "module3_tick_processed";
 const string MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS = "module3_queue_backlog_age_ticks";
 
@@ -804,6 +806,7 @@ void Module3OnAreaTick(object oArea)
     int nEventBudgetReached;
     int nSoftBudgetReached;
     int nBacklogAgeTicks;
+    int nPendingBefore;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -818,6 +821,7 @@ void Module3OnAreaTick(object oArea)
 
     if (Module3AreaGetState(oArea) == MODULE3_AREA_STATE_RUNNING)
     {
+        nPendingBefore = GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL);
         nMaxEvents = Module3GetTickMaxEvents(oArea);
         if (nMaxEvents > MODULE3_TICK_MAX_EVENTS_HARD_CAP)
         {
@@ -859,19 +863,22 @@ void Module3OnAreaTick(object oArea)
         nProcessedThisTick = nSpentEvents;
 
         SetLocalInt(oArea, MODULE3_VAR_TICK_PROCESSED, nProcessedThisTick);
+        Module3MetricAdd(oArea, MODULE3_METRIC_PROCESSED_TOTAL, nProcessedThisTick);
         nPendingAfter = GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL);
 
-        nBudgetExceeded = (nSoftBudgetReached || nEventBudgetReached) && nPendingAfter > 0;
+        // Deterministic tail-carryover: unprocessed queue head remains in-order and is drained on next ticks.
+        nBudgetExceeded = (nSoftBudgetReached || nEventBudgetReached) && nPendingBefore > nProcessedThisTick && nPendingAfter > 0;
         SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
 
         if (nBudgetExceeded)
         {
-            // Очередь FIFO по приоритетам уже детерминирована: хвост переносится на следующий тик без reordering.
             Module3MetricInc(oArea, MODULE3_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
             Module3MetricInc(oArea, MODULE3_METRIC_DEGRADED_MODE_TOTAL);
             Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
             Module3QueueMarkDeferredHead(oArea);
             SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_STREAK) + 1);
+            SetLocalInt(oArea, MODULE3_VAR_TICK_BUDGET_EXCEEDED_TOTAL, GetLocalInt(oArea, MODULE3_VAR_TICK_BUDGET_EXCEEDED_TOTAL) + 1);
+            SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_TOTAL, GetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_TOTAL) + 1);
         }
         else
         {
@@ -882,7 +889,7 @@ void Module3OnAreaTick(object oArea)
         {
             nBacklogAgeTicks = GetLocalInt(oArea, MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS) + 1;
             SetLocalInt(oArea, MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS, nBacklogAgeTicks);
-            Module3MetricAdd(oArea, MODULE3_METRIC_PENDING_AGE_MS, 1000);
+            Module3MetricAdd(oArea, MODULE3_METRIC_PENDING_AGE_MS, nPendingAfter * 1000);
         }
         else
         {
