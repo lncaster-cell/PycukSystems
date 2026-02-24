@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyze Module 3 baseline CSV and validate gate metrics."""
+"""Analyze NPC Bhvr baseline CSV and validate gate metrics."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ REQUIRED_COLUMNS = [
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True, help="Path to Module 3 baseline CSV")
+    parser.add_argument("--input", required=True, help="Path to NPC Bhvr baseline CSV")
     parser.add_argument("--latency-p95-max", type=float, default=20.0)
     parser.add_argument("--latency-p99-max", type=float, default=25.0)
     parser.add_argument("--queue-p95-max", type=float, default=64.0)
@@ -161,7 +161,7 @@ def main() -> int:
             print(f"[FAIL] {failure}")
         return 1
 
-    print("[OK] Module 3 gate checks passed")
+    print("[OK] NPC Bhvr gate checks passed")
     return 0
 
 

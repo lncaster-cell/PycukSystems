@@ -1,9 +1,9 @@
 # Tasks
 
-## Module 3 Preparation (execution backlog)
+## NPC Bhvr Preparation (execution backlog)
 
 ### Phase A — Runtime foundation
-- [x] A1. Создать `src/modules/module3_behavior/` и базовые файлы (`module3_core.nss`, `module3_metrics_inc.nss`, `module3_activity_inc.nss`, `README.md`).
+- [x] A1. Создать `src/modules/npc_bhvr/` и базовые файлы (`npc_bhvr_core.nss`, `npc_bhvr_metrics_inc.nss`, `npc_bhvr_activity_inc.nss`, `README.md`).
   - **DoD:** есть thin-entrypoint контракт, namespace изолирован от `npc_behavior`/`al_`.
 - [x] A2. Реализовать lifecycle `RUNNING/PAUSED/STOPPED` + auto-start/idle-stop.
   - **DoD:** pause/resume/stop не ломают queue depth и pending counters.
@@ -11,17 +11,17 @@
   - **DoD:** есть starvation guard и CRITICAL bypass.
 
 ### Phase B — AL activity adaptation
-- [ ] B1. Портировать AL activity primitives в `module3_activity_inc.nss` через адаптеры.
+- [ ] B1. Портировать AL activity primitives в `npc_bhvr_activity_inc.nss` через адаптеры.
   - **DoD:** slot/route активности работают без legacy keyspace drift.
 - [ ] B2. Добавить dense area-registry helper (swap-remove, массовые сигналы).
   - **DoD:** переполнение реестра диагностируется метрикой/логом.
 
 ### Phase C — Metrics and perf gate
-- [ ] C1. Ввести единый metrics API (`module3_metrics_inc.nss`).
+- [ ] C1. Ввести единый metrics API (`npc_bhvr_metrics_inc.nss`).
   - **DoD:** entrypoints не используют прямые `SetLocalInt` для метрик.
-- [ ] C2. Подготовить `docs/perf/module3_perf_gate.md` + фикстуры `docs/perf/fixtures/module3/`.
+- [ ] C2. Подготовить `docs/perf/npc_bhvr_perf_gate.md` + фикстуры `docs/perf/fixtures/npc_bhvr/`.
   - **DoD:** минимум 3 сценария и формальные pass/fail пороги.
-- [ ] C3. Добавить `scripts/test_module3_fairness.sh` и подключить starvation/pause-zero/post-resume проверки.
+- [ ] C3. Добавить `scripts/test_npc_bhvr_fairness.sh` и подключить starvation/pause-zero/post-resume проверки.
   - **DoD:** один скрипт self-check с non-zero при нарушениях.
 
 ### Dependencies / order

@@ -1,10 +1,10 @@
-# Module 3 perf plan: gate-метрики baseline
+# NPC Bhvr perf plan: gate-метрики baseline
 
-Документ описывает минимальный baseline-gate для Module 3 и формат измерений перед интеграцией в CI.
+Документ описывает минимальный baseline-gate для NPC Bhvr и формат измерений перед интеграцией в CI.
 
 ## Scope
 
-- Контур: area-tick loop Module 3 под нагрузкой (steady, burst, starvation-risk).
+- Контур: area-tick loop NPC Bhvr под нагрузкой (steady, burst, starvation-risk).
 - Окно baseline: минимум 3 запуска на каждый сценарий.
 - Источник данных: CSV telemetry с tick-уровнем.
 
@@ -45,20 +45,20 @@
 
 ## Fixture-профили
 
-- `docs/perf/fixtures/module3/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
-- `docs/perf/fixtures/module3/burst.csv` — кратковременные всплески очереди и латентности.
-- `docs/perf/fixtures/module3/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
+- `docs/perf/fixtures/npc_bhvr/steady.csv` — стабильная нагрузка без overflow, с минимальным deferred.
+- `docs/perf/fixtures/npc_bhvr/burst.csv` — кратковременные всплески очереди и латентности.
+- `docs/perf/fixtures/npc_bhvr/starvation_risk.csv` — стресс-профиль с высоким queue depth и риском budget overrun.
 
 ## Локальный запуск
 
 ```bash
-bash scripts/run_module3_bench.sh steady
-python3 scripts/analyze_module3_fairness.py \
-  --input docs/perf/fixtures/module3/steady.csv
+bash scripts/run_npc_bhvr_bench.sh steady
+python3 scripts/analyze_npc_bhvr_fairness.py \
+  --input docs/perf/fixtures/npc_bhvr/steady.csv
 ```
 
 Для регрессии удобно прогонять все три fixture-файла и сверять итоговый pass/fail по gate-метрикам.
 
 ## Audit-derived guardrails
 
-Детальные сценарии по ограничениям из AL-аудита вынесены в `docs/perf/module3_perf_gate.md` и входят в release-gate Module 3.
+Детальные сценарии по ограничениям из AL-аудита вынесены в `docs/perf/npc_bhvr_perf_gate.md` и входят в release-gate NPC Bhvr.
