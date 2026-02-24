@@ -305,14 +305,15 @@ void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta)
 {
     int nTotal;
 
+    // Hot-path optimization for enqueue/dequeue: avoid redundant local writes.
     nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH) + nDelta;
     if (nTotal < 0)
     {
         nTotal = 0;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
 }
 
 void NpcBhvrQueueSyncTotals(object oArea)
@@ -379,8 +380,8 @@ void NpcBhvrQueueClear(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
     NpcBhvrRegistryResetIdleCursor(oArea);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, 0);
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, 0);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, 0);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, 0);
 }
 
 
