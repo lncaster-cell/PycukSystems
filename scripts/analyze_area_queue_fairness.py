@@ -77,6 +77,7 @@ def main() -> int:
     try:
         with path.open("r", encoding="utf-8", newline="") as f:
             reader = csv.DictReader(f)
+            fieldnames = set(reader.fieldnames or [])
             rows = list(reader)
     except (OSError, UnicodeDecodeError) as exc:
         print(f"[FAIL] failed to read csv input: {path} ({exc})")
@@ -87,10 +88,16 @@ def main() -> int:
         return 2
 
     required_columns = ["tick", *[BUCKET_COLUMN[b] for b in buckets]]
-    missing = [column for column in required_columns if column not in reader.fieldnames]
+    missing = [column for column in required_columns if column not in fieldnames]
     if missing:
         print(f"[FAIL] csv missing required columns: {', '.join(missing)}")
         return 2
+
+    pause_zero_columns = [
+        column
+        for column in ("processed_low", "processed_normal", "processed_high", "processed_critical")
+        if column in fieldnames
+    ]
 
     streak = {b: 0 for b in buckets}
     worst = {b: 0 for b in buckets}
@@ -108,7 +115,7 @@ def main() -> int:
 
         numeric_columns = {"tick", *[BUCKET_COLUMN[b] for b in buckets]}
         if args.enforce_pause_zero:
-            numeric_columns.update({"processed_low", "processed_normal", "processed_high", "processed_critical"})
+            numeric_columns.update(pause_zero_columns)
 
         parsed_numbers: dict[str, int] = {}
         for column in numeric_columns:
@@ -126,7 +133,7 @@ def main() -> int:
 
         if state == "PAUSED" and args.enforce_pause_zero:
             row_has_processing = False
-            for col in ("processed_low", "processed_normal", "processed_high", "processed_critical"):
+            for col in pause_zero_columns:
                 if parsed_numbers.get(col, 0) > 0:
                     row_has_processing = True
                     break
