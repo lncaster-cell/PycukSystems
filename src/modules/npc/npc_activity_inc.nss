@@ -124,6 +124,10 @@ string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetri
 
 #include "npc_activity_migration_inc"
 
+#include "npc_activity_route_resolution_inc"
+#include "npc_activity_schedule_inc"
+#include "npc_activity_state_apply_inc"
+
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
 {
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
@@ -208,84 +212,6 @@ int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
     return nHour >= nStart || nHour < nEnd;
 }
 
-int NpcBhvrActivityTryResolveScheduledSlot(object oNpc, int nHour, string sSlot)
-{
-    int nStart;
-    int nEnd;
-    int bStartPresent;
-    int bEndPresent;
-
-    bStartPresent = GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(sSlot)) != "";
-    bEndPresent = GetLocalString(oNpc, NpcBhvrActivityScheduleEndKey(sSlot)) != "";
-
-    if (!bStartPresent || !bEndPresent)
-    {
-        if (bStartPresent != bEndPresent)
-        {
-            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL);
-        }
-        return FALSE;
-    }
-
-    nStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(sSlot));
-    nEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(sSlot));
-
-    if (!NpcBhvrActivityIsHourInWindow(nHour, nStart, nEnd))
-    {
-        if (nStart < 0 || nStart > 23 || nEnd < 0 || nEnd > 23 || nStart == nEnd)
-        {
-            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL);
-        }
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurrentSlot, int bEnabled, int nHour)
-{
-    if (!GetIsObjectValid(oNpc))
-    {
-        return sCurrentSlot;
-    }
-
-    if (!bEnabled)
-    {
-        return sCurrentSlot;
-    }
-
-    if (NpcBhvrActivityTryResolveScheduledSlot(oNpc, nHour, NPC_BHVR_ACTIVITY_SLOT_CRITICAL))
-    {
-        return NPC_BHVR_ACTIVITY_SLOT_CRITICAL;
-    }
-
-    if (NpcBhvrActivityTryResolveScheduledSlot(oNpc, nHour, NPC_BHVR_ACTIVITY_SLOT_PRIORITY))
-    {
-        return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
-    }
-
-    return NPC_BHVR_ACTIVITY_SLOT_DEFAULT;
-}
-
-string NpcBhvrActivityResolveScheduledSlot(object oNpc, string sCurrentSlot)
-{
-    object oArea;
-    int nHour;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return sCurrentSlot;
-    }
-
-    oArea = GetArea(oNpc);
-    nHour = GetTimeHour();
-    return NpcBhvrActivityResolveScheduledSlotForContext(
-        oNpc,
-        sCurrentSlot,
-        NpcBhvrActivityIsScheduleEnabled(oNpc, oArea),
-        nHour
-    );
-}
 
 string NpcBhvrActivityComposePrecheckStamp(int nResolvedHour, string sAreaTag, string sRouteConfiguredRaw, string sSlotRaw, int bScheduleEnabled)
 {
@@ -380,98 +306,6 @@ int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLe
     return TRUE;
 }
 
-string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
-{
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
-    {
-        return NPC_BHVR_ACTIVITY_ROUTE_PRIORITY;
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
-    {
-        return NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
-    }
-
-    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
-}
-
-string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope)
-{
-    if (sRouteId == "")
-    {
-        return "";
-    }
-
-    if (!NpcBhvrActivityIsValidIdentifierValue(
-        sRouteId,
-        NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN,
-        NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN
-    ))
-    {
-        NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
-        return "";
-    }
-
-    if (!NpcBhvrActivityIsSupportedRoute(sRouteId))
-    {
-        NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
-        return "";
-    }
-
-    return NpcBhvrActivityAdapterNormalizeRoute(sRouteId);
-}
-
-string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
-{
-    object oArea;
-    string sRoute;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return NpcBhvrActivityAdapterNormalizeRoute("");
-    }
-
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
-        oNpc
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
-        oNpc
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
-        oNpc
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return NpcBhvrActivityAdapterNormalizeRoute("");
-    }
-
-    sRoute = NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot);
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    return NpcBhvrActivityAdapterNormalizeRoute("");
-}
 
 int NpcBhvrActivityAdapterWasSlotFallback(string sSlot)
 {
@@ -623,37 +457,6 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
     return NpcBhvrActivityNormalizeRouteTagOrDefault("", oNpc);
 }
 
-string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope)
-{
-    string sNormalized;
-
-    sNormalized = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(sRouteId, oMetricScope);
-    if (sNormalized != "")
-    {
-        return sNormalized;
-    }
-
-    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
-}
-
-string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope)
-{
-    if (NpcBhvrActivityIsValidIdentifierValue(
-        sRouteTag,
-        NPC_BHVR_ACTIVITY_ROUTE_TAG_MIN_LEN,
-        NPC_BHVR_ACTIVITY_ROUTE_TAG_MAX_LEN
-    ))
-    {
-        return sRouteTag;
-    }
-
-    if (oMetricScope != OBJECT_INVALID)
-    {
-        NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
-    }
-
-    return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
-}
 
 int NpcBhvrActivityNormalizeWaypointIndex(int nIndex, int nCount, int bLoop)
 {
@@ -922,50 +725,6 @@ int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
     return 0;
 }
 
-string NpcBhvrActivityResolveAction(object oNpc, string sSlot, string sRouteId, int nWpIndex, int nWpCount)
-{
-    string sEmote;
-
-    if (!GetIsObjectValid(oNpc))
-    {
-        return "idle";
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE || sSlot == NPC_BHVR_ACTIVITY_SLOT_CRITICAL)
-    {
-        return "guard_hold";
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY || sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY)
-    {
-        if (nWpCount > 0)
-        {
-            if ((nWpIndex % 2) == 0)
-            {
-                return "patrol_move";
-            }
-
-            return "patrol_scan";
-        }
-
-        return "patrol_ready";
-    }
-
-    sEmote = NpcBhvrActivityResolveSlotEmote(oNpc, sSlot);
-    if (sEmote != "")
-    {
-        return "ambient_" + sEmote;
-    }
-
-    return "ambient_idle";
-}
-
-void NpcBhvrActivityAdapterStampTransition(object oNpc, string sState)
-{
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE, sState);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST, sState);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST_TS, GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond());
-}
 
 int NpcBhvrActivityAdapterIsCriticalSafe(string sSlot, int nRouteHint)
 {
@@ -977,51 +736,6 @@ int NpcBhvrActivityAdapterIsPriority(string sSlot, int nRouteHint)
     return sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY || nRouteHint == NPC_BHVR_ACTIVITY_HINT_PATROL;
 }
 
-void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseState, int nCooldown)
-{
-    int nWpCount;
-    int bLoop;
-    int nWpIndex;
-    int nPauseTicks;
-    int nActivityId;
-    string sRouteTag;
-    string sState;
-    string sSlot;
-    string sEmote;
-    string sAction;
-    string sCustomAnims;
-    string sNumericAnims;
-    string sWaypointRequirement;
-
-    nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRouteId);
-    bLoop = NpcBhvrActivityResolveRouteLoop(oNpc, sRouteId);
-    nWpIndex = NpcBhvrActivityNormalizeWaypointIndex(GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX), nWpCount, bLoop);
-    nPauseTicks = NpcBhvrActivityResolveRoutePauseTicks(oNpc, sRouteId);
-    nActivityId = NpcBhvrActivityResolveRoutePointActivity(oNpc, sRouteId, nWpIndex);
-    sRouteTag = NpcBhvrActivityResolveRouteTag(oNpc, sRouteId);
-    sState = NpcBhvrActivityComposeWaypointState(sBaseState, sRouteTag, nWpIndex, nWpCount);
-    sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
-    sEmote = NpcBhvrActivityResolveSlotEmote(oNpc, sSlot);
-    sAction = NpcBhvrActivityResolveAction(oNpc, sSlot, sRouteId, nWpIndex, nWpCount);
-    sCustomAnims = NpcBhvrActivityGetCustomAnims(nActivityId);
-    sNumericAnims = NpcBhvrActivityGetNumericAnims(nActivityId);
-    sWaypointRequirement = NpcBhvrActivityGetWaypointTagRequirement(nActivityId);
-
-    NpcBhvrActivityAdapterStampTransition(oNpc, sState);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown + nPauseTicks);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bLoop);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex(nWpIndex + 1, nWpCount, bLoop));
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_WAYPOINT_TAG, sWaypointRequirement);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner(nActivityId));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair(nActivityId));
-}
 
 void NpcBhvrActivityApplyCriticalSafeRoute(object oNpc)
 {

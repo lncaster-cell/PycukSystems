@@ -97,71 +97,7 @@ const string NPC_BHVR_VAR_PENDING_REASON = "npc_pending_reason";
 const string NPC_BHVR_VAR_PENDING_STATUS = "npc_pending_status";
 const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 
-// Internal helper API (forward declarations).
-// Актуальный публичный набор внутренних helper-функций деградации/очереди:
-// NpcBhvrRecordDegradationEvent, NpcBhvrQueueDropTailFromPriority,
-// NpcBhvrQueueApplyOverflowGuardrail, NpcBhvrQueueCountDeferred,
-// NpcBhvrQueueGetDeferredTotalReconciledOnDemand, NpcBhvrQueueTrimDeferredOverflow.
-string NpcBhvrQueueDepthKey(int nPriority);
-string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
-string NpcBhvrQueueIndexKey(string sNpcKey);
-int NpcBhvrQueueIndexPriority(object oArea, object oSubject);
-int NpcBhvrQueueIndexPosition(object oArea, object oSubject);
-void NpcBhvrQueueIndexClear(object oArea, object oSubject);
-void NpcBhvrQueueIndexSet(object oArea, object oSubject, int nPriority, int nIndex);
-int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
-void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
-void NpcBhvrQueueSyncTotals(object oArea);
-int NpcBhvrQueuePackLocation(int nPriority, int nIndex);
-void NpcBhvrQueueApplyDepthAndTotals(object oArea, int nPriority, int nDepth);
-int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority);
-object NpcBhvrQueueSwapTailSubject(object oArea, int nPriority, int nIndex, int bClearRemovedIndex);
-int NpcBhvrQueueFindSubjectByPointChecks(object oArea, object oSubject, int nPriorityHint, int nPositionHint);
-int NpcBhvrQueueTryResolveIndexedSubject(object oArea, object oSubject);
-int NpcBhvrQueueFindSubjectSlowPath(object oArea, object oSubject);
-int NpcBhvrQueueCoalesceSubject(object oArea, object oSubject, int nFoundPriority, int nFoundIndex, int nRequestedPriority, int nReasonCode, int bWasPendingActive);
-string NpcBhvrRegistrySlotKey(int nIndex);
-string NpcBhvrRegistryIndexKey(object oNpc);
-string NpcBhvrRegistryLegacyIndexKey(object oNpc);
-int NpcBhvrRegistryGetIndex(object oArea, object oNpc);
-string NpcBhvrPendingLegacySubjectTag(object oSubject);
-string NpcBhvrPendingSubjectTag(object oSubject);
-string NpcBhvrPendingPriorityLegacyKey(string sNpcKey);
-string NpcBhvrPendingReasonCodeLegacyKey(string sNpcKey);
-string NpcBhvrPendingStatusLegacyKey(string sNpcKey);
-string NpcBhvrPendingUpdatedAtLegacyKey(string sNpcKey);
-void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcKey);
-int NpcBhvrRegistryInsert(object oArea, object oNpc);
-int NpcBhvrRegistryRemove(object oArea, object oNpc);
-void NpcBhvrRegistryBroadcastIdleTick(object oArea);
-void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick);
-void NpcBhvrRegistryResetIdleCursor(object oArea);
-void NpcBhvrRegistryClampIdleCursor(object oArea, int nCount);
-void NpcBhvrRecordDegradationEvent(object oArea, int nReason);
-int NpcBhvrQueueDropTailFromPriority(object oArea, int nPriority);
-object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex);
-int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
-int NpcBhvrQueueCountDeferred(object oArea);
-int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount);
-int NpcBhvrQueueGetDeferredTotal(object oArea);
-void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal);
-int NpcBhvrQueueDeferredLooksDesynced(object oArea);
-int NpcBhvrQueueGetDeferredTotalReconciledOnDemand(object oArea);
-int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal);
-void NpcBhvrPendingNpcTouchAt(object oNpc, int nNow);
-void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow);
-void NpcBhvrPendingSetStatusTracked(object oArea, object oNpc, int nStatus);
-void NpcBhvrPendingSetStatusTrackedAt(object oArea, object oNpc, int nStatus, int nNow);
-void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec);
-void NpcBhvrOnAreaMaintenance(object oArea);
-
-int NpcBhvrPendingIsActive(object oNpc);
-void NpcBhvrPendingSet(object oNpc, int nPriority, string sReason, int nStatus);
-void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow);
-void NpcBhvrPendingSetTracked(object oArea, object oNpc, int nPriority, string sReason, int nStatus);
-void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow);
-void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus);
-void NpcBhvrPendingAreaTouchAt(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus, int nNow);
+// Public API (forward declarations).
 int NpcBhvrAreaGetState(object oArea);
 int NpcBhvrAreaIsRunning(object oArea);
 void NpcBhvrAreaSetState(object oArea, int nState);
@@ -171,30 +107,6 @@ void NpcBhvrAreaStop(object oArea);
 int NpcBhvrCountPlayersInArea(object oArea);
 int NpcBhvrCountPlayersInAreaExcluding(object oArea, object oExclude);
 int NpcBhvrGetCachedPlayerCount(object oArea);
-void NpcBhvrOnSpawnImpl(object oNpc);
-void NpcBhvrOnPerceptionImpl(object oNpc);
-void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering);
-void NpcBhvrOnAreaExitImpl(object oArea, object oExiting);
-void NpcBhvrOnModuleLoadImpl();
-void NpcBhvrAreaRouteCacheWarmup(object oArea);
-void NpcBhvrAreaRouteCacheInvalidate(object oArea);
-int NpcBhvrGetTickMaxEvents(object oArea);
-void NpcBhvrSetTickMaxEvents(object oArea, int nValue);
-int NpcBhvrGetTickSoftBudgetMs(object oArea);
-void NpcBhvrSetTickSoftBudgetMs(object oArea, int nValue);
-void NpcBhvrApplyTickRuntimeConfig(object oArea);
-int NpcBhvrTickPackState(int nProcessed, int nPendingAfter, int nBudgetFlags);
-int NpcBhvrTickStateProcessed(int nTickState);
-int NpcBhvrTickStatePendingAfter(int nTickState);
-int NpcBhvrTickStateBudgetFlags(int nTickState);
-int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEvents, int nSoftBudgetMs, int nCarryoverEvents);
-int NpcBhvrTickApplyDegradationAndCarryover(object oArea, int nTickState);
-int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarryoverEvents);
-void NpcBhvrTickPrepareBudgets(object oArea);
-void NpcBhvrTickHandleBacklogTelemetry(object oArea, int nPendingAfter);
-void NpcBhvrTickHandleIdleStop(object oArea, int nPendingAfter);
-void NpcBhvrTickFlushWriteBehind();
-void NpcBhvrTickScheduleNext(object oArea);
 
 #include "npc_registry_inc"
 #include "npc_queue_inc"
