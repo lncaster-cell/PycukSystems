@@ -481,7 +481,7 @@ string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oM
         return "";
     }
 
-    return NpcBhvrActivityNormalizeRouteIdOrDefault(sRouteId, OBJECT_INVALID);
+    return NpcBhvrActivityAdapterNormalizeRoute(sRouteId);
 }
 
 string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
@@ -491,7 +491,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 
     if (!GetIsObjectValid(oNpc))
     {
-        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+        return NpcBhvrActivityAdapterNormalizeRoute("");
     }
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
@@ -524,7 +524,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
     oArea = GetArea(oNpc);
     if (!GetIsObjectValid(oArea))
     {
-        return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+        return NpcBhvrActivityAdapterNormalizeRoute("");
     }
 
     sRoute = NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot);
@@ -533,7 +533,7 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return sRoute;
     }
 
-    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+    return NpcBhvrActivityAdapterNormalizeRoute("");
 }
 
 int NpcBhvrActivityAdapterWasSlotFallback(string sSlot)
