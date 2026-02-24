@@ -169,12 +169,10 @@ void NpcBhvrOnAreaTickImpl(object oArea)
         // 3) deferred trim/reconcile.
         // Это удерживает OnAreaTick тонким и выносит тяжёлую логику в малые функции.
         nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
-        if (nPendingBefore <= 0)
-        {
-            // Idle broadcast runs only when queue is empty: keeps ambient NPC activity alive
-            // without competing with queued event processing budget.
-            NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT);
-        }
+
+        // Idle budget is adaptive: under queue pressure we throttle registry idle fan-out,
+        // and when queue normalizes it automatically returns to base value.
+        NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NpcBhvrTickResolveIdleBudget(oArea, nPendingBefore));
 
         NpcBhvrTickPrepareBudgets(oArea);
         nMaxEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS);
