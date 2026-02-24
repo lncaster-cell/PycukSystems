@@ -545,7 +545,7 @@ int NpcBhvrActivityAdapterWasSlotFallback(string sSlot)
 
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
 {
-    // AL-concept adapter: slot-group normalization in npc namespace.
+    // Adapter-layer: normalize slot-group semantics into npc namespace.
     if (sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY)
     {
         return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
@@ -559,25 +559,9 @@ string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
     return NPC_BHVR_ACTIVITY_SLOT_DEFAULT;
 }
 
-string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
-{
-    // AL-concept adapter: route-id normalization in npc namespace.
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
-    {
-        return NPC_BHVR_ACTIVITY_ROUTE_PRIORITY;
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
-    {
-        return NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
-    }
-
-    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
-}
-
 int NpcBhvrActivityMapRouteHint(string sRouteId)
 {
-    // Adapter mapping: npc_* profile -> AL-like activity semantics.
+    // Adapter-layer: map resolved npc route profile to runtime activity hint.
     if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
     {
         return NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE;
