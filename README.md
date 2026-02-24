@@ -22,6 +22,7 @@
 - Runtime-модуль: `src/modules/npc/README.md`
 - Исполняемый бэклог: `docs/npc_implementation_backlog.md`
 - Runtime orchestration контракт: `docs/npc_runtime_orchestration.md`
+- Полный аудит игрового поведения NPC: `docs/npc_behavior_audit.md`
 - Контракт activity-слоя: `docs/npc_activity_contract_checklist.md`
 - Персистентность: `docs/npc_persistence.md`
 - Perf-gate и baseline:
