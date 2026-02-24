@@ -1,20 +1,20 @@
 # NPC Bhvr Implementation Backlog
 
-Документ фиксирует **исполняемый** бэклог для старта третьего итогового модуля поведения NPC, который собирает лучшие runtime-паттерны из `tools/npc_behavior_system` и контентные примитивы из `tools/al_system`.
+Документ фиксирует **исполняемый** бэклог для старта третьего итогового модуля поведения NPC в active-контуре `src/modules/npc/*` с переносом нужных решений из legacy/reference `tools/*`.
 
 ---
 
 ## Source of truth
 
-- Runtime-контур текущей системы NPC: `tools/npc_behavior_system/`.
-- AL-материалы и activity-примитивы: `tools/al_system/`.
+- Active runtime-контур: `src/modules/npc/` (единственный source of truth для исполнения и backlog).
+- Legacy/reference источники для точечной миграции: `tools/npc_behavior_system/`, `tools/al_system/`.
 - Стратегическая матрица решений для NPC Bhvr: `docs/npc_al_vs_npc_behavior_matrix.md`.
 
 ---
 
 ## Phase A — Runtime Core (обязательно до feature-разработки)
 
-### Task A1 — Скелет NPC Bhvr в `tools/`
+### Task A1 — Скелет NPC Bhvr в `src/modules/npc/`
 - **Артефакты:**
   - `src/modules/npc/npc_core.nss`
   - `src/modules/npc/npc_metrics_inc.nss`
@@ -102,3 +102,26 @@
 - [ ] Подготовлен perf-gate документ и фикстуры.
 - [ ] Автоматизирован fairness/lifecycle self-check.
 - [ ] Обновлены ссылки в README и рабочих чеклистах на актуальные пути runtime.
+
+
+---
+
+## Phase D — Legacy cleanup (`tools/*`)
+
+### Task D1 — Cleanup readiness gate
+- **Артефакты:**
+  - `docs/npc_toolset_cleanup_report.md`
+  - `docs/npc_toolset_post_cleanup_validation.md`
+- **Definition of Done:**
+  - подтверждено отсутствие runtime hooks/include-зависимостей active-контура на `tools/*`;
+  - execution backlog не содержит открытых задач, требующих исполнения legacy-кода;
+  - parity/perf проверки пройдены относительно baseline на `src/modules/npc/*`.
+
+### Task D2 — Удаление legacy-каталогов
+- **Артефакты:**
+  - PR(ы) на удаление `tools/al_system/*`, `tools/npc_behavior_system/*` (или их части)
+  - migration notes в `docs/`
+- **Definition of Done:**
+  - удаляются только каталоги, для которых есть зафиксированная миграционная заметка (перенесено/отброшено);
+  - после удаления проходят контрактные проверки и perf-gate;
+  - в README остаётся однозначный статус: `tools/*` не active runtime.
