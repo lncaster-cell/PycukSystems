@@ -50,6 +50,12 @@ const string NPC_BHVR_ACTIVITY_SLOT_CRITICAL = "critical";
 const string NPC_BHVR_ACTIVITY_ROUTE_DEFAULT = "default_route";
 const string NPC_BHVR_ACTIVITY_ROUTE_PRIORITY = "priority_patrol";
 const string NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE = "critical_safe";
+const string NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT = "default";
+
+const int NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN = 1;
+const int NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN = 32;
+const int NPC_BHVR_ACTIVITY_ROUTE_TAG_MIN_LEN = 1;
+const int NPC_BHVR_ACTIVITY_ROUTE_TAG_MAX_LEN = 24;
 
 const int NPC_BHVR_ACTIVITY_HINT_IDLE = 1;
 const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
@@ -98,6 +104,12 @@ const int NPC_BHVR_ACTIVITY_ID_BARTENDER = 42;
 const int NPC_BHVR_ACTIVITY_ID_GUARD = 43;
 const int NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MIN = 91;
 const int NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MAX = 98;
+
+int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLen);
+string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
+string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
+string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope);
+string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
 
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
 {
@@ -457,6 +469,48 @@ int NpcBhvrActivityIsSupportedRoute(string sRouteId)
         || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
 }
 
+int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLen)
+{
+    int nLength;
+    int nIndex;
+    string sChar;
+
+    nLength = GetStringLength(sValue);
+    if (nLength < nMinLen || nLength > nMaxLen)
+    {
+        return FALSE;
+    }
+
+    nIndex = 0;
+    while (nIndex < nLength)
+    {
+        sChar = GetSubString(sValue, nIndex, 1);
+        if (FindSubString("abcdefghijklmnopqrstuvwxyz0123456789_", sChar) < 0)
+        {
+            return FALSE;
+        }
+
+        nIndex = nIndex + 1;
+    }
+
+    return TRUE;
+}
+
+string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
+{
+    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
+    {
+        return NPC_BHVR_ACTIVITY_ROUTE_PRIORITY;
+    }
+
+    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
+    {
+        return NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
+    }
+
+    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+}
+
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope)
 {
     if (sRouteId == "")
@@ -648,6 +702,7 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
 {
     object oArea;
     string sTag;
+    string sRouteIdNormalized;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -676,6 +731,38 @@ string NpcBhvrActivityResolveRouteTag(object oNpc, string sRouteId)
     }
 
     return NpcBhvrActivityNormalizeRouteTagOrDefault("", oNpc);
+}
+
+string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope)
+{
+    string sNormalized;
+
+    sNormalized = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(sRouteId, oMetricScope);
+    if (sNormalized != "")
+    {
+        return sNormalized;
+    }
+
+    return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
+}
+
+string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope)
+{
+    if (NpcBhvrActivityIsValidIdentifierValue(
+        sRouteTag,
+        NPC_BHVR_ACTIVITY_ROUTE_TAG_MIN_LEN,
+        NPC_BHVR_ACTIVITY_ROUTE_TAG_MAX_LEN
+    ))
+    {
+        return sRouteTag;
+    }
+
+    if (oMetricScope != OBJECT_INVALID)
+    {
+        NpcBhvrMetricInc(oMetricScope, NPC_BHVR_METRIC_ACTIVITY_INVALID_ROUTE_TOTAL);
+    }
+
+    return NPC_BHVR_ACTIVITY_ROUTE_TAG_DEFAULT;
 }
 
 int NpcBhvrActivityNormalizeWaypointIndex(int nIndex, int nCount, int bLoop)
