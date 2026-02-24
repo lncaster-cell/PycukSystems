@@ -1,4 +1,4 @@
-// NPC Bhvr: area tick dispatcher entrypoint (thin wrapper).
+// NPC behavior: area tick dispatcher entrypoint (thin wrapper).
 
 #include "npc_core"
 

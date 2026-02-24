@@ -1,4 +1,4 @@
-// NPC Bhvr: OnPerception entrypoint (thin wrapper).
+// NPC behavior: OnPerception entrypoint (thin wrapper).
 
 #include "npc_core"
 

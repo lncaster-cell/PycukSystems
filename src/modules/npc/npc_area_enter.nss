@@ -1,4 +1,4 @@
-// NPC Bhvr: area OnEnter entrypoint (thin wrapper).
+// NPC behavior: area OnEnter entrypoint (thin wrapper).
 
 #include "npc_core"
 

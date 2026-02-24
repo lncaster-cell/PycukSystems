@@ -1,4 +1,4 @@
-// NPC Bhvr: OnDialogue entrypoint (thin wrapper).
+// NPC behavior: OnDialogue entrypoint (thin wrapper).
 
 #include "npc_core"
 

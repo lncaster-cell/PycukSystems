@@ -1,4 +1,4 @@
-// NPC Bhvr: OnDeath entrypoint (thin wrapper).
+// NPC behavior: OnDeath entrypoint (thin wrapper).
 
 #include "npc_core"
 

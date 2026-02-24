@@ -1,4 +1,4 @@
-// NPC Bhvr: OnDamaged entrypoint (thin wrapper).
+// NPC behavior: OnDamaged entrypoint (thin wrapper).
 
 #include "npc_core"
 
