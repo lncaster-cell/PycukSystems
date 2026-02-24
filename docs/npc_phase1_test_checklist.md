@@ -9,6 +9,7 @@
 Используйте только актуальные runtime-пути для NPC Bhvr:
 - Runtime module: `src/modules/npc/*`
 - Runtime README: `src/modules/npc/README.md`
+- Hook map (canonical mapping): `src/modules/npc/README.md#карта-hook-скриптов-thin-entrypoints`
 - Backlog/readiness: `docs/npc_implementation_backlog.md`
 - Perf gate: `docs/perf/npc_perf_gate.md`
 
@@ -29,8 +30,9 @@
 **Минимальные команды:**
 ```bash
 rg --files src/modules/npc
-rg -n "void main\(" src/modules/npc/npc_behavior_*.nss
-rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|SpellCastAt|Heartbeat)|NpcBehaviorOnAreaTick" src/modules/npc
+rg -n "void main\(" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
+rg -n "NpcBhvrOn(Spawn|Perception|Damaged|Death|Dialogue|AreaEnter|AreaExit|ModuleLoad|AreaTick)" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
+! rg -n "SetLocal|GetLocal|DelayCommand|AssignCommand|Action|CreateObject|DestroyObject|ApplyEffect" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
 ```
 
 **Тип проверки:** **Blocking (merge gate)**.
@@ -48,8 +50,9 @@ rg -n "NpcBehaviorOn(Spawn|Perception|Damaged|Death|Dialogue|PhysicalAttacked|Sp
 
 **Минимальные команды:**
 ```bash
-rg -n "void main\(" src/modules/npc/npc_behavior_*.nss
-rg -n "npc_core|NpcBhvrOn|NpcBehaviorOn" src/modules/npc/npc_behavior_*.nss
+rg -n "void main\(" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
+rg -n "^\s*NpcBhvrOn(Spawn|Perception|Damaged|Death|Dialogue|AreaEnter|AreaExit|ModuleLoad|AreaTick)\(" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
+! rg -n "SetLocal|GetLocal|DelayCommand|AssignCommand|Action|CreateObject|DestroyObject|ApplyEffect" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
 rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" docs/design.md docs/npc_runtime_orchestration.md
 ```
 
@@ -89,8 +92,8 @@ rg -n "CRITICAL|HIGH|NORMAL|LOW|queue|coalesce|defer|tickProcessLimit|degraded" 
 **Минимальные команды (репрезентативный набор):**
 ```bash
 # 1) статическая проверка наличия On* и маршрутизации
-rg -n "OnSpawn|OnPerception|OnDamaged|OnDeath|OnDialogue" src/modules/npc
-rg -n "core|Dispatch|Route|Handle" src/modules/npc/npc_behavior_*.nss
+rg -n "NpcBhvrOn(Spawn|Perception|Damaged|Death|Dialogue|AreaEnter|AreaExit|ModuleLoad|AreaTick)" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
+! rg -n "SetLocal|GetLocal|DelayCommand|AssignCommand|Action|CreateObject|DestroyObject|ApplyEffect" src/modules/npc/npc_{spawn,perception,damaged,death,dialogue,area_enter,area_exit,module_load,area_tick}.nss
 
 # 2) логовый smoke в рантайме сервера (пример)
 # tail -f /path/to/server.log | rg "npc_behavior|spawn|perception|damaged|death|dialogue|defer|dropped"
