@@ -171,7 +171,7 @@ RUNS=3 bash scripts/run_npc_bench.sh steady
 
 ## Контрактные проверки lifecycle
 
-Для валидации связки `core <-> lifecycle_controller` используйте универсальный скрипт:
+Для валидации актуального lifecycle-контракта (core как единственный runtime-источник) используйте универсальный скрипт:
 
 ```bash
 bash scripts/check_npc_lifecycle_contract.sh

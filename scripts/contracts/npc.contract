@@ -4,17 +4,16 @@
 CONTRACT_NAME="NPC lifecycle contract"
 
 HAS_CTRL_PATTERNS=(
-  'const int NPC_AREA_LIFECYCLE_RUNNING = 1;'
-  'const int NPC_AREA_LIFECYCLE_PAUSED = 2;'
-  'int NpcControllerAreaGetLifecycleState\(object oArea\)'
-  'void NpcControllerAreaSetLifecycleState\(object oArea, int nState\)'
 )
 
 HAS_CORE_PATTERNS=(
   'const int NPC_BHVR_AREA_STATE_RUNNING = 1;'
   'const int NPC_BHVR_AREA_STATE_PAUSED = 2;'
+  'int NpcBhvrAreaGetState\(object oArea\)'
+  'int NpcBhvrAreaIsRunning\(object oArea\)'
   'void NpcBhvrAreaActivate\(object oArea\)'
   'void NpcBhvrAreaPause\(object oArea\)'
+  'void NpcBhvrAreaStop\(object oArea\)'
   'void NpcBhvrOnAreaTick\(object oArea\)'
   'void NpcBhvrOnModuleLoad\(\)'
 )
@@ -22,10 +21,11 @@ HAS_CORE_PATTERNS=(
 NOT_CORE_PATTERNS=(
   '#include "controllers/lifecycle_controller"'
   'string NPC_VAR_AREA_ACTIVE = "nb_area_active";'
-  'string NPC_VAR_AREA_TIMER_RUNNING = "nb_area_timer_running";'
 )
 
 NOT_CTRL_PATTERNS=(
+  'int NpcControllerAreaGetLifecycleState\(object oArea\)'
+  'void NpcControllerAreaSetLifecycleState\(object oArea, int nState\)'
   'int NpcControllerAreaIsRunning\(object oArea\)'
   'int NpcControllerAreaCanProcessTick\(object oArea\)'
   'void NpcControllerAreaStart\(object oArea\)'
