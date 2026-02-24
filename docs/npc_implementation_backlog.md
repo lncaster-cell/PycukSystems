@@ -4,6 +4,15 @@
 
 ---
 
+## Текущий статус (обновлено: 2026-02-24)
+
+- Runtime foundation в `src/modules/npc/*`: **READY** (core lifecycle/queue/activity/metrics + thin-entrypoints).
+- Contract/self-check suite: **READY** (`scripts/test_npc_smoke.sh`, `scripts/check_npc_lifecycle_contract.sh`, `scripts/test_npc_fairness.sh`).
+- Legacy cleanup milestone `tools/*`: **COMPLETED** (архив в `docs/legacy/tools_reference/*`).
+- Perf/release gate: **BLOCKED** до публикации нового baseline (>=3 runs на сценарий, baseline freshness <=14 дней).
+
+---
+
 ## Source of truth
 
 - Active runtime-контур: `src/modules/npc/` (единственный source of truth для исполнения и backlog).
