@@ -1,28 +1,18 @@
 // Pending timestamp/status API internals.
 
-int NpcBhvrPendingNow()
+string NPC_PENDING_DAY_CACHE_KEY = "npc_pending_day_cache_key";
+string NPC_PENDING_DAY_CACHE_BASE_SEC = "npc_pending_day_cache_base_sec";
+
+int NpcBhvrPendingBuildDayCacheKey(int nCalendarYear, int nMonth, int nCalendarDay)
+{
+    return nCalendarYear * 1000 + nMonth * 32 + nCalendarDay;
+}
+
+int NpcBhvrPendingComputeDayBaseSec(int nCalendarYear, int nMonth, int nCalendarDay)
 {
     int nYear;
-    int nMonth;
-    int nCalendarYear;
-    int nCalendarDay;
-    int nHour;
-    int nMinute;
-    int nSecond;
     int nDays;
     int bLeapYear;
-
-    // Contract: callers on hot paths should snapshot this once per logical
-    // update (event/iteration) and pass it down through *TouchAt/*Set*At APIs
-    // to avoid repeated clock reads and to keep NPC/area pending mirrors aligned.
-    // Snapshot calendar/time components once to avoid rollover races while
-    // building the pending timestamp (e.g. midnight/year transitions).
-    nCalendarYear = GetCalendarYear();
-    nMonth = GetCalendarMonth();
-    nCalendarDay = GetCalendarDay();
-    nHour = GetTimeHour();
-    nMinute = GetTimeMinute();
-    nSecond = GetTimeSecond();
 
     nYear = nCalendarYear - 2000;
 
@@ -85,7 +75,48 @@ int NpcBhvrPendingNow()
     }
 
     nDays += nCalendarDay - 1;
-    return nDays * 86400 + nHour * 3600 + nMinute * 60 + nSecond;
+    return nDays * 86400;
+}
+
+int NpcBhvrPendingNow()
+{
+    int nCalendarYear;
+    int nMonth;
+    int nCalendarDay;
+    int nHour;
+    int nMinute;
+    int nSecond;
+    int nCacheKey;
+    int nCachedKey;
+    int nDayBaseSec;
+    object oModule;
+
+    // Contract: callers on hot paths should snapshot this once per logical
+    // update (event/iteration) and pass it down through *TouchAt/*Set*At APIs
+    // to avoid repeated clock reads and to keep NPC/area pending mirrors aligned.
+    // Hot-path: build seconds from HH:MM:SS and cached day-base seconds.
+    // Heavy calendar/day math is only recomputed on day-cache invalidation
+    // (calendar day/year change) and stored on module locals for reuse.
+    nCalendarYear = GetCalendarYear();
+    nMonth = GetCalendarMonth();
+    nCalendarDay = GetCalendarDay();
+    nHour = GetTimeHour();
+    nMinute = GetTimeMinute();
+    nSecond = GetTimeSecond();
+
+    nCacheKey = NpcBhvrPendingBuildDayCacheKey(nCalendarYear, nMonth, nCalendarDay);
+    oModule = GetModule();
+    nCachedKey = GetLocalInt(oModule, NPC_PENDING_DAY_CACHE_KEY);
+
+    if (nCacheKey != nCachedKey)
+    {
+        nDayBaseSec = NpcBhvrPendingComputeDayBaseSec(nCalendarYear, nMonth, nCalendarDay);
+        SetLocalInt(oModule, NPC_PENDING_DAY_CACHE_KEY, nCacheKey);
+        SetLocalInt(oModule, NPC_PENDING_DAY_CACHE_BASE_SEC, nDayBaseSec);
+    }
+
+    nDayBaseSec = GetLocalInt(oModule, NPC_PENDING_DAY_CACHE_BASE_SEC);
+    return nDayBaseSec + nHour * 3600 + nMinute * 60 + nSecond;
 }
 
 void NpcBhvrPendingNpcTouch(object oNpc)
@@ -209,4 +240,3 @@ void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string
     SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
     NpcBhvrPendingSetStatusTrackedAt(oArea, oNpc, nStatus, nNow);
 }
-
