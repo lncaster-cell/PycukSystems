@@ -46,6 +46,8 @@
 
 ## Phase B — Activity Layer (адаптация лучшего из AL)
 
+- Контрактные инварианты и шаги валидации: `docs/npc_activity_contract_checklist.md`.
+
 ### Task B1 — Порт activity primitives
 - **Артефакты:**
   - `npc_activity_inc.nss` с адаптированными AL activity primitives.
