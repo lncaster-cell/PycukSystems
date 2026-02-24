@@ -9,6 +9,7 @@ STARVATION_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_starvation_vi
 PAUSE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_pause_violation.csv"
 RESUME_DRAIN_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/fairness_resume_drain_violation.csv"
 DECIMAL_LATENCY_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/steady_decimal_latency.csv"
+NON_FINITE_FAIL_FIXTURE="$ROOT_DIR/docs/perf/fixtures/npc/non_finite_latency_fail.csv"
 
 expect_fail() {
   local description="$1"
@@ -59,6 +60,13 @@ gate_output="$(python3 "$GATE_ANALYZER" --input "$DECIMAL_LATENCY_FIXTURE")"
 echo "$gate_output"
 if [[ "$gate_output" != *"[OK] NPC Bhvr gate checks passed"* ]]; then
   echo "[FAIL] expected [OK] for decimal latency fixture"
+  exit 1
+fi
+
+non_finite_output="$(python3 "$GATE_ANALYZER" --input "$NON_FINITE_FAIL_FIXTURE" 2>&1 || true)"
+echo "$non_finite_output"
+if [[ "$non_finite_output" != *"[FAIL] invalid numeric value (row index=1, column name=area_tick_latency_ms, raw value='nan')"* ]]; then
+  echo "[FAIL] expected invalid numeric value for non-finite input"
   exit 1
 fi
 
