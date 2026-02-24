@@ -18,6 +18,9 @@ const int MODULE3_PRIORITY_LOW = 3;
 
 const int MODULE3_QUEUE_MAX = 64;
 const int MODULE3_STARVATION_STREAK_LIMIT = 3;
+const int MODULE3_TICK_MAX_EVENTS_DEFAULT = 4;
+const int MODULE3_TICK_SOFT_BUDGET_MS_DEFAULT = 25;
+const int MODULE3_TICK_SIMULATED_EVENT_COST_MS = 8;
 
 const string MODULE3_VAR_AREA_STATE = "module3_area_state";
 const string MODULE3_VAR_AREA_TIMER_RUNNING = "module3_area_timer_running";
@@ -25,6 +28,12 @@ const string MODULE3_VAR_QUEUE_DEPTH = "module3_queue_depth";
 const string MODULE3_VAR_QUEUE_PENDING_TOTAL = "module3_queue_pending_total";
 const string MODULE3_VAR_QUEUE_CURSOR = "module3_queue_cursor";
 const string MODULE3_VAR_FAIRNESS_STREAK = "module3_fairness_streak";
+const string MODULE3_VAR_TICK_MAX_EVENTS = "module3_tick_max_events";
+const string MODULE3_VAR_TICK_SOFT_BUDGET_MS = "module3_tick_soft_budget_ms";
+const string MODULE3_VAR_TICK_DEGRADED_MODE = "module3_tick_degraded_mode";
+const string MODULE3_VAR_TICK_DEGRADED_STREAK = "module3_tick_degraded_streak";
+const string MODULE3_VAR_TICK_PROCESSED = "module3_tick_processed";
+const string MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS = "module3_queue_backlog_age_ticks";
 
 string Module3QueueDepthKey(int nPriority)
 {
@@ -291,7 +300,33 @@ int Module3QueuePickPriority(object oArea)
     return -1;
 }
 
-void Module3QueueProcessOne(object oArea)
+int Module3GetTickMaxEvents(object oArea)
+{
+    int nValue;
+
+    nValue = GetLocalInt(oArea, MODULE3_VAR_TICK_MAX_EVENTS);
+    if (nValue <= 0)
+    {
+        nValue = MODULE3_TICK_MAX_EVENTS_DEFAULT;
+    }
+
+    return nValue;
+}
+
+int Module3GetTickSoftBudgetMs(object oArea)
+{
+    int nValue;
+
+    nValue = GetLocalInt(oArea, MODULE3_VAR_TICK_SOFT_BUDGET_MS);
+    if (nValue <= 0)
+    {
+        nValue = MODULE3_TICK_SOFT_BUDGET_MS_DEFAULT;
+    }
+
+    return nValue;
+}
+
+int Module3QueueProcessOne(object oArea)
 {
     int nTotalDepth;
     int nPriority;
@@ -299,35 +334,45 @@ void Module3QueueProcessOne(object oArea)
 
     if (!GetIsObjectValid(oArea) || !Module3AreaIsRunning(oArea))
     {
-        return;
+        return FALSE;
     }
 
     nTotalDepth = GetLocalInt(oArea, MODULE3_VAR_QUEUE_DEPTH);
     if (nTotalDepth <= 0)
     {
         SetLocalInt(oArea, MODULE3_VAR_FAIRNESS_STREAK, 0);
-        return;
+        return FALSE;
     }
 
     nPriority = Module3QueuePickPriority(oArea);
     if (nPriority < MODULE3_PRIORITY_CRITICAL)
     {
-        return;
+        return FALSE;
     }
 
     oSubject = Module3QueueDequeueFromPriority(oArea, nPriority);
     if (!GetIsObjectValid(oSubject))
     {
         Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
-        return;
+        return FALSE;
     }
 
     Module3ActivityOnIdleTick(oSubject);
+    Module3MetricInc(oArea, MODULE3_METRIC_PROCESSED_TOTAL);
+    return TRUE;
 }
 
 void Module3OnAreaTick(object oArea)
 {
     int nPlayers;
+    int nProcessedThisTick;
+    int nPendingAfter;
+    int nSoftBudgetMs;
+    int nSoftBudgetReached;
+    int nBudgetExceeded;
+    int nMaxEvents;
+    int nSpentMs;
+    int nBacklogAgeTicks;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -342,11 +387,57 @@ void Module3OnAreaTick(object oArea)
 
     if (Module3AreaGetState(oArea) == MODULE3_AREA_STATE_RUNNING)
     {
-        Module3QueueProcessOne(oArea);
+        nMaxEvents = Module3GetTickMaxEvents(oArea);
+        nSoftBudgetMs = Module3GetTickSoftBudgetMs(oArea);
+        while (nProcessedThisTick < nMaxEvents)
+        {
+            if (!Module3QueueProcessOne(oArea))
+            {
+                break;
+            }
+
+            nProcessedThisTick = nProcessedThisTick + 1;
+            nSpentMs = nSpentMs + MODULE3_TICK_SIMULATED_EVENT_COST_MS;
+            if (nSpentMs >= nSoftBudgetMs)
+            {
+                nSoftBudgetReached = TRUE;
+                break;
+            }
+        }
+
+        SetLocalInt(oArea, MODULE3_VAR_TICK_PROCESSED, nProcessedThisTick);
+        nPendingAfter = GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL);
+
+        nBudgetExceeded = nSoftBudgetReached && nPendingAfter > 0;
+        SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
+
+        if (nBudgetExceeded)
+        {
+            // Очередь FIFO по приоритетам уже детерминирована: хвост переносится на следующий тик без reordering.
+            Module3MetricInc(oArea, MODULE3_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
+            Module3MetricInc(oArea, MODULE3_METRIC_DEGRADED_MODE_TOTAL);
+            Module3MetricInc(oArea, MODULE3_METRIC_QUEUE_DEFERRED_COUNT);
+            SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_STREAK, GetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_STREAK) + 1);
+        }
+        else
+        {
+            SetLocalInt(oArea, MODULE3_VAR_TICK_DEGRADED_STREAK, 0);
+        }
+
+        if (nPendingAfter > 0)
+        {
+            nBacklogAgeTicks = GetLocalInt(oArea, MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS) + 1;
+            SetLocalInt(oArea, MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS, nBacklogAgeTicks);
+            Module3MetricAdd(oArea, MODULE3_METRIC_PENDING_AGE_MS, 1000);
+        }
+        else
+        {
+            SetLocalInt(oArea, MODULE3_VAR_QUEUE_BACKLOG_AGE_TICKS, 0);
+        }
 
         // Auto-idle-stop: если в области нет игроков и нет pending, останавливаем loop.
         nPlayers = Module3CountPlayersInArea(oArea);
-        if (nPlayers <= 0 && GetLocalInt(oArea, MODULE3_VAR_QUEUE_PENDING_TOTAL) <= 0)
+        if (nPlayers <= 0 && nPendingAfter <= 0)
         {
             Module3AreaStop(oArea);
         }

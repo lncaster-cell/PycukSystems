@@ -78,6 +78,7 @@
 - [ ] Warmup/rescan сценарий добавлен в perf-прогон Module 3.
 - [ ] Fault-injection silent degradation сценарий добавлен в perf-прогон Module 3.
 - [ ] Automated fairness checks добавлены в perf-прогон Module 3.
+- [ ] Tick budget/degraded-mode сценарий добавлен в perf-прогон Module 3.
 - [ ] Итоговый отчёт содержит явный pass/fail по каждому guardrail.
 
 ## 5) Automated fairness checks
@@ -99,3 +100,25 @@
 
 - **PASS:** все Module 3 fairness fixtures проходят/падают строго согласно ожидаемому сценарию, а обязательные флаги присутствуют во всех запусках.
 - **FAIL:** отсутствует хотя бы один обязательный флаг, либо ожидаемое поведение fixture не подтверждается в CI-скрипте.
+
+## 6) Tick budget / degraded-mode guardrail
+
+**Цель:** зафиксировать bounded обработку area-tick и детерминированный перенос хвоста очереди между тиками.
+
+### Сценарий
+
+- Установить runtime-конфиги области: `module3_tick_max_events` и `module3_tick_soft_budget_ms` в заведомо малые значения (например, `2` и `8`).
+- Сформировать burst, превышающий бюджет тика (очередь HIGH/NORMAL + CRITICAL).
+- Запустить 5–10 последовательных тиков и снять метрики по области.
+
+### Проверки
+
+- за тик обрабатывается не более `module3_tick_max_events` событий (`processed_total` растёт bounded-инкрементом);
+- при переполнении soft budget растут `tick_budget_exceeded_total` и `degraded_mode_total`;
+- `queue_deferred_count` растёт только когда есть хвост после budget cutoff;
+- backlog-age surrogate `pending_age_ms` увеличивается, пока есть pending, и перестаёт расти после drain.
+
+### Gate
+
+- **PASS:** budget-ограничение соблюдается, деградация наблюдаема, хвост очереди дренируется в последующих тиках без reordering.
+- **FAIL:** tick обрабатывает сверх budget, либо нет явной телеметрии budget/degraded-path.
