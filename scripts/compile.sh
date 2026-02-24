@@ -79,7 +79,15 @@ mapfile -t MODULE_INCLUDE_DIRS < <(
   find "$ROOT_DIR/src/modules" -type f -name "*.nss" -printf "%h\n" | LC_ALL=C sort -u
 )
 
+mapfile -t SRC_INCLUDE_DIRS < <(
+  find "$ROOT_DIR/src" -type f -name "*.nss" -printf "%h\n" | LC_ALL=C sort -u
+)
+
 for include_dir in "${MODULE_INCLUDE_DIRS[@]}"; do
+  INCLUDE_ARGS+=( -i "$include_dir" )
+done
+
+for include_dir in "${SRC_INCLUDE_DIRS[@]}"; do
   INCLUDE_ARGS+=( -i "$include_dir" )
 done
 
