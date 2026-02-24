@@ -3,6 +3,32 @@
 
 #include "al_system/al_constants_inc"
 
+void AL_RecordRegistryOverflow(object oArea, object oNpc, int iCount)
+{
+    int iDroppedTotal = GetLocalInt(oArea, "al_npc_reg_dropped_total") + 1;
+    SetLocalInt(oArea, "al_npc_reg_dropped_total", iDroppedTotal);
+    SetLocalInt(oArea, "al_npc_reg_dropped_last_tick", GetTimeHour() * 60 + GetTimeMinute());
+
+    string sAreaTag = GetTag(oArea);
+    string sNpcTag = GetTag(oNpc);
+    string sMessage = "AL: NPC registry overflow; area=" + sAreaTag
+        + ", npc=" + sNpcTag
+        + ", count=" + IntToString(iCount)
+        + ", limit=" + IntToString(AL_MAX_NPCS)
+        + ", dropped_total=" + IntToString(iDroppedTotal);
+
+    WriteTimestampedLogEntry(sMessage);
+
+    if (GetLocalInt(oArea, "al_debug") == 1)
+    {
+        object oPc = GetFirstPC();
+        if (GetIsObjectValid(oPc))
+        {
+            SendMessageToPC(oPc, sMessage);
+        }
+    }
+}
+
 int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
 {
     int iLastIndex = iCount - 1;
@@ -58,14 +84,7 @@ void AL_RegisterNPC(object oNpc)
 
     if (iCount >= AL_MAX_NPCS)
     {
-        if (GetLocalInt(oArea, "al_debug") == 1)
-        {
-            object oPc = GetFirstPC();
-            if (GetIsObjectValid(oPc))
-            {
-                SendMessageToPC(oPc, "AL: NPC registry full for area; registration skipped.");
-            }
-        }
+        AL_RecordRegistryOverflow(oArea, oNpc, iCount);
         return;
     }
 
