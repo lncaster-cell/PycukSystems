@@ -20,11 +20,11 @@ const int NPC_BHVR_REASON_UNSPECIFIED = 0;
 const int NPC_BHVR_REASON_PERCEPTION = 1;
 const int NPC_BHVR_REASON_DAMAGE = 2;
 
-const string NPC_BHVR_PENDING_STATUS_QUEUED = "queued";
-const string NPC_BHVR_PENDING_STATUS_RUNNING = "running";
-const string NPC_BHVR_PENDING_STATUS_PROCESSED = "processed";
-const string NPC_BHVR_PENDING_STATUS_DEFERRED = "deferred";
-const string NPC_BHVR_PENDING_STATUS_DROPPED = "dropped";
+const string NPC_BHVR_PENDING_STATUS_STR_QUEUED = "queued";
+const string NPC_BHVR_PENDING_STATUS_STR_RUNNING = "running";
+const string NPC_BHVR_PENDING_STATUS_STR_PROCESSED = "processed";
+const string NPC_BHVR_PENDING_STATUS_STR_DEFERRED = "deferred";
+const string NPC_BHVR_PENDING_STATUS_STR_DROPPED = "dropped";
 
 
 const int NPC_BHVR_QUEUE_MAX = 64;
