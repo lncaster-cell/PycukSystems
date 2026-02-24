@@ -107,7 +107,14 @@ int NpcSqliteSafeRead(string sQuery)
     nCode = NpcSqliteNormalizeError(sErrorRaw);
 
     SetLocalString(oModule, NPC_SQLITE_VAR_LAST_QUERY, sQuery);
-    SetLocalString(oModule, NPC_SQLITE_VAR_LAST_RESULT, "ok");
+    if (nCode == NPC_SQLITE_OK)
+    {
+        SetLocalString(oModule, NPC_SQLITE_VAR_LAST_RESULT, "ok");
+    }
+    else
+    {
+        SetLocalString(oModule, NPC_SQLITE_VAR_LAST_RESULT, "error:" + IntToString(nCode));
+    }
 
     if (nCode != NPC_SQLITE_OK)
     {
@@ -134,7 +141,14 @@ int NpcSqliteSafeWrite(string sQuery)
     nCode = NpcSqliteNormalizeError(sErrorRaw);
 
     SetLocalString(oModule, NPC_SQLITE_VAR_LAST_QUERY, sQuery);
-    SetLocalString(oModule, NPC_SQLITE_VAR_LAST_RESULT, "ok");
+    if (nCode == NPC_SQLITE_OK)
+    {
+        SetLocalString(oModule, NPC_SQLITE_VAR_LAST_RESULT, "ok");
+    }
+    else
+    {
+        SetLocalString(oModule, NPC_SQLITE_VAR_LAST_RESULT, "error:" + IntToString(nCode));
+    }
 
     if (nCode != NPC_SQLITE_OK)
     {

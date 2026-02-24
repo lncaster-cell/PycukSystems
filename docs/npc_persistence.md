@@ -184,6 +184,13 @@ Flush dirty-очереди выполняется при любом из усл�
 
 ## 6. Трассировка “документ → функции/файлы”
 
+### 6.0 Контракт safe read/write (`NpcSqliteSafeRead` / `NpcSqliteSafeWrite`)
+- После нормализации кода ошибки `nCode` функции всегда обновляют `npc_sqlite_last_query` текущим SQL.
+- `npc_sqlite_last_result` выставляется по итоговому коду операции:
+  - `"ok"`, если `nCode == NPC_SQLITE_OK`;
+  - `"error:<code>"`, если `nCode != NPC_SQLITE_OK`.
+- `NpcSqliteLogDbError(...)` вызывается только при ошибке (`nCode != NPC_SQLITE_OK`), при этом `npc_sqlite_last_result` уже содержит ошибочный итог.
+
 ### 6.1 Базовый NWNX/SQLite API
 - Инициализация: `NpcSqliteInit` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
 - Healthcheck (`SELECT 1`): `NpcSqliteHealthcheck` — `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss`.
