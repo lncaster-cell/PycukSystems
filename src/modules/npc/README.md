@@ -9,6 +9,8 @@
 
 ## Готовый модуль: что подключать в toolset
 
+Канонический toolset authoring contract вынесен в `docs/npc_toolset_authoring_contract.md` (hook scripts, canonical locals, legacy bridge mapping).
+
 Используйте модуль как готовый runtime-пакет из `src/modules/npc/`:
 
 1. Подключите event hooks к thin-entrypoint скриптам (таблица «Карта hook-скриптов» ниже).
@@ -52,6 +54,7 @@
 - `npc_runtime_modes_inc.nss` — runtime-контракт разделения `ambient/reactive` + extension points под cluster/LOD.
 - `npc_cluster_supervisor_inc.nss` — лёгкий cluster lifecycle supervisor (interest/grace, caps, rate-limit transitions).
 - `npc_lod_projection_inc.nss` — baseline hidden/LOD/projected pipeline с fast-forward/resync при reveal.
+- `npc_legacy_al_bridge_inc.nss` — controlled migration bridge legacy `al_*` -> canonical `npc_*` (idempotent, migration-only).
 
 ### Deprecated/compat API
 
@@ -161,6 +164,13 @@ LOD observability metrics:
 - `npc_metric_lod_physical_reveal_suppressed_total`,
 - `npc_metric_lod_physical_cooldown_hit_total`,
 - `npc_metric_lod_physical_fallback_logical_only_total`.
+
+Legacy migration diagnostics:
+- `npc_metric_legacy_migrated_npc_total`,
+- `npc_metric_legacy_migrated_area_total`,
+- `npc_metric_legacy_normalized_keys_total`,
+- `npc_metric_legacy_unsupported_keys_total`,
+- `npc_metric_legacy_fallback_total`.
 
 ## Activity primitives runtime-контракт
 

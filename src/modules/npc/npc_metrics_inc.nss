@@ -73,6 +73,13 @@ const string NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_SUPPRESSED_TOTAL = "npc_metric_
 const string NPC_BHVR_METRIC_LOD_PHYSICAL_COOLDOWN_HIT_TOTAL = "npc_metric_lod_physical_cooldown_hit_total";
 const string NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL = "npc_metric_lod_physical_fallback_logical_only_total";
 
+// Legacy bridge migration diagnostics.
+const string NPC_BHVR_METRIC_LEGACY_MIGRATED_NPC_TOTAL = "npc_metric_legacy_migrated_npc_total";
+const string NPC_BHVR_METRIC_LEGACY_MIGRATED_AREA_TOTAL = "npc_metric_legacy_migrated_area_total";
+const string NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL = "npc_metric_legacy_normalized_keys_total";
+const string NPC_BHVR_METRIC_LEGACY_UNSUPPORTED_KEYS_TOTAL = "npc_metric_legacy_unsupported_keys_total";
+const string NPC_BHVR_METRIC_LEGACY_FALLBACK_TOTAL = "npc_metric_legacy_fallback_total";
+
 void NpcBhvrMetricSet(object oScope, string sMetric, int nValue)
 {
     if (!GetIsObjectValid(oScope))

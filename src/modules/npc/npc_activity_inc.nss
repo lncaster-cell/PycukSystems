@@ -120,6 +120,7 @@ const int NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MAX = 98;
 
 int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLen);
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
+string NpcBhvrActivitySlotRouteProfileKey(string sSlot);
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
@@ -138,6 +139,7 @@ int NpcBhvrPendingNow();
 
 #include "npc_activity_route_resolution_inc"
 #include "npc_activity_schedule_inc"
+#include "npc_legacy_al_bridge_inc"
 #include "npc_activity_state_apply_inc"
 
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
@@ -507,7 +509,9 @@ int ReadRouteRuntimeIntWithFallback(
         }
         else
         {
-            oArea = GetArea(oNpc);
+            NpcBhvrLegacyBridgeMigrateNpc(oNpc);
+
+    oArea = GetArea(oNpc);
             oOwner = OBJECT_INVALID;
             if (GetIsObjectValid(oArea))
             {
@@ -882,6 +886,7 @@ void NpcBhvrActivityApplyPriorityRoute(object oNpc)
 
 void NpcBhvrActivityOnAreaActivate(object oArea)
 {
+    NpcBhvrLegacyBridgeMigrateAreaDefaults(oArea);
     NpcBhvrActivityPrewarmAreaRuntime(oArea);
 }
 
@@ -1015,7 +1020,8 @@ void NpcBhvrActivityOnSpawn(object oNpc)
         return;
     }
 
-    // Spawn order: profile refresh -> runtime init -> transition stamp.
+    // Spawn order: migration bridge -> profile refresh -> runtime init -> transition stamp.
+    NpcBhvrLegacyBridgeMigrateNpc(oNpc);
     NpcBhvrActivityRefreshProfileState(oNpc);
     NpcBhvrActivityInitRuntimeState(oNpc);
     NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
