@@ -53,3 +53,13 @@ Bridge достаточно, когда:
 - `MANUAL` и `CONFLICTED` tiers.
 - Любые unsupported `al_*` ключи в отчёте.
 - Неканонические hook-like скрипты в runtime (`module_load/spawn/heartbeat/...` вне canonical набора).
+
+
+## 6) Переход к execution
+
+После readiness-аудита используйте batch execution helper по runbook: `docs/npc_batch_migration_execution.md`.
+
+
+## 7) Manual remediation governance
+
+Для остатка `MANUAL/CONFLICTED/safe-skip` запускайте backlog tooling: `docs/npc_manual_remediation_governance.md`.

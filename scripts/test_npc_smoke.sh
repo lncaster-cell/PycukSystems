@@ -11,5 +11,7 @@ bash "$ROOT_DIR/scripts/test_npc_lod_perf_gate.sh"
 bash "$ROOT_DIR/scripts/test_npc_legacy_bridge_contract.sh"
 bash "$ROOT_DIR/scripts/check_npc_legacy_compat_contract.sh"
 bash "$ROOT_DIR/scripts/test_npc_rollout_readiness_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_batch_migration_helper_contract.sh"
+bash "$ROOT_DIR/scripts/test_npc_remediation_backlog_contract.sh"
 
 echo "[OK] NPC smoke tests passed"
