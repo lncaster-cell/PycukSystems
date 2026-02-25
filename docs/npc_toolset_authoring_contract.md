@@ -81,7 +81,7 @@
 `npc_cfg_* authoring -> facade normalization/derived config -> существующий npc_* runtime`
 
 - Внутренние `npc_*` locals **не удалены** и остаются runtime truth.
-- Но они больше не являются основным ручным интерфейсом.
+- Основной ручной интерфейс — только `npc_cfg_*`; activity/runtime locals считаются internal/runtime-only и не рекомендуются для регулярной ручной настройки.
 - Если низкоуровневые `npc_*` уже заданы явно, фасад не перетирает их «в лоб».
 
 ## 6) Примеры
