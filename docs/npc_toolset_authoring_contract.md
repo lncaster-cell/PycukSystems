@@ -29,7 +29,7 @@
 
 ### Опциональные
 
-- `npc_cfg_force_reactive` (`0/1`)
+- `npc_cfg_force_reactive` (`0/1`) — **единственный канонический human-facing override** для reactive-пути
 - `npc_cfg_allow_physical_hide` (`0/1`)
 - `npc_cfg_alert_route` (отдельный route только для режима `alert`)
 
@@ -90,6 +90,7 @@
 - Внутренние `npc_*` locals **не удалены** и остаются runtime truth.
 - Основной ручной интерфейс — slot-route locals + role/area profile.
 - Role (`npc_cfg_role`) остаётся archetype/default-policy (ambient/reactive/hide), но больше не является скрытым расписанием.
+- Низкоуровневые ручки (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_cfg_layer`, `npc_cfg_reactive`, `npc_npc_sim_lod`, runtime counters/diagnostics locals) — internal/runtime-only и не считаются каноническим authoring-путём.
 - Если низкоуровневые `npc_*` уже заданы явно, фасад не перетирает их «в лоб».
 
 ## 7) Legacy / compatibility path (deprecated)
@@ -102,6 +103,7 @@
 - `npc_cfg_leisure_route`
 
 Legacy schedule presets (`day_worker`, `day_shop`, `night_guard`, `tavern_late`, `always_home`, `always_static`, `custom`) считаются **secondary/deprecated authoring path** и не являются канонической моделью для нового контента.
+`custom` остаётся только как deprecated compatibility-вариант (ограниченный fallback до `npc_route_profile_default`), а не как свободный escape hatch для произвольных runtime locals.
 
 ## 8) Пример (канонический)
 

@@ -21,6 +21,8 @@ const int NPC_BHVR_PROJECTED_HIDDEN = 1;
 const string NPC_BHVR_VAR_DISPATCH_MODE = "npc_dispatch_mode";
 const string NPC_BHVR_CFG_DISPATCH_MODE = "npc_cfg_dispatch_mode";
 const string NPC_BHVR_VAR_NPC_LAYER = "npc_runtime_layer";
+const string NPC_BHVR_CFG_NPC_FORCE_REACTIVE = "npc_cfg_force_reactive";
+// Deprecated compatibility-only knobs (not canonical human-facing authoring).
 const string NPC_BHVR_CFG_NPC_LAYER = "npc_cfg_layer";
 const string NPC_BHVR_CFG_NPC_REACTIVE = "npc_cfg_reactive";
 
@@ -95,7 +97,16 @@ int NpcBhvrResolveNpcLayer(object oNpc)
         return NpcBhvrNormalizeNpcLayer(nLayer);
     }
 
-    nLayer = GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_LAYER);
+    if (GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_FORCE_REACTIVE) == TRUE)
+    {
+        nLayer = NPC_BHVR_LAYER_REACTIVE;
+    }
+
+    if (nLayer <= 0)
+    {
+        nLayer = GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_LAYER);
+    }
+
     if (nLayer <= 0 && GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_REACTIVE) == TRUE)
     {
         nLayer = NPC_BHVR_LAYER_REACTIVE;

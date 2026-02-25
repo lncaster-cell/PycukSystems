@@ -29,7 +29,7 @@ Runtime/internal справочник вынесен в `docs/npc_runtime_intern
 
 - Введено явное runtime-разделение слоёв: `ambient` (slot/activity/waypoint idle-flow) и `reactive` (perception/damage/threat queue-flow).
 - Введён dispatch-контракт области `npc_dispatch_mode` (`AMBIENT_ONLY` / `HYBRID` / `REACTIVE_ONLY`) с override-цепочкой `area var -> area cfg -> module cfg`.
-- Для NPC введён runtime-layer `npc_runtime_layer` (по умолчанию `ambient`, реактивный путь включается через `npc_cfg_layer` или `npc_cfg_reactive=TRUE`).
+- Для NPC введён runtime-layer `npc_runtime_layer` (по умолчанию `ambient`); канонический human-facing reactive override — `npc_cfg_force_reactive=TRUE`, а `npc_cfg_layer`/`npc_cfg_reactive` остаются только как deprecated compatibility knobs.
 - `OnPerception` и `OnDamaged` больше не обязательны для мирных NPC: hook-и обрабатываются только для reactive-layer.
 - Добавлены extension-points под следующий этап AL V3: `cluster owner`, `area interest state`, `npc simulation LOD`, `hidden/projected state`.
 
@@ -263,6 +263,7 @@ Legacy migration diagnostics:
 - `daily` — стандартный путь `slot -> route -> waypoint -> activity`.
 - `alert` — служебный override для тревоги (`guard_hold`) без замены time-of-day slot-модели.
 - Любые другие значения `npc_activity_mode` нормализуются в `daily`.
+- Schedule windows (`*_schedule_*_start/end`) и semantic slots `default|priority|critical` не участвуют в canonical path и поддерживаются только в migration/legacy bridge.
 
 ## Identifier constraints
 

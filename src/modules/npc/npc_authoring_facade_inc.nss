@@ -15,7 +15,7 @@ const string NPC_BHVR_CFG_WORK_ROUTE = "npc_cfg_work_route";
 const string NPC_BHVR_CFG_HOME_ROUTE = "npc_cfg_home_route";
 const string NPC_BHVR_CFG_LEISURE_ROUTE = "npc_cfg_leisure_route";
 
-const string NPC_BHVR_CFG_FORCE_REACTIVE = "npc_cfg_force_reactive";
+const string NPC_BHVR_CFG_FORCE_REACTIVE = "npc_cfg_force_reactive"; // canonical reactive override
 const string NPC_BHVR_CFG_ALLOW_PHYSICAL_HIDE = "npc_cfg_allow_physical_hide";
 
 const string NPC_BHVR_CFG_CITY = "npc_cfg_city";
@@ -203,6 +203,8 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
 
     if (sSchedule == "custom")
     {
+        // Deprecated compatibility: custom no longer opens arbitrary runtime tuning.
+        // We only allow default route fallback and keep slot/daypart flow canonical.
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteLeisure);
         return;
     }
@@ -270,8 +272,8 @@ void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
 
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_FORCE_REACTIVE) == TRUE)
     {
+        // Canonical human-facing override for reactive behavior.
         SetLocalInt(oNpc, NPC_BHVR_CFG_NPC_LAYER, NPC_BHVR_LAYER_REACTIVE);
-        SetLocalInt(oNpc, NPC_BHVR_CFG_NPC_REACTIVE, TRUE);
     }
 
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_ALLOW_PHYSICAL_HIDE) == TRUE)
