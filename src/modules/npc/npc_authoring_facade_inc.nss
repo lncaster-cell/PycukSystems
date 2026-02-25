@@ -66,32 +66,85 @@ void NpcBhvrAuthoringSetIntIfMissing(object oTarget, string sKey, int nValue)
     SetLocalInt(oTarget, sKey, nValue);
 }
 
-string NpcBhvrAuthoringResolveNpcRouteDefault(object oNpc)
+string NpcBhvrAuthoringResolveFirstNonEmptyRoute(string sPrimary, string sSecondary, string sTertiary)
 {
-    string sRoute;
-
-    sRoute = GetLocalString(oNpc, NPC_BHVR_CFG_LEISURE_ROUTE);
-    if (GetStringLength(sRoute) > 0)
+    if (GetStringLength(sPrimary) > 0)
     {
-        return sRoute;
+        return sPrimary;
     }
 
-    sRoute = GetLocalString(oNpc, NPC_BHVR_CFG_HOME_ROUTE);
-    if (GetStringLength(sRoute) > 0)
+    if (GetStringLength(sSecondary) > 0)
     {
-        return sRoute;
+        return sSecondary;
     }
 
-    sRoute = GetLocalString(oNpc, NPC_BHVR_CFG_WORK_ROUTE);
-    if (GetStringLength(sRoute) > 0)
-    {
-        return sRoute;
-    }
-
-    return "";
+    return sTertiary;
 }
 
-void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, string sRouteWork, string sRouteHome, string sRouteLeisure)
+string NpcBhvrAuthoringResolveRolePreset(string sRole)
+{
+    if (sRole == "worker"
+        || sRole == "merchant"
+        || sRole == "guard"
+        || sRole == "innkeeper"
+        || sRole == "static")
+    {
+        return sRole;
+    }
+
+    return "citizen";
+}
+
+string NpcBhvrAuthoringResolveRoleDefaultSchedule(string sRole)
+{
+    if (sRole == "merchant")
+    {
+        return "day_shop";
+    }
+
+    if (sRole == "guard")
+    {
+        return "night_guard";
+    }
+
+    if (sRole == "innkeeper")
+    {
+        return "tavern_late";
+    }
+
+    if (sRole == "static")
+    {
+        return "always_static";
+    }
+
+    return "day_worker";
+}
+
+string NpcBhvrAuthoringResolveSchedulePreset(string sRole, string sSchedule)
+{
+    string sDefaultSchedule;
+
+    sDefaultSchedule = NpcBhvrAuthoringResolveRoleDefaultSchedule(sRole);
+    if (sSchedule == "day_worker"
+        || sSchedule == "day_shop"
+        || sSchedule == "night_guard"
+        || sSchedule == "tavern_late"
+        || sSchedule == "always_home"
+        || sSchedule == "always_static"
+        || sSchedule == "custom")
+    {
+        if (sRole == "static" && sSchedule != "always_static" && sSchedule != "custom")
+        {
+            return "always_static";
+        }
+
+        return sSchedule;
+    }
+
+    return sDefaultSchedule;
+}
+
+void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, string sRouteWork, string sRouteHome, string sRouteLeisure, string sRouteStaticAnchor)
 {
     NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_PRIORITY, sRouteWork);
     NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_CRITICAL, sRouteHome);
@@ -109,7 +162,7 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     if (sSchedule == "always_static")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, FALSE);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteStaticAnchor);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
         return;
     }
@@ -121,7 +174,7 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 6);
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 6);
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 20);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteLeisure);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_PRIORITY);
         return;
     }
@@ -148,7 +201,9 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
 
     if (sSchedule == "custom")
     {
+        // Advanced mode: facade only wires route fallbacks, schedule windows are authored explicitly.
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteLeisure);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
         return;
     }
 
@@ -186,28 +241,44 @@ void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
     string sRouteWork;
     string sRouteHome;
     string sRouteLeisure;
+    string sRouteStaticAnchor;
 
     if (!GetIsObjectValid(oNpc))
     {
         return;
     }
 
-    sRole = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_ROLE), "citizen");
-    sSchedule = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_SCHEDULE), "day_worker");
+    sRole = NpcBhvrAuthoringResolveRolePreset(
+        NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_ROLE), "citizen")
+    );
+    sSchedule = NpcBhvrAuthoringResolveSchedulePreset(
+        sRole,
+        NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_SCHEDULE), "")
+    );
+
     sRouteWork = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_CFG_WORK_ROUTE), oNpc);
     sRouteHome = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_CFG_HOME_ROUTE), oNpc);
     sRouteLeisure = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_CFG_LEISURE_ROUTE), oNpc);
 
-    if (GetStringLength(sRouteLeisure) <= 0)
+    sRouteHome = NpcBhvrAuthoringResolveFirstNonEmptyRoute(sRouteHome, sRouteWork, sRouteLeisure);
+
+    if (sRole == "guard" || sRole == "innkeeper")
     {
-        sRouteLeisure = NpcBhvrAuthoringResolveNpcRouteDefault(oNpc);
+        sRouteLeisure = NpcBhvrAuthoringResolveFirstNonEmptyRoute(sRouteLeisure, sRouteWork, sRouteHome);
     }
+    else
+    {
+        sRouteLeisure = NpcBhvrAuthoringResolveFirstNonEmptyRoute(sRouteLeisure, sRouteHome, sRouteWork);
+    }
+
+    sRouteWork = NpcBhvrAuthoringResolveFirstNonEmptyRoute(sRouteWork, sRouteLeisure, sRouteHome);
+    sRouteStaticAnchor = NpcBhvrAuthoringResolveFirstNonEmptyRoute(sRouteHome, sRouteWork, sRouteLeisure);
 
     SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_ROLE, sRole);
     SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_SCHEDULE, sSchedule);
 
     NpcBhvrAuthoringApplyNpcRolePreset(oNpc, sRole);
-    NpcBhvrAuthoringApplyNpcSchedulePreset(oNpc, sSchedule, sRouteWork, sRouteHome, sRouteLeisure);
+    NpcBhvrAuthoringApplyNpcSchedulePreset(oNpc, sSchedule, sRouteWork, sRouteHome, sRouteLeisure, sRouteStaticAnchor);
 
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_FORCE_REACTIVE) == TRUE)
     {
