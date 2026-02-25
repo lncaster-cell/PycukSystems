@@ -1,68 +1,66 @@
-# Аудит мусорного и мёртвого кода
+# Аудит мусорного/мёртвого кода
 
-Дата: 2026-02-24
+Дата актуализации: 2026-02-25
 
-## Область анализа
+## Область аудита
+- Проверены каталоги `src/`, `scripts/`, `benchmarks/`, `docs/`.
+- **Исключены из анализа**: весь `third_party/` и любые артефакты компилятора/toolchain внутри него.
+- При аудитах/инспекциях не анализируются и не изменяются сторонние инструменты (third-party tooling и встроенный в них компилятор).
 
-Проверены каталоги `src/`, `scripts/`, `benchmarks/`, `docs/`.
+## Методика
+1. Статический прогон Python-линтера на неиспользуемые импорты/переменные/имена:
+   - `ruff check scripts benchmarks --select F401,F841,F821`
+2. Дополнительный прогон smell-правил для скриптов:
+   - `ruff check scripts benchmarks --select F,ARG,B,UP,SIM`
+3. Эвристический поиск кандидатов в мёртвые функции в `.nss`:
+   - сбор сигнатур функций;
+   - проверка наличия ссылок на имя функции в `src/`, `scripts/`, `docs/`, `benchmarks/`, включая:
+     - внешние ссылки из других файлов/модулей;
+     - внутримодульные вызовы в том же include-файле.
 
-Исключены из аудита по требованию:
-- `third_party/**`
-- всё, что относится к встроенному компилятору/тулчейну (`third_party/toolchain/**`)
-
-## Методика (быстрый статический проход)
-
-Для скриптов NWScript (`*.nss`) выполнен эвристический поиск:
-- определений функций по сигнатурам базовых типов (`void/int/float/string/object/...`);
-- упоминаний идентификаторов по всему репозиторию (вне исключённых директорий);
-- кандидатов в мёртвый код: функции, встречающиеся только в месте определения.
-
-Для `const` переменных выполнена такая же проверка по упоминаниям.
-
-При изменениях legacy-слоя (особенно `src/modules/npc/*legacy*` и контрактных include-файлов) этот отчёт должен пересобираться повторно, чтобы выводы не устаревали.
-
-> Важно: это эвристика, а не полнофункциональный компиляторный анализ. Возможны ложноположительные/ложноотрицательные результаты для динамических вызовов, генерируемого кода и внешних контрактов.
+> Шаг (3) даёт только кандидатов. Функции, используемые внутри собственного include-файла, классифицируются как локальные helper'ы и не считаются dead code.
 
 ## Результаты
 
-### Историческое наблюдение (архив)
+### 1) Python и shell-скрипты
+- Не найдено неиспользуемых импортов/переменных/необъявленных имён в `scripts/` и `benchmarks/` по правилам `F401/F841/F821`.
+- Найдены 3 code-smell замечания (не про dead code):
+  - `B904` в `scripts/analyze_npc_fairness.py` (2 места);
+  - `SIM102` в `scripts/bench/analyze_single_run.py` (1 место).
 
-Ранее в этом документе фиксировались 6 кандидатов в `src/modules/npc/npc_legacy_compat_inc.nss`. Этот блок **больше не актуален**, потому что файл и соответствующие legacy-shim функции удалены в коммите `db28dfc` от `2026-02-25`.
+### 2) Кандидаты в мёртвый код в NWScript (`.nss`)
 
-Актуальный список кандидатов и обновлённая методика вынесены в отдельный документ: `docs/dead_code_audit_2026-02-24.md`.
+#### 2.1 Не используется вообще
+- Кандидаты не обнаружены по текущей эвристике (с учётом внешних и внутримодульных ссылок).
 
-### Неиспользуемые константы
+#### 2.2 Используется только внутри собственного include-файла
+Ниже — локальные helper-функции. Это **не dead code**:
 
-По текущей эвристике не обнаружены.
+- `NpcBhvrQueueIndexKey` — `src/modules/npc/npc_queue_index_inc.nss`
+- `NpcBhvrSafeId` — `src/modules/npc/npc_activity_migration_inc.nss`
+- `NpcBhvrActivityRouteCountKey` — `src/modules/npc/npc_activity_migration_inc.nss`
+- `NpcBhvrActivityRouteLoopKey` — `src/modules/npc/npc_activity_migration_inc.nss`
+- `NpcBhvrActivityRouteTagKey` — `src/modules/npc/npc_activity_migration_inc.nss`
+- `NpcBhvrActivityRoutePauseTicksKey` — `src/modules/npc/npc_activity_migration_inc.nss`
+- `NpcBhvrActivityRouteMigratedFlagKey` — `src/modules/npc/npc_activity_migration_inc.nss`
+- `NpcBhvrQueuePickPriority` — `src/modules/npc/npc_tick_inc.nss`
+- `NpcBhvrGetTickMaxEvents` — `src/modules/npc/npc_tick_inc.nss`
+- `NpcBhvrGetTickSoftBudgetMs` — `src/modules/npc/npc_tick_inc.nss`
+- `NpcBhvrQueueCountDeferred` — `src/modules/npc/npc_queue_deferred_inc.nss`
+- `NpcBhvrQueueDeferredLooksDesynced` — `src/modules/npc/npc_queue_deferred_inc.nss`
+- `NpcBhvrActivityTryResolveScheduledSlot` — `src/modules/npc/npc_activity_schedule_inc.nss`
+
+## Risk of false positive
+- Не удалять кандидатов только по факту отсутствия внешних ссылок.
+- Перед удалением обязательно проверять вызовы в том же include-файле/модуле.
+- Учитывать неявные точки входа (runtime-контракты, include-цепочки, сценарные соглашения).
 
 ## Рекомендации
-
-1. Использовать этот файл как историческую справку, а не как источник текущих кандидатов.
-2. Текущим источником истины для dead-code аудита считать `docs/dead_code_audit_2026-02-24.md`.
-3. Для регулярного контроля добавить CI-проверку на уровень «предупреждение» с таким же эвристическим анализом и пересборкой отчёта после изменений legacy-слоя.
-
-## Команда, использованная для аудита
-
-```bash
-python - <<'PY'
-import re, pathlib
-from collections import Counter
-root=pathlib.Path('/workspace/PycukSystems')
-files=[p for p in root.rglob('*') if p.suffix in {'.nss','.py','.sh'} and 'third_party' not in p.parts and 'toolchain' not in p.parts and '.git' not in p.parts]
-func_def_re=re.compile(r'^\s*(?:void|int|float|string|object|location|vector|effect|itemproperty|talent|action)\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(')
-const_re=re.compile(r'^\s*const\s+(?:int|float|string|object)\s+([A-Za-z_][A-Za-z0-9_]*)\b')
-all_text='\n'.join(p.read_text(errors='ignore') for p in files)
-cnt=Counter(re.findall(r'\b[A-Za-z_][A-Za-z0-9_]*\b',all_text))
-funcs=[]; consts=[]
-for p in files:
-    if p.suffix!='.nss':
-        continue
-    for i,l in enumerate(p.read_text(errors='ignore').splitlines(),1):
-        m=func_def_re.match(l)
-        if m: funcs.append((m.group(1), p, i))
-        m=const_re.match(l)
-        if m: consts.append((m.group(1), p, i))
-unused=[x for x in funcs if cnt[x[0]]<=1 and x[0] not in {'main','StartingConditional'}]
-print(unused)
-PY
-```
+1. Для потенциальных кандидатов из категории «не используется вообще»: подтвердить необходимость через runtime-smoke и контрактные тесты (`scripts/test_npc_smoke.sh`, `scripts/test_npc_activity_contract.sh`, профильные контрактные проверки).
+2. Если функция действительно не нужна:
+   - удалить определение;
+   - прогнать контрактные/smoke тесты;
+   - зафиксировать изменение в `src/modules/npc/README.md`.
+3. Если функция нужна, но неявно используется:
+   - добавить явный вызов/контрактный тест на использование;
+   - либо пометить в комментарии, почему функция оставлена.
