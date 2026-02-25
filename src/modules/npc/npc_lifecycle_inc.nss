@@ -346,6 +346,8 @@ void NpcBhvrOnAreaMaintenanceImpl(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
 
     nAreaState = NpcBhvrAreaGetState(oArea);
+    NpcBhvrClusterOrchestrateArea(oArea);
+    nAreaState = NpcBhvrAreaGetState(oArea);
     if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
     {
         return;
@@ -373,6 +375,8 @@ void NpcBhvrBootstrapModuleAreasImpl()
         {
             NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
         }
+
+        NpcBhvrClusterOrchestrateArea(oArea);
         oArea = GetNextArea();
     }
 }
@@ -532,10 +536,7 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
     SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
     SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
 
-    if (!NpcBhvrAreaIsRunning(oArea))
-    {
-        NpcBhvrAreaActivate(oArea);
-    }
+    NpcBhvrClusterOnPlayerAreaEnter(oArea, NpcBhvrPendingNow());
 }
 
 void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
@@ -583,7 +584,11 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
 
     if (nPlayers <= 0)
     {
-        NpcBhvrAreaPause(oArea);
+        NpcBhvrClusterOnPlayerAreaExit(oArea, NpcBhvrPendingNow());
+    }
+    else
+    {
+        NpcBhvrClusterOnPlayerAreaEnter(oArea, NpcBhvrPendingNow());
     }
 }
 

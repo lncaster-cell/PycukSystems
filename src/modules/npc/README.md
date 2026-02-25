@@ -50,6 +50,7 @@
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
 - `npc_runtime_modes_inc.nss` — runtime-контракт разделения `ambient/reactive` + extension points под cluster/LOD.
+- `npc_cluster_supervisor_inc.nss` — лёгкий cluster lifecycle supervisor (interest/grace, caps, rate-limit transitions).
 
 ### Deprecated/compat API
 
@@ -82,6 +83,33 @@ Tick/degraded telemetry в runtime включает:
 
 - Idle broadcast budget адаптивный: при queue-pressure (`pending_total` выше runtime-порога от `npc_tick_max_events`, `npc_tick_soft_budget_ms` и `npc_tick_carryover_events`) применяется throttling `NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT`, при нормализации очереди budget автоматически возвращается к базовому значению.
 
+
+### Cluster lifecycle orchestration (Phase B baseline)
+
+- Lifecycle областей оркестрируется через cluster supervisor (`npc_cluster_supervisor_inc.nss`) и contracts:
+  - `npc_area_cluster_owner` (группировка областей),
+  - `npc_area_interest_state` (interest state),
+  - area lifecycle `RUNNING/PAUSED/STOPPED`.
+- Базовая interest policy:
+  - area с игроком -> `RUNNING`,
+  - area без игроков в grace-window (`npc_cluster_grace_until_at`) -> `PAUSED`,
+  - area без игроков после grace -> `STOPPED`.
+- Debounce door-churn: после ухода последнего игрока область переводится в `PAUSED`, а не сразу в `STOPPED`; при быстром возврате игрока выполняется resume через `RUNNING` без принудительного cold-stop.
+- Для интерьеров кластера добавлены guardrails:
+  - soft cap (`npc_cfg_cluster_interior_soft_cap`),
+  - hard cap (`npc_cfg_cluster_interior_hard_cap`),
+  - selection rule: oldest idle running interior candidates демотируются в `PAUSED/STOPPED`.
+- Добавлен cluster-level lifecycle rate limiter (token-bucket):
+  - `npc_cfg_cluster_transition_rate`,
+  - `npc_cfg_cluster_transition_burst`.
+- Cluster observability (baseline metrics):
+  - `npc_metric_cluster_transitions_total`,
+  - `npc_metric_cluster_pause_resume_total`,
+  - `npc_metric_cluster_pause_stop_total`,
+  - `npc_metric_cluster_soft_cap_hit_total`,
+  - `npc_metric_cluster_hard_cap_hit_total`,
+  - `npc_metric_cluster_rate_limit_hit_total`,
+  - module-scoped per-cluster snapshot `npc_metric_cluster_running_interiors_<cluster_owner>`.
 
 ## Activity primitives runtime-контракт
 
