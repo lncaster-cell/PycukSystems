@@ -1,0 +1,455 @@
+{
+  "summary": {
+    "total_cases": 39,
+    "open_cases": 4,
+    "exception_cases": 35,
+    "by_category": {
+      "HOOK-WIRING": 3,
+      "RUNTIME-PROTECTED": 36
+    },
+    "by_priority": {
+      "P1": 3,
+      "P3": 36
+    }
+  },
+  "exception_registry": "docs/npc_migration_exception_registry.json",
+  "cases": [
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_area_tick.nss",
+      "category": "HOOK-WIRING",
+      "priority": "P1",
+      "source": "readiness",
+      "tier": "MANUAL",
+      "reason": "noncanonical hook-like script naming or wiring",
+      "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+      "status": "OPEN",
+      "exception_id": ""
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_module_load.nss",
+      "category": "HOOK-WIRING",
+      "priority": "P1",
+      "source": "readiness",
+      "tier": "MANUAL",
+      "reason": "noncanonical hook-like script naming or wiring",
+      "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+      "status": "OPEN",
+      "exception_id": ""
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_spawn.nss",
+      "category": "HOOK-WIRING",
+      "priority": "P1",
+      "source": "readiness",
+      "tier": "MANUAL",
+      "reason": "noncanonical hook-like script naming or wiring",
+      "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+      "status": "OPEN",
+      "exception_id": ""
+    },
+    {
+      "path": "src/controllers/lifecycle_controller.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "OPEN",
+      "exception_id": ""
+    },
+    {
+      "path": "src/modules/module_skeleton/mod_skel_core.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-MODULE-SKELETON"
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_core.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-MODULE-SKELETON"
+    },
+    {
+      "path": "src/modules/npc/npc_activity_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_activity_migration_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_activity_route_resolution_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_activity_schedule_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_activity_state_apply_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_area_enter.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_area_exit.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_area_maintenance.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_area_tick.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_cluster_supervisor_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_compat_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_core.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_damaged.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_death.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_dialogue.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_legacy_al_bridge_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "BRIDGEABLE",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_legacy_compat_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_lifecycle_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_local_write_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_lod_projection_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_metrics_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_module_load.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_perception.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_queue_deferred_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_queue_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_queue_index_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_queue_legacy_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_queue_pending_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_queue_ring_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_registry_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_runtime_modes_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_spawn.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    },
+    {
+      "path": "src/modules/npc/npc_tick_inc.nss",
+      "category": "RUNTIME-PROTECTED",
+      "priority": "P3",
+      "source": "execution",
+      "tier": "READY",
+      "reason": "protected runtime path; content migration not applied",
+      "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-NPC-CORE"
+    }
+  ],
+  "recommended_actions": {
+    "HOOK-WIRING": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+    "LEGACY-UNSUPPORTED": "Rewrite unsupported al_* keys to canonical npc_* keys; bridge extension only with approved case + tests.",
+    "AMBIGUOUS-ROUTE": "Resolve route/tag naming ambiguity manually and set explicit canonical npc_route_* mapping.",
+    "RUNTIME-PROTECTED": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+    "CONFLICTED-CONFIG": "Split conflicting old/new patterns and converge on canonical contract before rollout.",
+    "DOC/CONTRACT-DRIFT": "Fix drift between content wiring and docs/npc_toolset_authoring_contract.md, then rerun readiness audit."
+  }
+}

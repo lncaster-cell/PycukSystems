@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "policy": {
+    "notes": "Exceptions are temporary governance records, not permanent bypasses.",
+    "required_fields": [
+      "id",
+      "path_pattern",
+      "category",
+      "status",
+      "rationale"
+    ]
+  },
+  "exceptions": [
+    {
+      "id": "EXC-RUNTIME-PROTECTED-NPC-CORE",
+      "path_pattern": "src/modules/npc/*",
+      "category": "RUNTIME-PROTECTED",
+      "status": "active",
+      "owner": "npc-runtime",
+      "rationale": "Runtime core is intentionally protected from content batch helper rewrite; manual/runtime-governed changes only."
+    },
+    {
+      "id": "EXC-RUNTIME-PROTECTED-MODULE-SKELETON",
+      "path_pattern": "src/modules/module_skeleton/*",
+      "category": "RUNTIME-PROTECTED",
+      "status": "active",
+      "owner": "platform",
+      "rationale": "Module skeleton is a template/runtime contract surface and is tracked outside content migration batches."
+    }
+  ]
+}

@@ -1,0 +1,318 @@
+{
+  "summary": {
+    "mode": "dry-run",
+    "tiers": [
+      "READY",
+      "BRIDGEABLE"
+    ],
+    "candidates_total": 43,
+    "changed_files": 0,
+    "already_canonical": 7,
+    "manual_conflicted_skips": 0,
+    "safe_skips": 36,
+    "bridge_conversions": 0
+  },
+  "results": [
+    {
+      "path": "src/modules/npc/npc_legacy_al_bridge_inc.nss",
+      "status": "skip",
+      "tier": "BRIDGEABLE",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/controllers/lifecycle_controller.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/experimental/npc_repo_contract_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_repo_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_repo_runtime_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_sql_api_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_wb_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_writebehind_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/module_skeleton/mod_skel_core.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_core.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_activity_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_activity_migration_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_activity_route_resolution_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_activity_schedule_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_activity_state_apply_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_area_enter.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_area_exit.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_area_maintenance.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_area_tick.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_cluster_supervisor_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_compat_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_core.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_damaged.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_death.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_dialogue.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_legacy_compat_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_lifecycle_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_local_write_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_lod_projection_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_metrics_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_module_load.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_perception.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_queue_deferred_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_queue_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_queue_index_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_queue_legacy_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_queue_pending_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_queue_ring_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_registry_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_runtime_modes_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_spawn.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    },
+    {
+      "path": "src/modules/npc/npc_tick_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "protected runtime path; content migration not applied",
+      "replacements": 0
+    }
+  ]
+}
