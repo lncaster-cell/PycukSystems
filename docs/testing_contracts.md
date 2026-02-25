@@ -45,3 +45,23 @@ bash scripts/check_npc_lifecycle_contract.sh
 
 Контракт закреплён в `scripts/test_guardrail_analyzer.sh` через fixture
 `docs/perf/fixtures/npc/guardrails_missing_lifecycle_state.csv`.
+
+## Контракт rollout readiness audit
+
+Readiness-аудит Ambient Life V3 выполняется скриптом:
+
+```bash
+python3 scripts/audit_npc_rollout_readiness.py --repo-root . --scan src
+```
+
+Smoke/contract защита:
+
+```bash
+bash scripts/test_npc_rollout_readiness_contract.sh
+```
+
+Проверка фиксирует:
+- наличие canonical source-of-truth документа `docs/npc_toolset_authoring_contract.md`;
+- присутствие readiness tiers (`READY/BRIDGEABLE/FALLBACK-RISK/MANUAL/CONFLICTED`);
+- согласованность классификации supported/unsupported legacy bridge patterns на fixtures;
+- генерацию machine-readable (`json`) и human-readable (`md`) readiness report.
