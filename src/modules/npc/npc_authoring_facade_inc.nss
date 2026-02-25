@@ -93,16 +93,18 @@ string NpcBhvrAuthoringResolveNpcRouteDefault(object oNpc)
 
 void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, string sRouteWork, string sRouteHome, string sRouteLeisure)
 {
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_PRIORITY, sRouteWork);
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_CRITICAL, sRouteHome);
+    // Canonical route-by-time slot map.
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_DAWN, sRouteHome);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_MORNING, sRouteWork);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_AFTERNOON, sRouteWork);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_EVENING, sRouteLeisure);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_NIGHT, sRouteHome);
 
     if (sSchedule == "always_home")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_CRITICAL);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 0);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 23);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_NIGHT);
         return;
     }
 
@@ -110,39 +112,35 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, FALSE);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_AFTERNOON);
         return;
     }
 
     if (sSchedule == "night_guard")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 20);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 6);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 6);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 20);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_NIGHT, sRouteWork);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteLeisure);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_PRIORITY);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_EVENING);
         return;
     }
 
     if (sSchedule == "tavern_late")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 18);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 2);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_EVENING, sRouteWork);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_AFTERNOON);
         return;
     }
 
     if (sSchedule == "day_shop")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 8);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 19);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_MORNING, sRouteWork);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_AFTERNOON, sRouteWork);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_MORNING);
         return;
     }
 
@@ -154,10 +152,8 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
 
     // day_worker default
     NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-    NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 8);
-    NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 18);
     NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_MORNING);
 }
 
 void NpcBhvrAuthoringApplyNpcRolePreset(object oNpc, string sRole)

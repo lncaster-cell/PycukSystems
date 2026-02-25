@@ -25,12 +25,12 @@ string NpcBhvrActivityResolveAction(object oNpc, string sSlot, string sRouteId, 
         return "idle";
     }
 
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE || sSlot == NPC_BHVR_ACTIVITY_SLOT_CRITICAL)
+    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE || sSlot == NPC_BHVR_ACTIVITY_SLOT_NIGHT)
     {
         return "guard_hold";
     }
 
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY || sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY)
+    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY || sSlot == NPC_BHVR_ACTIVITY_SLOT_MORNING)
     {
         if (nWpCount > 0)
         {
@@ -85,7 +85,7 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     nActivityId = NpcBhvrActivityResolveRoutePointActivity(oNpc, sRouteId, nWpIndex);
     sRouteTag = NpcBhvrActivityResolveRouteTag(oNpc, sRouteId);
     sState = NpcBhvrActivityComposeWaypointState(sBaseState, sRouteTag, nWpIndex, nWpCount);
-    sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
+    sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
     sEmote = NpcBhvrActivityResolveSlotEmote(oNpc, sSlot);
     sAction = NpcBhvrActivityResolveAction(oNpc, sSlot, sRouteId, nWpIndex, nWpCount);
     sCustomAnims = NpcBhvrActivityGetCustomAnims(nActivityId);

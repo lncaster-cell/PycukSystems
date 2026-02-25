@@ -56,9 +56,20 @@ const string NPC_BHVR_VAR_ROUTE_RUNTIME_PAUSE_KEY = "npc_route_runtime_pause_key
 const int NPC_BHVR_LOCAL_KEY_MAX_LENGTH = 64;
 const int NPC_BHVR_LOCAL_KEY_HASH_LENGTH = 6;
 
-const string NPC_BHVR_ACTIVITY_SLOT_DEFAULT = "default";
-const string NPC_BHVR_ACTIVITY_SLOT_PRIORITY = "priority";
-const string NPC_BHVR_ACTIVITY_SLOT_CRITICAL = "critical";
+const string NPC_BHVR_ACTIVITY_SLOT_DAWN = "dawn";
+const string NPC_BHVR_ACTIVITY_SLOT_MORNING = "morning";
+const string NPC_BHVR_ACTIVITY_SLOT_AFTERNOON = "afternoon";
+const string NPC_BHVR_ACTIVITY_SLOT_EVENING = "evening";
+const string NPC_BHVR_ACTIVITY_SLOT_NIGHT = "night";
+
+const string NPC_BHVR_ACTIVITY_SLOT_LEGACY_DEFAULT = "default";
+const string NPC_BHVR_ACTIVITY_SLOT_LEGACY_PRIORITY = "priority";
+const string NPC_BHVR_ACTIVITY_SLOT_LEGACY_CRITICAL = "critical";
+
+const string NPC_BHVR_ACTIVITY_MODE_DEFAULT = "default";
+const string NPC_BHVR_ACTIVITY_MODE_PRIORITY = "priority";
+const string NPC_BHVR_ACTIVITY_MODE_CRITICAL = "critical";
+const string NPC_BHVR_VAR_ACTIVITY_MODE = "npc_activity_mode";
 
 const string NPC_BHVR_ACTIVITY_ROUTE_DEFAULT = "default_route";
 const string NPC_BHVR_ACTIVITY_ROUTE_PRIORITY = "priority_patrol";
@@ -342,9 +353,12 @@ void NpcBhvrActivityRunHeavyRefreshForIdle(object oNpc, int nResolvedHour, objec
 
 int NpcBhvrActivityIsSupportedRoute(string sRouteId)
 {
-    return sRouteId == NPC_BHVR_ACTIVITY_ROUTE_DEFAULT
-        || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY
-        || sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
+    // Canonical AL behavior accepts any validated route id.
+    return NpcBhvrActivityIsValidIdentifierValue(
+        sRouteId,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN
+    );
 }
 
 int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLen)
@@ -377,25 +391,42 @@ int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLe
 
 int NpcBhvrActivityAdapterWasSlotFallback(string sSlot)
 {
-    return sSlot != NPC_BHVR_ACTIVITY_SLOT_DEFAULT
-        && sSlot != NPC_BHVR_ACTIVITY_SLOT_PRIORITY
-        && sSlot != NPC_BHVR_ACTIVITY_SLOT_CRITICAL;
+    return sSlot != NPC_BHVR_ACTIVITY_SLOT_DAWN
+        && sSlot != NPC_BHVR_ACTIVITY_SLOT_MORNING
+        && sSlot != NPC_BHVR_ACTIVITY_SLOT_AFTERNOON
+        && sSlot != NPC_BHVR_ACTIVITY_SLOT_EVENING
+        && sSlot != NPC_BHVR_ACTIVITY_SLOT_NIGHT;
 }
 
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
 {
-    // Adapter-layer: normalize slot-group semantics into npc namespace.
-    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY)
+    // Canonical AL slot = time-of-day daypart. Legacy semantic aliases are mapped for compatibility.
+    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_DAWN)
     {
-        return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
+        return NPC_BHVR_ACTIVITY_SLOT_DAWN;
     }
 
-    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_CRITICAL)
+    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_MORNING || sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_PRIORITY)
     {
-        return NPC_BHVR_ACTIVITY_SLOT_CRITICAL;
+        return NPC_BHVR_ACTIVITY_SLOT_MORNING;
     }
 
-    return NPC_BHVR_ACTIVITY_SLOT_DEFAULT;
+    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_AFTERNOON || sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_DEFAULT)
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_AFTERNOON;
+    }
+
+    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_EVENING)
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_EVENING;
+    }
+
+    if (sSlot == NPC_BHVR_ACTIVITY_SLOT_NIGHT || sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_CRITICAL)
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_NIGHT;
+    }
+
+    return NPC_BHVR_ACTIVITY_SLOT_AFTERNOON;
 }
 
 int NpcBhvrActivityMapRouteHint(string sRouteId)
@@ -412,6 +443,21 @@ int NpcBhvrActivityMapRouteHint(string sRouteId)
     }
 
     return NPC_BHVR_ACTIVITY_HINT_IDLE;
+}
+
+string NpcBhvrActivityResolveModeForRoute(string sRouteId)
+{
+    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
+    {
+        return NPC_BHVR_ACTIVITY_MODE_CRITICAL;
+    }
+
+    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
+    {
+        return NPC_BHVR_ACTIVITY_MODE_PRIORITY;
+    }
+
+    return NPC_BHVR_ACTIVITY_MODE_DEFAULT;
 }
 
 int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId)
@@ -860,12 +906,12 @@ int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
 
 int NpcBhvrActivityAdapterIsCriticalSafe(string sSlot, int nRouteHint)
 {
-    return sSlot == NPC_BHVR_ACTIVITY_SLOT_CRITICAL || nRouteHint == NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE;
+    return sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_CRITICAL || nRouteHint == NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE;
 }
 
 int NpcBhvrActivityAdapterIsPriority(string sSlot, int nRouteHint)
 {
-    return sSlot == NPC_BHVR_ACTIVITY_SLOT_PRIORITY || nRouteHint == NPC_BHVR_ACTIVITY_HINT_PATROL;
+    return sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_PRIORITY || nRouteHint == NPC_BHVR_ACTIVITY_HINT_PATROL;
 }
 
 
@@ -954,6 +1000,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
 
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE, sSlot);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, NpcBhvrActivityResolveModeForRoute(sRoute));
     NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR, nResolvedHour);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE, sAreaTag);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE, sRouteConfigured);
@@ -1102,21 +1149,28 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
         NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_REFRESH_SKIPPED_TOTAL);
     }
 
-    string sSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
     sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
     nRouteHint = NpcBhvrActivityMapRouteHint(sRoute);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, NpcBhvrActivityResolveModeForRoute(sRoute));
 
-    // Dispatcher: CRITICAL-safe -> priority -> default fallback.
-    if (NpcBhvrActivityAdapterIsCriticalSafe(sSlot, nRouteHint))
+    // Canonical dispatcher path: slot -> route -> waypoint activity.
+    // Legacy semantic routes are treated as runtime modes only.
+    if (nRouteHint == NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE)
     {
         NpcBhvrActivityApplyCriticalSafeRoute(oNpc);
         return;
     }
 
-    if (NpcBhvrActivityAdapterIsPriority(sSlot, nRouteHint))
+    if (nRouteHint == NPC_BHVR_ACTIVITY_HINT_PATROL)
     {
         NpcBhvrActivityApplyPriorityRoute(oNpc);
+        return;
+    }
+
+    if (sRoute != "" && sRoute != NPC_BHVR_ACTIVITY_ROUTE_DEFAULT)
+    {
+        NpcBhvrActivityApplyRouteState(oNpc, sRoute, "idle_route", 1);
         return;
     }
 
