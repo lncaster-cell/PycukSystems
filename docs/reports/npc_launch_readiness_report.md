@@ -16,7 +16,7 @@
 - [PASS] Required governance reports exist: missing=none
 - [PASS] Required launch docs exist: missing=none
 - [PASS] Pilot target is READY/BRIDGEABLE: matched=7, unsafe=0
-- [PASS] Execution helper report available: mode=dry-run
+- [PASS] Execution helper report available: mode=apply
 
 ## Recommendation
 - Pilot rollout can proceed for the selected scope with standard monitoring and post-apply report regeneration.

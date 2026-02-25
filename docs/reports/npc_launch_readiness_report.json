@@ -47,7 +47,7 @@
     {
       "name": "Execution helper report available",
       "status": "PASS",
-      "details": "mode=dry-run"
+      "details": "mode=apply"
     }
   ],
   "pilot_scope": {
