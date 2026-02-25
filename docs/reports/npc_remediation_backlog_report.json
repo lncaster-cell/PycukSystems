@@ -1,0 +1,57 @@
+{
+  "summary": {
+    "total_cases": 3,
+    "open_cases": 0,
+    "exception_cases": 3,
+    "by_category": {
+      "HOOK-WIRING": 3
+    },
+    "by_priority": {
+      "P1": 3
+    }
+  },
+  "exception_registry": "docs/npc_migration_exception_registry.json",
+  "cases": [
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_area_tick.nss",
+      "category": "HOOK-WIRING",
+      "priority": "P1",
+      "source": "readiness",
+      "tier": "MANUAL",
+      "reason": "noncanonical hook-like script naming or wiring",
+      "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES"
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_module_load.nss",
+      "category": "HOOK-WIRING",
+      "priority": "P1",
+      "source": "readiness",
+      "tier": "MANUAL",
+      "reason": "noncanonical hook-like script naming or wiring",
+      "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES"
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_spawn.nss",
+      "category": "HOOK-WIRING",
+      "priority": "P1",
+      "source": "readiness",
+      "tier": "MANUAL",
+      "reason": "noncanonical hook-like script naming or wiring",
+      "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+      "status": "EXCEPTION",
+      "exception_id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES"
+    }
+  ],
+  "recommended_actions": {
+    "HOOK-WIRING": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
+    "LEGACY-UNSUPPORTED": "Rewrite unsupported al_* keys to canonical npc_* keys; bridge extension only with approved case + tests.",
+    "AMBIGUOUS-ROUTE": "Resolve route/tag naming ambiguity manually and set explicit canonical npc_route_* mapping.",
+    "RUNTIME-PROTECTED": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
+    "CONFLICTED-CONFIG": "Split conflicting old/new patterns and converge on canonical contract before rollout.",
+    "DOC/CONTRACT-DRIFT": "Fix drift between content wiring and docs/npc_toolset_authoring_contract.md, then rerun readiness audit."
+  }
+}
