@@ -253,8 +253,16 @@ Legacy migration diagnostics:
 
 - daypart mapping: `05-07 dawn`, `08-11 morning`, `12-16 afternoon`, `17-21 evening`, `22-04 night`;
 - `NpcBhvrActivityResolveScheduledSlotForContext(oNpc, sCurrentSlot, bScheduleEnabled, nResolvedHour)` возвращает daypart slot;
-- `npc_activity_schedule_enabled` сохранён как совместимость-конфиг и не меняет смысл slot;
-- legacy `default|priority|critical` маппятся в `afternoon|morning|night`.
+- `npc_activity_schedule_enabled` сохранён только как legacy-compat flag и не участвует в выборе slot;
+- legacy `default|priority|critical` маппятся в `afternoon|morning|night` только как alias-compatibility.
+
+### Runtime mode поверх slot-model
+
+Канонические режимы поведения NPC: только `daily` и `alert`.
+
+- `daily` — стандартный путь `slot -> route -> waypoint -> activity`.
+- `alert` — служебный override для тревоги (`guard_hold`) без замены time-of-day slot-модели.
+- Любые другие значения `npc_activity_mode` нормализуются в `daily`.
 
 ## Identifier constraints
 
@@ -374,8 +382,8 @@ Legacy migration diagnostics:
   - обработка hook-событий,
   - интеграция write-behind flush.
 - `npc_activity_inc.nss` — activity adapter/runtime:
-  - слот/маршрут/состояние NPC,
-  - schedule-aware выбор route,
+  - canonical flow `slot(time-of-day) -> route -> waypoint -> activity`,
+  - slot-bound route resolve,
   - waypoint/activity разрешение.
 - `npc_metrics_inc.nss` — helper API для метрик.
 - Thin hooks:
@@ -608,10 +616,9 @@ Legacy migration diagnostics:
 
 NPC runtime учитывает:
 
-- slot (`default/priority/critical`),
-- route profile,
+- slot (`dawn|morning|afternoon|evening|night`),
+- route profile (slot-bound fallback chain),
 - route tag,
-- schedule windows,
 - waypoint loop/count/index.
 
 Некорректные значения нормализуются в допустимые и отмечаются метриками invalid-route/invalid-slot.
@@ -741,7 +748,7 @@ bash scripts/test_npc_activity_route_contract.sh
 Проверьте:
 
 - валидность route id/tag,
-- schedule окна,
+- слот time-of-day и route profile для него,
 - не срабатывает ли fallback (через метрики invalid-route/invalid-slot).
 
 ---

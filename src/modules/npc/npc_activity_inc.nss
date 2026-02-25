@@ -18,6 +18,10 @@ const string NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE = "npc_activity_route_
 const string NPC_BHVR_VAR_ACTIVITY_PRECHECK_L1_STAMP = "npc_activity_precheck_l1_stamp";
 const string NPC_BHVR_VAR_ACTIVITY_PRECHECK_L2_STAMP = "npc_activity_precheck_l2_stamp";
 
+const string NPC_BHVR_VAR_ACTIVITY_MODE = "npc_activity_mode";
+const string NPC_BHVR_ACTIVITY_MODE_DAILY = "daily";
+const string NPC_BHVR_ACTIVITY_MODE_ALERT = "alert";
+
 const string NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX = "npc_route_profile_slot_";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT = "npc_route_profile_default";
 const string NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX = "npc_route_cache_slot_";
@@ -36,10 +40,7 @@ const string NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS = "npc_activity_numeric_anims";
 const string NPC_BHVR_VAR_ACTIVITY_WAYPOINT_TAG = "npc_activity_waypoint_tag";
 const string NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER = "npc_activity_requires_training_partner";
 const string NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR = "npc_activity_requires_bar_pair";
-const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED = "npc_activity_schedule_enabled";
-
-const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_START_PREFIX = "npc_schedule_start_";
-const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_END_PREFIX = "npc_schedule_end_";
+const string NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED = "npc_activity_schedule_enabled"; // legacy compat flag (does not drive slot selection)
 
 const string NPC_BHVR_VAR_ROUTE_PAUSE_TICKS_PREFIX = "npc_route_pause_ticks_";
 
@@ -131,6 +132,8 @@ string ReadRouteRuntimeStringWithFallback(object oNpc, string sRouteId, string s
 int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag);
 string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurrentSlot, int bScheduleEnabled, int nResolvedHour);
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
+string NpcBhvrActivityNormalizeMode(string sMode);
+string NpcBhvrActivityResolveMode(object oNpc);
 void NpcBhvrActivityRefreshProfileState(object oNpc);
 void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow);
 void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseState, int nCooldown);
@@ -149,15 +152,6 @@ string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
 }
 
-string NpcBhvrActivityScheduleStartKey(string sSlot)
-{
-    return NPC_BHVR_VAR_ACTIVITY_SCHEDULE_START_PREFIX + sSlot;
-}
-
-string NpcBhvrActivityScheduleEndKey(string sSlot)
-{
-    return NPC_BHVR_VAR_ACTIVITY_SCHEDULE_END_PREFIX + sSlot;
-}
 
 string NpcBhvrActivityRouteCacheSlotKey(string sSlot)
 {
@@ -201,31 +195,6 @@ int NpcBhvrActivityIsScheduleEnabled(object oNpc, object oArea)
     }
 
     return FALSE;
-}
-
-// Contract: see schedule-aware slot section in src/modules/npc/README.md.
-int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd)
-{
-    if (nStart < 0 || nStart > 23 || nEnd < 0 || nEnd > 23)
-    {
-        return FALSE;
-    }
-
-    if (nStart == nEnd)
-    {
-        // Защита от неявного always-on при незаполненных/неполных окнах расписания
-        // (GetLocalInt по отсутствующему ключу возвращает 0).
-        return FALSE;
-    }
-
-    // Non-wrapping window.
-    if (nStart < nEnd)
-    {
-        return nHour >= nStart && nHour < nEnd;
-    }
-
-    // Wrapping window (например, 22 -> 6).
-    return nHour >= nStart || nHour < nEnd;
 }
 
 
@@ -379,6 +348,30 @@ int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLe
     return TRUE;
 }
 
+
+string NpcBhvrActivityNormalizeMode(string sMode)
+{
+    if (sMode == NPC_BHVR_ACTIVITY_MODE_ALERT)
+    {
+        return NPC_BHVR_ACTIVITY_MODE_ALERT;
+    }
+
+    return NPC_BHVR_ACTIVITY_MODE_DAILY;
+}
+
+string NpcBhvrActivityResolveMode(object oNpc)
+{
+    string sMode;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return NPC_BHVR_ACTIVITY_MODE_DAILY;
+    }
+
+    sMode = NpcBhvrActivityNormalizeMode(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE));
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, sMode);
+    return sMode;
+}
 
 int NpcBhvrActivityAdapterWasSlotFallback(string sSlot)
 {

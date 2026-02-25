@@ -1,8 +1,5 @@
 // Schedule/slot resolution helpers.
 
-string NpcBhvrActivityScheduleStartKey(string sSlot);
-string NpcBhvrActivityScheduleEndKey(string sSlot);
-int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd);
 int NpcBhvrActivityIsScheduleEnabled(object oNpc, object oArea);
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 

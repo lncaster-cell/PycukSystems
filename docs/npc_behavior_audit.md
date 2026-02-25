@@ -143,12 +143,12 @@ Registry — area-local индекс NPC-объектов (до `NPC_BHVR_REGIST
 
 Activity-подсистема управляет тем, **что NPC делает в мире** в idle/реактивных переходах:
 
-- слот активности (`default/priority/critical`),
+- slot активности (`dawn|morning|afternoon|evening|night`),
 - маршрут (`route`),
 - waypoint progression,
 - action/emote/activity_id,
 - cooldown и timestamp последнего перехода,
-- schedule-aware выбор слота по часам.
+- daypart mapping времени суток как единственный canonical slot-resolver.
 
 ### Ключевой принцип
 
@@ -158,19 +158,17 @@ Activity-подсистема управляет тем, **что NPC делае
 
 То есть поведение NPC всегда идёт через единый activity-dispatch путь.
 
-### Расписания (schedule-aware slots)
+### Slot model (canonical)
 
-Если `npc_activity_schedule_enabled=1`, слот выбирается по окнам:
+Слот всегда выбирается только из fixed daypart mapping:
 
-- `npc_schedule_start_critical` / `npc_schedule_end_critical`
-- `npc_schedule_start_priority` / `npc_schedule_end_priority`
+- `05-07 -> dawn`
+- `08-11 -> morning`
+- `12-16 -> afternoon`
+- `17-21 -> evening`
+- `22-04 -> night`
 
-Правила:
-- `start == end` → окно считается пустым (защита от accidental always-on),
-- `start < end` → обычное дневное окно,
-- `start > end` → окно через полночь.
-
-Приоритет выбора слота: `critical` → `priority` → `default`.
+Schedule windows (`npc_schedule_start_* / npc_schedule_end_*`) переведены в legacy-only и не участвуют в core behavior.
 
 ### Waypoint/route механика
 
@@ -184,7 +182,7 @@ Activity-подсистема управляет тем, **что NPC делае
 
 ### Что это означает в игре
 
-- NPC следуют предсказуемым сценариям (патруль, рутина, safe-state) по слотам/расписанию.
+- NPC следуют предсказуемым сценариям (патруль, рутина, тревога) по slot->route->waypoint->activity.
 - Контент с невалидными route/tag не ломает runtime — применяется детерминированный fallback.
 
 ---
@@ -259,5 +257,5 @@ Activity-подсистема управляет тем, **что NPC делае
 1. Модуль уже реализует production-подход: приоритеты, bounded queue, деградация, self-heal maintenance, адаптивный idle-budget.
 2. Игровое поведение NPC централизовано через activity subsystem; это упрощает расширение контента без изменения базового tick-контракта.
 3. Наибольшая операционная ценность — в метриках деградации/overflow/deferred: они напрямую показывают, хватает ли бюджеты текущему контенту.
-4. Для контент-команд критично соблюдать валидные route/tag и корректно настраивать schedule-окна, иначе поведение уйдёт в fallback-сценарии.
+4. Для контент-команд критично соблюдать валидные route/tag и slot-bound routes; schedule-окна больше не используются как canonical authoring механизм.
 
