@@ -124,6 +124,7 @@ int NpcBhvrGetCachedPlayerCountInternal(object oArea);
 #include "npc_runtime_modes_inc"
 #include "npc_cluster_supervisor_inc"
 #include "npc_lod_projection_inc"
+#include "npc_authoring_facade_inc"
 #include "npc_registry_inc"
 #include "npc_queue_inc"
 #include "npc_tick_inc"

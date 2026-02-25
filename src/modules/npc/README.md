@@ -9,7 +9,9 @@
 
 ## Готовый модуль: что подключать в toolset
 
-Канонический toolset authoring contract вынесен в `docs/npc_toolset_authoring_contract.md` (hook scripts, canonical locals, legacy bridge mapping).
+Human-facing toolset authoring contract вынесен в `docs/npc_toolset_authoring_contract.md` (preset-first `npc_cfg_*` facade).
+
+Runtime/internal справочник вынесен в `docs/npc_runtime_internal_contract.md` (внутренние `npc_*` locals, cluster/LOD/runtime knobs, legacy bridge mapping).
 
 Используйте модуль как готовый runtime-пакет из `src/modules/npc/`:
 
@@ -54,6 +56,7 @@
 - `npc_runtime_modes_inc.nss` — runtime-контракт разделения `ambient/reactive` + extension points под cluster/LOD.
 - `npc_cluster_supervisor_inc.nss` — лёгкий cluster lifecycle supervisor (interest/grace, caps, rate-limit transitions).
 - `npc_lod_projection_inc.nss` — baseline hidden/LOD/projected pipeline с fast-forward/resync при reveal.
+- `npc_authoring_facade_inc.nss` — authoring facade (`npc_cfg_*` presets -> derived/runtime defaults) поверх существующего runtime-контракта.
 - `npc_legacy_al_bridge_inc.nss` — controlled migration bridge legacy `al_*` -> canonical `npc_*` (idempotent, migration-only).
 
 ### Deprecated/compat API
