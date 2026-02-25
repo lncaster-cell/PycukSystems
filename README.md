@@ -19,6 +19,7 @@
 
 ## Где смотреть «истину» по NPC
 
+- Карта документации: `docs/README.md`
 - Runtime-модуль: `src/modules/npc/README.md`
 - Исполняемый бэклог: `docs/npc_implementation_backlog.md`
 - Runtime orchestration контракт: `docs/npc_runtime_orchestration.md`
