@@ -1,0 +1,311 @@
+{
+  "summary": {
+    "safe_candidates_excluding_pilot": 36,
+    "eligible_with_expected_changes": 0,
+    "decision": "BATCH_HOLD"
+  },
+  "selection_rules": {
+    "allowed_tiers": [
+      "READY",
+      "BRIDGEABLE"
+    ],
+    "excluded_pilot_patterns": [
+      "src/integrations/nwnx_sqlite/*"
+    ],
+    "exclude_active_exceptions": true,
+    "exclude_protected_paths": true,
+    "require_supported_legacy_for_expected_changes": true
+  },
+  "candidates": [
+    {
+      "path": "src/modules/npc/npc_legacy_al_bridge_inc.nss",
+      "tier": "BRIDGEABLE",
+      "legacy_supported_count": 15,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/controllers/lifecycle_controller.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/module_skeleton/mod_skel_core.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_core.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_activity_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_activity_migration_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_activity_route_resolution_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_activity_schedule_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_activity_state_apply_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_area_enter.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_area_exit.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_area_maintenance.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_area_tick.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_cluster_supervisor_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_compat_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_core.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_damaged.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_death.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_dialogue.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_legacy_compat_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_lifecycle_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_local_write_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_lod_projection_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_metrics_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_module_load.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_perception.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_queue_deferred_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_queue_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_queue_index_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_queue_legacy_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_queue_pending_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_queue_ring_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_registry_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_runtime_modes_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_spawn.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    },
+    {
+      "path": "src/modules/npc/npc_tick_inc.nss",
+      "tier": "READY",
+      "legacy_supported_count": 0,
+      "exception_scoped": true,
+      "protected_path": true,
+      "eligible_for_apply": false
+    }
+  ],
+  "eligible_candidates": [],
+  "reasoning": "No eligible safe candidates with expected conversions remain outside approved pilot scope."
+}

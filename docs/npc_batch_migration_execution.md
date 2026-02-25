@@ -92,3 +92,19 @@ Auto-migrate достаточно, когда:
 - `MANUAL` или `CONFLICTED`;
 - есть unsupported `al_*` patterns;
 - есть смешанный noncanonical wiring, который helper помечает skip-ом.
+
+
+## 7) Переход в manual governance
+
+Кейсы, которые остались после execution (`MANUAL/CONFLICTED/safe-skip`), переводятся в backlog по runbook: `docs/npc_manual_remediation_governance.md`.
+
+
+## 8) No eligible-change batch (post-pilot branch)
+
+Если selection показывает `eligible_with_expected_changes = 0`, apply не выполняется.
+
+Действия:
+- зафиксировать batch verdict как `BATCH HOLD` (no-op, без unsafe autowrite);
+- перегенерировать governance отчёты;
+- подтверждать, что `OPEN/P1` не появились;
+- расширять rollout только при появлении нового safe batch с реальными конверсиями.

@@ -58,3 +58,8 @@ Bridge достаточно, когда:
 ## 6) Переход к execution
 
 После readiness-аудита используйте batch execution helper по runbook: `docs/npc_batch_migration_execution.md`.
+
+
+## 7) Manual remediation governance
+
+Для остатка `MANUAL/CONFLICTED/safe-skip` запускайте backlog tooling: `docs/npc_manual_remediation_governance.md`.
