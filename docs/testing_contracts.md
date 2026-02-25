@@ -107,3 +107,15 @@ bash scripts/test_npc_remediation_backlog_contract.sh
 - валидацию формата exception registry;
 - корректное попадание active exceptions в отчёт как `EXCEPTION`;
 - согласованность readiness/execution/backlog на базовых сценариях.
+
+
+## Контракт targeted blocker-closure (P1/HOOK-WIRING)
+
+```bash
+bash scripts/test_npc_remediation_blocker_closure_contract.sh
+```
+
+Проверка фиксирует:
+- отсутствие `OPEN` кейсов с `priority=P1`;
+- отсутствие `OPEN` кейсов категории `HOOK-WIRING`;
+- что exception-ссылки в backlog соответствуют активным записям реестра исключений.

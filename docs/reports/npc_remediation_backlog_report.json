@@ -1,8 +1,8 @@
 {
   "summary": {
     "total_cases": 39,
-    "open_cases": 4,
-    "exception_cases": 35,
+    "open_cases": 0,
+    "exception_cases": 39,
     "by_category": {
       "HOOK-WIRING": 3,
       "RUNTIME-PROTECTED": 36
@@ -22,8 +22,8 @@
       "tier": "MANUAL",
       "reason": "noncanonical hook-like script naming or wiring",
       "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
-      "status": "OPEN",
-      "exception_id": ""
+      "status": "EXCEPTION",
+      "exception_id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES"
     },
     {
       "path": "src/modules/module_skeleton/module_skeleton_module_load.nss",
@@ -33,8 +33,8 @@
       "tier": "MANUAL",
       "reason": "noncanonical hook-like script naming or wiring",
       "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
-      "status": "OPEN",
-      "exception_id": ""
+      "status": "EXCEPTION",
+      "exception_id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES"
     },
     {
       "path": "src/modules/module_skeleton/module_skeleton_spawn.nss",
@@ -44,8 +44,8 @@
       "tier": "MANUAL",
       "reason": "noncanonical hook-like script naming or wiring",
       "action": "Align hook script naming/wiring to canonical npc_* contract and verify include/entrypoint mapping.",
-      "status": "OPEN",
-      "exception_id": ""
+      "status": "EXCEPTION",
+      "exception_id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES"
     },
     {
       "path": "src/controllers/lifecycle_controller.nss",
@@ -55,8 +55,8 @@
       "tier": "READY",
       "reason": "protected runtime path; content migration not applied",
       "action": "Review protected runtime/content boundary; if content-owned, migrate manually; if runtime-owned, track as governed exception.",
-      "status": "OPEN",
-      "exception_id": ""
+      "status": "EXCEPTION",
+      "exception_id": "EXC-RUNTIME-PROTECTED-CONTROLLERS"
     },
     {
       "path": "src/modules/module_skeleton/mod_skel_core.nss",

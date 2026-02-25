@@ -55,3 +55,11 @@ python3 scripts/generate_npc_remediation_backlog.py \
 - **Rewrite в canonical**: default для `HOOK-WIRING`, `CONFLICTED-CONFIG`, `LEGACY-UNSUPPORTED`.
 - **Bridge extension**: только при повторяющемся реальном кейсе + отдельный контрактный тест.
 - **Temporary exception**: только если сейчас менять рискованно/дорого, с owner и явной rationale.
+
+
+## 7) P1 HOOK-WIRING closure rule
+
+- `P1` кейсы категории `HOOK-WIRING` не должны оставаться в `OPEN`.
+- Для каждого такого кейса допустимо только: 
+  1) canonical fix, либо
+  2) явный `EXCEPTION` в `docs/npc_migration_exception_registry.json` с rationale и owner.

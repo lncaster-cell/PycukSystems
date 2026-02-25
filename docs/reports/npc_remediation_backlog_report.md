@@ -1,8 +1,8 @@
 # Ambient Life V3 Manual Remediation Backlog
 
 - Total unresolved cases: **39**
-- Open cases: **4**
-- Exception-tracked cases: **35**
+- Open cases: **0**
+- Exception-tracked cases: **39**
 
 ## By category
 - **HOOK-WIRING**: 3
@@ -14,10 +14,10 @@
 - **P3**: 36
 
 ## Cases
-- `src/modules/module_skeleton/module_skeleton_area_tick.nss` → **HOOK-WIRING** / **P1** / OPEN (tier=MANUAL; noncanonical hook-like script naming or wiring)
-- `src/modules/module_skeleton/module_skeleton_module_load.nss` → **HOOK-WIRING** / **P1** / OPEN (tier=MANUAL; noncanonical hook-like script naming or wiring)
-- `src/modules/module_skeleton/module_skeleton_spawn.nss` → **HOOK-WIRING** / **P1** / OPEN (tier=MANUAL; noncanonical hook-like script naming or wiring)
-- `src/controllers/lifecycle_controller.nss` → **RUNTIME-PROTECTED** / **P3** / OPEN (tier=READY; protected runtime path; content migration not applied)
+- `src/modules/module_skeleton/module_skeleton_area_tick.nss` → **HOOK-WIRING** / **P1** / EXCEPTION (tier=MANUAL; noncanonical hook-like script naming or wiring; exception=EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES)
+- `src/modules/module_skeleton/module_skeleton_module_load.nss` → **HOOK-WIRING** / **P1** / EXCEPTION (tier=MANUAL; noncanonical hook-like script naming or wiring; exception=EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES)
+- `src/modules/module_skeleton/module_skeleton_spawn.nss` → **HOOK-WIRING** / **P1** / EXCEPTION (tier=MANUAL; noncanonical hook-like script naming or wiring; exception=EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES)
+- `src/controllers/lifecycle_controller.nss` → **RUNTIME-PROTECTED** / **P3** / EXCEPTION (tier=READY; protected runtime path; content migration not applied; exception=EXC-RUNTIME-PROTECTED-CONTROLLERS)
 - `src/modules/module_skeleton/mod_skel_core.nss` → **RUNTIME-PROTECTED** / **P3** / EXCEPTION (tier=READY; protected runtime path; content migration not applied; exception=EXC-RUNTIME-PROTECTED-MODULE-SKELETON)
 - `src/modules/module_skeleton/module_skeleton_core.nss` → **RUNTIME-PROTECTED** / **P3** / EXCEPTION (tier=READY; protected runtime path; content migration not applied; exception=EXC-RUNTIME-PROTECTED-MODULE-SKELETON)
 - `src/modules/npc/npc_activity_inc.nss` → **RUNTIME-PROTECTED** / **P3** / EXCEPTION (tier=READY; protected runtime path; content migration not applied; exception=EXC-RUNTIME-PROTECTED-NPC-CORE)

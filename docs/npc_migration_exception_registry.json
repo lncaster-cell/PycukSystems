@@ -26,6 +26,22 @@
       "status": "active",
       "owner": "platform",
       "rationale": "Module skeleton is a template/runtime contract surface and is tracked outside content migration batches."
+    },
+    {
+      "id": "EXC-HOOK-WIRING-MODULE-SKELETON-TEMPLATES",
+      "path_pattern": "src/modules/module_skeleton/module_skeleton_*.nss",
+      "category": "HOOK-WIRING",
+      "status": "active",
+      "owner": "platform",
+      "rationale": "module_skeleton_* files are template entrypoint names by design and are not NPC rollout hook targets."
+    },
+    {
+      "id": "EXC-RUNTIME-PROTECTED-CONTROLLERS",
+      "path_pattern": "src/controllers/*",
+      "category": "RUNTIME-PROTECTED",
+      "status": "active",
+      "owner": "platform",
+      "rationale": "controller layer is runtime-governed and intentionally excluded from content batch migration scope."
     }
   ]
 }
