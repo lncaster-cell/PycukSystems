@@ -28,8 +28,6 @@ int NpcBhvrActivityIsSupportedRoute(string sRouteId);
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
-string NpcBhvrActivityScheduleStartKey(string sSlot);
-string NpcBhvrActivityScheduleEndKey(string sSlot);
 
 void NpcBhvrLegacyBridgeMetric(object oScope, string sMetric, int nDelta)
 {
@@ -177,27 +175,9 @@ void NpcBhvrLegacyBridgeMigrateNpc(object oNpc)
         }
     }
 
-    if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED) == 0 && GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SCHEDULE_ENABLED) != 0)
-    {
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL);
-    }
+    // Legacy schedule windows are intentionally not migrated into canonical runtime behavior.
+    // The behavior core always resolves slot by time-of-day dayparts.
 
-    if (GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_NIGHT)) == "" &&
-        GetLocalString(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_START) != "")
-    {
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_NIGHT), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_START));
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_NIGHT), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_END));
-        NpcBhvrMetricAdd(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL, 2);
-    }
-
-    if (GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_MORNING)) == "" &&
-        GetLocalString(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_START) != "")
-    {
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_MORNING), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_START));
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_MORNING), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_END));
-        NpcBhvrMetricAdd(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL, 2);
-    }
 
     NpcBhvrLegacyBridgeMigrateRouteDataForId(oNpc, NPC_BHVR_ACTIVITY_ROUTE_DEFAULT);
     NpcBhvrLegacyBridgeMigrateRouteDataForId(oNpc, NPC_BHVR_ACTIVITY_ROUTE_PRIORITY);

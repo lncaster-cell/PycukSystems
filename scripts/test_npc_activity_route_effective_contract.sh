@@ -3,11 +3,13 @@ set -euo pipefail
 
 normalize_configured_route_or_empty() {
   local route="$1"
-  case "$route" in
-    default_route|priority_patrol|critical_safe) echo "$route" ;;
-    "") echo "" ;;
-    *) echo "" ;;
-  esac
+  if [[ -z "$route" ]]; then
+    echo ""
+  elif [[ "$route" =~ ^[a-z0-9_]{1,32}$ ]]; then
+    echo "$route"
+  else
+    echo ""
+  fi
 }
 
 resolve_route_profile() {
@@ -78,7 +80,7 @@ assert_case() {
 
 assert_case "configured npc route dominates" "priority_patrol" "critical_safe" "default_route" "default_route" "critical_safe" "priority_patrol"
 assert_case "fallback to npc slot route" "" "critical_safe" "default_route" "priority_patrol" "default_route" "critical_safe"
-assert_case "fallback to area slot route" "bad" "" "" "priority_patrol" "default_route" "priority_patrol"
-assert_case "fallback to default_route when all invalid" "bad" "wrong" "wrong" "wrong" "wrong" "default_route"
+assert_case "fallback to area slot route" "bad-route" "" "" "priority_patrol" "default_route" "priority_patrol"
+assert_case "fallback to default_route when all invalid" "bad-route" "wrong-route" "wrong-route" "wrong-route" "wrong-route" "default_route"
 
 echo "[OK] npc_activity route_effective contract tests passed"

@@ -72,9 +72,8 @@ Legacy `al_*` поддерживается только как migration adapter
 ### Поддержанный subset `al_* -> npc_*`
 - `al_slot` -> `npc_activity_slot` (legacy aliases `default|priority|critical` normalизуются в daypart `afternoon|morning|night`)
 - `al_route` -> `npc_activity_route` (через normalize/fallback)
-- `al_schedule_enabled` -> `npc_activity_schedule_enabled`
-- `al_schedule_critical_start/end` -> legacy-compat migration в daypart slot `night`
-- `al_schedule_priority_start/end` -> legacy-compat migration в daypart slot `morning`
+- `al_schedule_enabled` -> `npc_activity_schedule_enabled` (legacy flag only; canonical slot resolver ignores schedule windows)
+- `al_schedule_critical_start/end`, `al_schedule_priority_start/end` не мигрируются в canonical behavior path
 - `al_route_default|priority|critical` -> area route profile defaults (`npc_route_profile_*`) с canonical daypart slot-map
 - `al_route_count_*|loop_*|tag_*|pause_*|activity_*` -> canonical `npc_route_*`
 

@@ -11,7 +11,7 @@ fi
 
 is_valid_route() {
   local route="$1"
-  [[ "$route" == "default_route" || "$route" == "priority_patrol" || "$route" == "critical_safe" ]]
+  [[ "$route" =~ ^[a-z0-9_]{1,32}$ ]]
 }
 
 normalize_configured_route_or_empty() {
@@ -127,7 +127,7 @@ assert_case \
 
 assert_case \
   "invalid npc_activity_route on NPC and valid slot route on area" \
-  "not_supported" \
+  "not-supported" \
   "" \
   "" \
   "priority_patrol" \
@@ -137,11 +137,11 @@ assert_case \
 
 assert_case \
   "all sources empty-or-invalid uses default_route" \
-  "bad_route" \
+  "bad-route" \
   "" \
-  "wrong_default" \
+  "wrong-default" \
   "" \
-  "invalid_area_default" \
+  "invalid-area-default" \
   "" \
   "default_route"
 
