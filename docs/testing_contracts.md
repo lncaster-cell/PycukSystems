@@ -119,3 +119,23 @@ bash scripts/test_npc_remediation_blocker_closure_contract.sh
 - отсутствие `OPEN` кейсов с `priority=P1`;
 - отсутствие `OPEN` кейсов категории `HOOK-WIRING`;
 - что exception-ссылки в backlog соответствуют активным записям реестра исключений.
+
+
+## Контракт final pilot-readiness gate
+
+```bash
+bash scripts/test_npc_final_pilot_readiness_contract.sh
+```
+
+Финальный check подтверждает:
+- smoke/contracts green (если не отключено `NPC_SKIP_SMOKE_IN_FINAL_CHECK=1`);
+- `no OPEN/P1` в remediation backlog;
+- обязательные launch docs/reports присутствуют;
+- exception registry валиден для текущего backlog;
+- launch-readiness report (`docs/reports/npc_launch_readiness_report.{json,md}`) генерируется с verdict.
+
+Для полного прогона финального контура:
+
+```bash
+bash scripts/test_npc_final_readiness_pipeline.sh
+```

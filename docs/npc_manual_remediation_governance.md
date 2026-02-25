@@ -63,3 +63,8 @@ python3 scripts/generate_npc_remediation_backlog.py \
 - Для каждого такого кейса допустимо только: 
   1) canonical fix, либо
   2) явный `EXCEPTION` в `docs/npc_migration_exception_registry.json` с rationale и owner.
+
+
+## 8) Handover в launch phase
+
+После стабилизации remediation/backlog переходите к final launch-gate: `docs/npc_go_live_checklist.md` и `docs/npc_pilot_rollout_runbook.md`.
