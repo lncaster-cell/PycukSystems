@@ -1,15 +1,17 @@
 # Ambient Life V3 Batch Migration Execution Report
 
-- Mode: **apply**
+- Mode: **dry-run**
 - Selected tiers: `READY, BRIDGEABLE`
-- Candidates: **7**
+- Candidates: **43**
 - Changed files: **0**
 - Already canonical skips: **7**
 - Manual/conflicted skips: **0**
-- Safe skips: **0**
+- Safe skips: **36**
 - Bridge conversions applied: **0**
 
 ## File actions
+- `src/modules/npc/npc_legacy_al_bridge_inc.nss` → **skip** (tier=BRIDGEABLE; replacements=0; protected runtime path; content migration not applied)
+- `src/controllers/lifecycle_controller.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
 - `src/integrations/nwnx_sqlite/experimental/npc_repo_contract_inc.nss` → **skip** (tier=READY; replacements=0; already canonical/no supported legacy keys)
 - `src/integrations/nwnx_sqlite/npc_repo_inc.nss` → **skip** (tier=READY; replacements=0; already canonical/no supported legacy keys)
 - `src/integrations/nwnx_sqlite/npc_repo_runtime_inc.nss` → **skip** (tier=READY; replacements=0; already canonical/no supported legacy keys)
@@ -17,4 +19,38 @@
 - `src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss` → **skip** (tier=READY; replacements=0; already canonical/no supported legacy keys)
 - `src/integrations/nwnx_sqlite/npc_wb_inc.nss` → **skip** (tier=READY; replacements=0; already canonical/no supported legacy keys)
 - `src/integrations/nwnx_sqlite/npc_writebehind_inc.nss` → **skip** (tier=READY; replacements=0; already canonical/no supported legacy keys)
+- `src/modules/module_skeleton/mod_skel_core.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/module_skeleton/module_skeleton_core.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_activity_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_activity_migration_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_activity_route_resolution_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_activity_schedule_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_activity_state_apply_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_area_enter.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_area_exit.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_area_maintenance.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_area_tick.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_cluster_supervisor_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_compat_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_core.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_damaged.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_death.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_dialogue.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_legacy_compat_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_lifecycle_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_local_write_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_lod_projection_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_metrics_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_module_load.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_perception.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_queue_deferred_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_queue_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_queue_index_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_queue_legacy_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_queue_pending_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_queue_ring_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_registry_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_runtime_modes_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_spawn.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
+- `src/modules/npc/npc_tick_inc.nss` → **skip** (tier=READY; replacements=0; protected runtime path; content migration not applied)
 

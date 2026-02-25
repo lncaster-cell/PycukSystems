@@ -92,8 +92,3 @@ Auto-migrate достаточно, когда:
 - `MANUAL` или `CONFLICTED`;
 - есть unsupported `al_*` patterns;
 - есть смешанный noncanonical wiring, который helper помечает skip-ом.
-
-
-## 7) Переход в manual governance
-
-Кейсы, которые остались после execution (`MANUAL/CONFLICTED/safe-skip`), переводятся в backlog по runbook: `docs/npc_manual_remediation_governance.md`.
