@@ -9,6 +9,7 @@
 #include "npc_activity_inc"
 #include "npc_sql_api_inc"
 #include "npc_wb_inc"
+#include "npc_runtime_modes_inc"
 
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;

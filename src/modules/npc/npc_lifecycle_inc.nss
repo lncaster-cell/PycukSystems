@@ -192,113 +192,121 @@ void NpcBhvrOnAreaTickImpl(object oArea)
         // Это удерживает OnAreaTick тонким и выносит тяжёлую логику в малые функции.
         nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
 
-        // Idle budget is adaptive: under queue pressure we throttle registry idle fan-out,
-        // and when queue normalizes it automatically returns to base value.
-        // Idle broadcast gate: skip fan-out when queue already has pending work.
-        if (nPendingBefore <= 0)
+        // Ambient dispatch is first-class and independent from reactive queue processing.
+        if (NpcBhvrAreaAllowsAmbientDispatch(oArea))
         {
             NpcBhvrRegistryBroadcastIdleTickBudgeted(oArea, NpcBhvrTickResolveIdleBudget(oArea, nPendingBefore));
         }
         else
         {
-            NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_IDLE_SKIPPED_QUEUE_PRESSURE_TOTAL);
-            // Keep idle per-tick snapshots consistent when idle fan-out is gated.
             NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK, 0);
             NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_REMAINING, 0);
         }
 
-        NpcBhvrTickPrepareBudgets(oArea);
-        nMaxEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS);
-        nSoftBudgetMs = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS);
-        nCarryoverEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS);
-        nDegradedStreak = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK);
-        nBudgetExceededTotal = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL);
-        nDegradedTotal = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL);
-        nTickProcessedPrev = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_PROCESSED);
-        nTickDegradedModePrev = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE);
-        nLastDegradationReasonPrev = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON);
-        nCarryoverEventsPrev = nCarryoverEvents;
-
-        // Tick pipeline: ProcessBudgetedWork -> ApplyDegradationAndCarryover -> ReconcileDeferredAndTrim.
-        nTickState = NpcBhvrTickProcessBudgetedWork(oArea, nPendingBefore, nMaxEvents, nSoftBudgetMs, nCarryoverEvents);
-        nCarryoverEvents = NpcBhvrTickApplyDegradationAndCarryover(oArea, nTickState);
-        nPendingCarryoverState = NpcBhvrTickReconcileDeferredAndTrim(oArea, nTickState, nCarryoverEvents);
-
-        nProcessedThisTick = NpcBhvrTickStateProcessed(nTickState);
-        nBudgetFlags = NpcBhvrTickStateBudgetFlags(nTickState);
-        nPendingAfter = NpcBhvrTickPendingCarryoverPendingAfter(nPendingCarryoverState);
-        nCarryoverEvents = NpcBhvrTickPendingCarryoverCarryoverEvents(nPendingCarryoverState);
-        if (nCarryoverEvents < 0)
+        if (NpcBhvrAreaAllowsReactiveDispatch(oArea))
         {
-            nCarryoverEvents = 0;
-        }
-        if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
-        {
-            nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
-        }
+            NpcBhvrTickPrepareBudgets(oArea);
+            nMaxEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS);
+            nSoftBudgetMs = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS);
+            nCarryoverEvents = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS);
+            nDegradedStreak = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK);
+            nBudgetExceededTotal = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL);
+            nDegradedTotal = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL);
+            nTickProcessedPrev = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_PROCESSED);
+            nTickDegradedModePrev = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE);
+            nLastDegradationReasonPrev = GetLocalInt(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON);
+            nCarryoverEventsPrev = nCarryoverEvents;
 
-        nEventBudgetReached = (nBudgetFlags & NPC_BHVR_TICK_FLAG_EVENT_BUDGET_REACHED) != 0;
-        nSoftBudgetReached = (nBudgetFlags & NPC_BHVR_TICK_FLAG_SOFT_BUDGET_REACHED) != 0;
-        nBudgetExceeded = (nBudgetFlags & NPC_BHVR_TICK_FLAG_BUDGET_EXCEEDED) != 0;
+            // Reactive tick pipeline: ProcessBudgetedWork -> ApplyDegradationAndCarryover -> ReconcileDeferredAndTrim.
+            nTickState = NpcBhvrTickProcessBudgetedWork(oArea, nPendingBefore, nMaxEvents, nSoftBudgetMs, nCarryoverEvents);
+            nCarryoverEvents = NpcBhvrTickApplyDegradationAndCarryover(oArea, nTickState);
+            nPendingCarryoverState = NpcBhvrTickReconcileDeferredAndTrim(oArea, nTickState, nCarryoverEvents);
 
-        nNextDegradedStreak = nDegradedStreak;
-        nNextBudgetExceededTotal = nBudgetExceededTotal;
-        nNextDegradedTotal = nDegradedTotal;
-        nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_NONE;
-
-        if (nBudgetExceeded)
-        {
-            nNextDegradedStreak = nDegradedStreak + 1;
-            nNextBudgetExceededTotal = nBudgetExceededTotal + 1;
-            nNextDegradedTotal = nDegradedTotal + 1;
-
-            nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE;
-            if (nEventBudgetReached)
+            nProcessedThisTick = NpcBhvrTickStateProcessed(nTickState);
+            nBudgetFlags = NpcBhvrTickStateBudgetFlags(nTickState);
+            nPendingAfter = NpcBhvrTickPendingCarryoverPendingAfter(nPendingCarryoverState);
+            nCarryoverEvents = NpcBhvrTickPendingCarryoverCarryoverEvents(nPendingCarryoverState);
+            if (nCarryoverEvents < 0)
             {
-                nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
+                nCarryoverEvents = 0;
             }
-            else if (nSoftBudgetReached)
+            if (nCarryoverEvents > NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS)
             {
-                nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
+                nCarryoverEvents = NPC_BHVR_TICK_CARRYOVER_MAX_EVENTS;
             }
+
+            nEventBudgetReached = (nBudgetFlags & NPC_BHVR_TICK_FLAG_EVENT_BUDGET_REACHED) != 0;
+            nSoftBudgetReached = (nBudgetFlags & NPC_BHVR_TICK_FLAG_SOFT_BUDGET_REACHED) != 0;
+            nBudgetExceeded = (nBudgetFlags & NPC_BHVR_TICK_FLAG_BUDGET_EXCEEDED) != 0;
+
+            nNextDegradedStreak = nDegradedStreak;
+            nNextBudgetExceededTotal = nBudgetExceededTotal;
+            nNextDegradedTotal = nDegradedTotal;
+            nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_NONE;
+
+            if (nBudgetExceeded)
+            {
+                nNextDegradedStreak = nDegradedStreak + 1;
+                nNextBudgetExceededTotal = nBudgetExceededTotal + 1;
+                nNextDegradedTotal = nDegradedTotal + 1;
+
+                nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_QUEUE_PRESSURE;
+                if (nEventBudgetReached)
+                {
+                    nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_EVENT_BUDGET;
+                }
+                else if (nSoftBudgetReached)
+                {
+                    nLastDegradationReason = NPC_BHVR_DEGRADATION_REASON_SOFT_BUDGET;
+                }
+            }
+            else
+            {
+                nNextDegradedStreak = 0;
+            }
+
+            // Batched tick-state commit: read-normalize-write-if-changed on hot-path locals.
+            if (nTickProcessedPrev != nProcessedThisTick)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_PROCESSED, nProcessedThisTick);
+            }
+            if (nTickDegradedModePrev != nBudgetExceeded)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
+            }
+            if (nDegradedStreak != nNextDegradedStreak)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, nNextDegradedStreak);
+            }
+            if (nBudgetExceededTotal != nNextBudgetExceededTotal)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL, nNextBudgetExceededTotal);
+            }
+            if (nDegradedTotal != nNextDegradedTotal)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL, nNextDegradedTotal);
+            }
+            if (nLastDegradationReasonPrev != nLastDegradationReason)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nLastDegradationReason);
+            }
+            if (nCarryoverEventsPrev != nCarryoverEvents)
+            {
+                NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
+            }
+
+            // Metrics must stay incremental: process-count is added once per tick snapshot.
+            NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PROCESSED_TOTAL, nProcessedThisTick);
         }
         else
         {
-            nNextDegradedStreak = 0;
+            nPendingAfter = nPendingBefore;
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_PROCESSED, 0);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE, FALSE);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, 0);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, NPC_BHVR_DEGRADATION_REASON_NONE);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, 0);
         }
-
-        // Batched tick-state commit: read-normalize-write-if-changed on hot-path locals.
-        if (nTickProcessedPrev != nProcessedThisTick)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_PROCESSED, nProcessedThisTick);
-        }
-        if (nTickDegradedModePrev != nBudgetExceeded)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_MODE, nBudgetExceeded);
-        }
-        if (nDegradedStreak != nNextDegradedStreak)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_STREAK, nNextDegradedStreak);
-        }
-        if (nBudgetExceededTotal != nNextBudgetExceededTotal)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_BUDGET_EXCEEDED_TOTAL, nNextBudgetExceededTotal);
-        }
-        if (nDegradedTotal != nNextDegradedTotal)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_DEGRADED_TOTAL, nNextDegradedTotal);
-        }
-        if (nLastDegradationReasonPrev != nLastDegradationReason)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_LAST_DEGRADATION_REASON, nLastDegradationReason);
-        }
-        if (nCarryoverEventsPrev != nCarryoverEvents)
-        {
-            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_CARRYOVER_EVENTS, nCarryoverEvents);
-        }
-
-        // Metrics must stay incremental: process-count is added once per tick snapshot.
-        NpcBhvrMetricAdd(oArea, NPC_BHVR_METRIC_PROCESSED_TOTAL, nProcessedThisTick);
 
         NpcBhvrTickHandleBacklogTelemetry(oArea, nPendingAfter);
 
@@ -380,6 +388,7 @@ void NpcBhvrOnSpawnImpl(object oNpc)
     }
 
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_SPAWN_COUNT);
+    NpcBhvrResolveNpcLayer(oNpc);
     NpcBhvrActivityOnSpawn(oNpc);
 
     oArea = GetArea(oNpc);
@@ -402,8 +411,17 @@ void NpcBhvrOnPerceptionImpl(object oNpc)
         return;
     }
 
+    if (!NpcBhvrNpcUsesReactivePath(oNpc))
+    {
+        return;
+    }
+
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_PERCEPTION_COUNT);
     oArea = GetArea(oNpc);
+    if (!NpcBhvrAreaAllowsReactiveDispatch(oArea))
+    {
+        return;
+    }
     NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_HIGH, NPC_BHVR_REASON_PERCEPTION);
 }
 
@@ -416,8 +434,17 @@ void NpcBhvrOnDamagedImpl(object oNpc)
         return;
     }
 
+    if (!NpcBhvrNpcUsesReactivePath(oNpc))
+    {
+        return;
+    }
+
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DAMAGED_COUNT);
     oArea = GetArea(oNpc);
+    if (!NpcBhvrAreaAllowsReactiveDispatch(oArea))
+    {
+        return;
+    }
     NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_CRITICAL, NPC_BHVR_REASON_DAMAGE);
 }
 
@@ -467,7 +494,10 @@ void NpcBhvrOnDialogueImpl(object oNpc)
 
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DIALOGUE_COUNT);
     oArea = GetArea(oNpc);
-    NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_NORMAL, NPC_BHVR_REASON_UNSPECIFIED);
+    if (NpcBhvrNpcUsesReactivePath(oNpc) && NpcBhvrAreaAllowsReactiveDispatch(oArea))
+    {
+        NpcBhvrQueueEnqueue(oArea, oNpc, NPC_BHVR_PRIORITY_NORMAL, NPC_BHVR_REASON_UNSPECIFIED);
+    }
 }
 
 void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
