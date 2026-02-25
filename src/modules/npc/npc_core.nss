@@ -4,15 +4,6 @@
 // 2) bounded queue + priority buckets,
 // 3) единый вход в метрики через helper API.
 
-#include "npc_metrics_inc"
-#include "npc_local_write_inc"
-#include "npc_activity_inc"
-#include "npc_sql_api_inc"
-#include "npc_wb_inc"
-#include "npc_runtime_modes_inc"
-#include "npc_cluster_supervisor_inc"
-#include "npc_lod_projection_inc"
-
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;
 const int NPC_BHVR_AREA_STATE_PAUSED = 2;
@@ -125,6 +116,14 @@ int NpcBhvrCountPlayersInAreaInternalApi(object oArea);
 int NpcBhvrCountPlayersInAreaExcludingInternalApi(object oArea, object oExclude);
 int NpcBhvrGetCachedPlayerCountInternal(object oArea);
 
+#include "npc_metrics_inc"
+#include "npc_local_write_inc"
+#include "npc_activity_inc"
+#include "npc_sql_api_inc"
+#include "npc_wb_inc"
+#include "npc_runtime_modes_inc"
+#include "npc_cluster_supervisor_inc"
+#include "npc_lod_projection_inc"
 #include "npc_registry_inc"
 #include "npc_queue_inc"
 #include "npc_tick_inc"
