@@ -35,6 +35,8 @@ assert_has 'NpcBhvrLodShouldSkipIdleTick\(' "$LOD_FILE"
 assert_has 'NpcBhvrLodRevealResync\(' "$LOD_FILE"
 assert_has 'npc_lod_projected_slot' "$LOD_FILE"
 assert_has 'npc_cfg_lod_reveal_cooldown_sec' "$LOD_FILE"
+assert_has 'npc_cfg_lod_physical_hide_enabled' "$LOD_FILE"
+assert_has 'NpcBhvrLodTryApplyPhysicalHide\(' "$LOD_FILE"
 
 # integration points in core/lifecycle
 assert_has '#include "npc_runtime_modes_inc"' "$CORE_FILE"

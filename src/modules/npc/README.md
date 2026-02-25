@@ -130,12 +130,18 @@ Tick/degraded telemetry в runtime включает:
   - nearest-player distance check + hysteresis (`hide distance` / `reveal distance`) + debounce toggle.
   - anti-churn guardrails: minimum hidden/visible windows + reveal cooldown + suppression redundant hide/reveal операций.
 - Reactive/combat путь не переводится автоматически в hidden LOD (LOD pipeline по умолчанию применяется к ambient слою).
+- Добавлен optional physical engine-hide path (opt-in):
+  - по умолчанию выключен (`npc_cfg_lod_physical_hide_enabled=0`),
+  - применяется только для явно разрешённых NPC (`npc_cfg_lod_physical_hide=1`) и только поверх logical projected source-of-truth,
+  - при невозможности безопасного physical transition используется logical-only fallback.
 
 LOD runtime locals/config:
 - `npc_cfg_lod_exempt`, `npc_cfg_lod_running_hide`,
 - `npc_cfg_lod_running_hide_distance`, `npc_cfg_lod_running_reveal_distance`,
 - `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_phase_step_sec`,
-- `npc_cfg_lod_min_hidden_sec`, `npc_cfg_lod_min_visible_sec`, `npc_cfg_lod_reveal_cooldown_sec`.
+- `npc_cfg_lod_min_hidden_sec`, `npc_cfg_lod_min_visible_sec`, `npc_cfg_lod_reveal_cooldown_sec`,
+- `npc_cfg_lod_physical_hide_enabled`, `npc_cfg_lod_physical_hide` (per-NPC),
+- `npc_cfg_lod_physical_min_hidden_sec`, `npc_cfg_lod_physical_min_visible_sec`, `npc_cfg_lod_physical_cooldown_sec`.
 
 LOD observability metrics:
 - `npc_metric_lod_hidden_total`,
@@ -148,7 +154,13 @@ LOD observability metrics:
 - `npc_metric_lod_reveal_suppressed_total`,
 - `npc_metric_lod_hide_debounce_hit_total`,
 - `npc_metric_lod_reveal_cooldown_hit_total`,
-- `npc_metric_lod_reanchor_fallback_total`.
+- `npc_metric_lod_reanchor_fallback_total`,
+- `npc_metric_lod_physical_hide_applied_total`,
+- `npc_metric_lod_physical_hide_suppressed_total`,
+- `npc_metric_lod_physical_reveal_applied_total`,
+- `npc_metric_lod_physical_reveal_suppressed_total`,
+- `npc_metric_lod_physical_cooldown_hit_total`,
+- `npc_metric_lod_physical_fallback_logical_only_total`.
 
 ## Activity primitives runtime-контракт
 
@@ -693,6 +705,8 @@ Pending/queue зеркало:
 
 ```bash
 bash scripts/test_npc_smoke.sh
+# optional standalone perf gate (also included in smoke):
+bash scripts/test_npc_lod_perf_gate.sh
 bash scripts/check_npc_lifecycle_contract.sh
 bash scripts/test_npc_fairness.sh
 bash scripts/test_npc_activity_contract.sh

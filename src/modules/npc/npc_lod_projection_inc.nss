@@ -10,6 +10,11 @@ const string NPC_BHVR_CFG_LOD_PHASE_STEP_SEC = "npc_cfg_lod_phase_step_sec";
 const string NPC_BHVR_CFG_LOD_MIN_HIDDEN_SEC = "npc_cfg_lod_min_hidden_sec";
 const string NPC_BHVR_CFG_LOD_MIN_VISIBLE_SEC = "npc_cfg_lod_min_visible_sec";
 const string NPC_BHVR_CFG_LOD_REVEAL_COOLDOWN_SEC = "npc_cfg_lod_reveal_cooldown_sec";
+const string NPC_BHVR_CFG_LOD_PHYSICAL_HIDE_ENABLED = "npc_cfg_lod_physical_hide_enabled";
+const string NPC_BHVR_CFG_LOD_PHYSICAL_HIDE = "npc_cfg_lod_physical_hide";
+const string NPC_BHVR_CFG_LOD_PHYSICAL_MIN_HIDDEN_SEC = "npc_cfg_lod_physical_min_hidden_sec";
+const string NPC_BHVR_CFG_LOD_PHYSICAL_MIN_VISIBLE_SEC = "npc_cfg_lod_physical_min_visible_sec";
+const string NPC_BHVR_CFG_LOD_PHYSICAL_COOLDOWN_SEC = "npc_cfg_lod_physical_cooldown_sec";
 
 const string NPC_BHVR_VAR_LOD_HIDDEN_AT = "npc_lod_hidden_at";
 const string NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT = "npc_lod_last_toggle_at";
@@ -21,6 +26,8 @@ const string NPC_BHVR_VAR_LOD_PROJECTED_WP_INDEX = "npc_lod_projected_wp_index";
 const string NPC_BHVR_VAR_LOD_PROJECTED_WP_COUNT = "npc_lod_projected_wp_count";
 const string NPC_BHVR_VAR_LOD_PROJECTED_WP_LOOP = "npc_lod_projected_wp_loop";
 const string NPC_BHVR_VAR_LOD_LAST_REVEAL_AT = "npc_lod_last_reveal_at";
+const string NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN = "npc_lod_physical_hidden";
+const string NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT = "npc_lod_last_physical_toggle_at";
 
 const int NPC_BHVR_LOD_RUNNING_HIDE_DISTANCE_DEFAULT = 35;
 const int NPC_BHVR_LOD_RUNNING_REVEAL_DISTANCE_DEFAULT = 25;
@@ -29,6 +36,10 @@ const int NPC_BHVR_LOD_PHASE_STEP_SEC_DEFAULT = 12;
 const int NPC_BHVR_LOD_MIN_HIDDEN_SEC_DEFAULT = 5;
 const int NPC_BHVR_LOD_MIN_VISIBLE_SEC_DEFAULT = 4;
 const int NPC_BHVR_LOD_REVEAL_COOLDOWN_SEC_DEFAULT = 2;
+const int NPC_BHVR_LOD_PHYSICAL_HIDE_ENABLED_DEFAULT = FALSE;
+const int NPC_BHVR_LOD_PHYSICAL_MIN_HIDDEN_SEC_DEFAULT = 8;
+const int NPC_BHVR_LOD_PHYSICAL_MIN_VISIBLE_SEC_DEFAULT = 8;
+const int NPC_BHVR_LOD_PHYSICAL_COOLDOWN_SEC_DEFAULT = 6;
 
 int NpcBhvrPendingNow();
 int NpcBhvrAreaGetState(object oArea);
@@ -84,6 +95,112 @@ int NpcBhvrLodIsAmbientCandidate(object oNpc)
     return NpcBhvrResolveNpcLayer(oNpc) == NPC_BHVR_LAYER_AMBIENT;
 }
 
+int NpcBhvrLodPhysicalHidePolicyAllowed(object oNpc, object oArea)
+{
+    int nEnabled;
+
+    if (!GetIsObjectValid(oNpc) || !GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    nEnabled = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_PHYSICAL_HIDE_ENABLED, NPC_BHVR_LOD_PHYSICAL_HIDE_ENABLED_DEFAULT);
+    if (nEnabled != TRUE)
+    {
+        return FALSE;
+    }
+
+    if (GetLocalInt(oNpc, NPC_BHVR_CFG_LOD_PHYSICAL_HIDE) != TRUE)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+void NpcBhvrLodTryApplyPhysicalHide(object oNpc, int nNow)
+{
+    object oArea;
+    int bHidden;
+    int nLastToggle;
+    int nMinVisible;
+    int nCooldown;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    oArea = GetArea(oNpc);
+    if (!NpcBhvrLodPhysicalHidePolicyAllowed(oNpc, oArea))
+    {
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL);
+        return;
+    }
+
+    bHidden = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN) == TRUE;
+    if (bHidden)
+    {
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_SUPPRESSED_TOTAL);
+        return;
+    }
+
+    nLastToggle = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT);
+    nMinVisible = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_PHYSICAL_MIN_VISIBLE_SEC, NPC_BHVR_LOD_PHYSICAL_MIN_VISIBLE_SEC_DEFAULT);
+    nCooldown = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_PHYSICAL_COOLDOWN_SEC, NPC_BHVR_LOD_PHYSICAL_COOLDOWN_SEC_DEFAULT);
+    if (nLastToggle > 0 && ((nNow - nLastToggle) < nMinVisible || (nNow - nLastToggle) < nCooldown))
+    {
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_COOLDOWN_HIT_TOTAL);
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL);
+        return;
+    }
+
+    SetScriptHidden(oNpc, TRUE);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN, TRUE);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT, nNow);
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_APPLIED_TOTAL);
+}
+
+void NpcBhvrLodTryApplyPhysicalReveal(object oNpc, int nNow)
+{
+    object oArea;
+    int bHidden;
+    int nLastToggle;
+    int nMinHidden;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    oArea = GetArea(oNpc);
+    if (!NpcBhvrLodPhysicalHidePolicyAllowed(oNpc, oArea))
+    {
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL);
+        return;
+    }
+
+    bHidden = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN) == TRUE;
+    if (!bHidden)
+    {
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_SUPPRESSED_TOTAL);
+        return;
+    }
+
+    nLastToggle = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT);
+    nMinHidden = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_PHYSICAL_MIN_HIDDEN_SEC, NPC_BHVR_LOD_PHYSICAL_MIN_HIDDEN_SEC_DEFAULT);
+    if (nLastToggle > 0 && (nNow - nLastToggle) < nMinHidden)
+    {
+        // Consistency override: reveal is required to match projected truth when NPC becomes visible.
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_COOLDOWN_HIT_TOTAL);
+    }
+
+    SetScriptHidden(oNpc, FALSE);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN, FALSE);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT, nNow);
+    NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_APPLIED_TOTAL);
+}
+
 void NpcBhvrLodCaptureProjectionState(object oNpc, int nNow)
 {
     if (!GetIsObjectValid(oNpc))
@@ -116,12 +233,14 @@ void NpcBhvrLodHideNpc(object oNpc, int nLod, int nNow)
         if (nCurrent == nLod)
         {
             NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL);
+            NpcBhvrLodTryApplyPhysicalHide(oNpc, nNow);
             return;
         }
 
         // Already hidden: avoid repeated snapshot/clear-actions churn.
         NpcBhvrSetNpcSimulationLod(oNpc, nLod);
         NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL);
+        NpcBhvrLodTryApplyPhysicalHide(oNpc, nNow);
         return;
     }
 
@@ -131,6 +250,7 @@ void NpcBhvrLodHideNpc(object oNpc, int nLod, int nNow)
     SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT, nNow);
 
     ClearAllActions(TRUE);
+    NpcBhvrLodTryApplyPhysicalHide(oNpc, nNow);
 
     if (nLod == NPC_BHVR_SIM_LOD_PROJECTED)
     {
@@ -258,6 +378,7 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
     NpcBhvrSetNpcSimulationLod(oNpc, NPC_BHVR_SIM_LOD_FULL);
     SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT, nNow);
     SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_REVEAL_AT, nNow);
+    NpcBhvrLodTryApplyPhysicalReveal(oNpc, nNow);
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_REVEAL_RESYNC_TOTAL);
 }
 
@@ -377,6 +498,7 @@ void NpcBhvrLodApplyForAreaStateToNpc(object oNpc, int nAreaState, int nNow)
     {
         NpcBhvrSetNpcSimulationLod(oNpc, NPC_BHVR_SIM_LOD_FULL);
         NpcBhvrSetNpcProjectedState(oNpc, NPC_BHVR_PROJECTED_VISIBLE);
+        NpcBhvrLodTryApplyPhysicalReveal(oNpc, nNow);
         return;
     }
 
