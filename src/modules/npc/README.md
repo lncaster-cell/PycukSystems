@@ -23,6 +23,12 @@
 
 ## Статус runtime foundation (Phase A)
 
+- Введено явное runtime-разделение слоёв: `ambient` (slot/activity/waypoint idle-flow) и `reactive` (perception/damage/threat queue-flow).
+- Введён dispatch-контракт области `npc_dispatch_mode` (`AMBIENT_ONLY` / `HYBRID` / `REACTIVE_ONLY`) с override-цепочкой `area var -> area cfg -> module cfg`.
+- Для NPC введён runtime-layer `npc_runtime_layer` (по умолчанию `ambient`, реактивный путь включается через `npc_cfg_layer` или `npc_cfg_reactive=TRUE`).
+- `OnPerception` и `OnDamaged` больше не обязательны для мирных NPC: hook-и обрабатываются только для reactive-layer.
+- Добавлены extension-points под следующий этап AL V3: `cluster owner`, `area interest state`, `npc simulation LOD`, `hidden/projected state`.
+
 - Реализован lifecycle area-controller: `RUNNING/PAUSED/STOPPED`.
 - Добавлены auto-start и auto-idle-stop механики area-loop.
 - RUNNING loop рескейджулится только в состоянии `RUNNING`; в `PAUSED` используется отдельный редкий watchdog-тик (`30s`) с отдельной метрикой.
@@ -43,6 +49,7 @@
 - `npc_registry_inc.nss` — registry internals (`NpcBhvrRegistry*`, индекс/слоты, idle broadcast).
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
+- `npc_runtime_modes_inc.nss` — runtime-контракт разделения `ambient/reactive` + extension points под cluster/LOD.
 
 ### Deprecated/compat API
 
