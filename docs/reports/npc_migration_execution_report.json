@@ -1,0 +1,16 @@
+{
+  "summary": {
+    "mode": "dry-run",
+    "tiers": [
+      "READY",
+      "BRIDGEABLE"
+    ],
+    "candidates_total": 0,
+    "changed_files": 0,
+    "already_canonical": 0,
+    "manual_conflicted_skips": 0,
+    "safe_skips": 0,
+    "bridge_conversions": 0
+  },
+  "results": []
+}
