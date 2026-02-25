@@ -120,6 +120,7 @@ const int NPC_BHVR_ACTIVITY_ID_LOCATE_WRAPPER_MAX = 98;
 
 int NpcBhvrActivityIsValidIdentifierValue(string sValue, int nMinLen, int nMaxLen);
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
+string NpcBhvrActivitySlotRouteProfileKey(string sSlot);
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteIdOrDefault(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
@@ -130,6 +131,7 @@ string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurren
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 void NpcBhvrActivityRefreshProfileState(object oNpc);
 void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow);
+void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseState, int nCooldown);
 int NpcBhvrActivityIsCooldownActive(object oNpc, int nNow);
 int NpcBhvrPendingNow();
 
@@ -137,6 +139,7 @@ int NpcBhvrPendingNow();
 
 #include "npc_activity_route_resolution_inc"
 #include "npc_activity_schedule_inc"
+#include "npc_legacy_al_bridge_inc"
 #include "npc_activity_state_apply_inc"
 
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
@@ -506,7 +509,9 @@ int ReadRouteRuntimeIntWithFallback(
         }
         else
         {
-            oArea = GetArea(oNpc);
+            NpcBhvrLegacyBridgeMigrateNpc(oNpc);
+
+    oArea = GetArea(oNpc);
             oOwner = OBJECT_INVALID;
             if (GetIsObjectValid(oArea))
             {
@@ -881,6 +886,7 @@ void NpcBhvrActivityApplyPriorityRoute(object oNpc)
 
 void NpcBhvrActivityOnAreaActivate(object oArea)
 {
+    NpcBhvrLegacyBridgeMigrateAreaDefaults(oArea);
     NpcBhvrActivityPrewarmAreaRuntime(oArea);
 }
 
@@ -951,7 +957,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
     NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR, nResolvedHour);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE, sAreaTag);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE, sRouteConfigured);
-    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK, nSlotFallback);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK, nSlotFallback);
 
     if (nSlotFallback)
     {
@@ -1014,7 +1020,8 @@ void NpcBhvrActivityOnSpawn(object oNpc)
         return;
     }
 
-    // Spawn order: profile refresh -> runtime init -> transition stamp.
+    // Spawn order: migration bridge -> profile refresh -> runtime init -> transition stamp.
+    NpcBhvrLegacyBridgeMigrateNpc(oNpc);
     NpcBhvrActivityRefreshProfileState(oNpc);
     NpcBhvrActivityInitRuntimeState(oNpc);
     NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
@@ -1034,6 +1041,11 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     int nNow;
 
     if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    if (NpcBhvrLodShouldSkipIdleTick(oNpc))
     {
         return;
     }
