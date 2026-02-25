@@ -54,6 +54,14 @@ const string NPC_BHVR_METRIC_CLUSTER_SOFT_CAP_HIT_TOTAL = "npc_metric_cluster_so
 const string NPC_BHVR_METRIC_CLUSTER_HARD_CAP_HIT_TOTAL = "npc_metric_cluster_hard_cap_hit_total";
 const string NPC_BHVR_METRIC_CLUSTER_RATE_LIMIT_HIT_TOTAL = "npc_metric_cluster_rate_limit_hit_total";
 
+// LOD/hidden/projected metrics baseline.
+const string NPC_BHVR_METRIC_LOD_HIDDEN_TOTAL = "npc_metric_lod_hidden_total";
+const string NPC_BHVR_METRIC_LOD_FROZEN_TOTAL = "npc_metric_lod_frozen_total";
+const string NPC_BHVR_METRIC_LOD_REVEAL_RESYNC_TOTAL = "npc_metric_lod_reveal_resync_total";
+const string NPC_BHVR_METRIC_LOD_FAST_FORWARD_TOTAL = "npc_metric_lod_fast_forward_total";
+const string NPC_BHVR_METRIC_LOD_REVEAL_SLOT_CHANGE_TOTAL = "npc_metric_lod_reveal_slot_change_total";
+const string NPC_BHVR_METRIC_LOD_REVEAL_SAME_SLOT_TOTAL = "npc_metric_lod_reveal_same_slot_total";
+
 void NpcBhvrMetricSet(object oScope, string sMetric, int nValue)
 {
     if (!GetIsObjectValid(oScope))

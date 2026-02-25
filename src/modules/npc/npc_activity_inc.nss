@@ -130,6 +130,7 @@ string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurren
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 void NpcBhvrActivityRefreshProfileState(object oNpc);
 void NpcBhvrActivitySetCooldownTicks(object oNpc, int nTicks, int nNow);
+void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseState, int nCooldown);
 int NpcBhvrActivityIsCooldownActive(object oNpc, int nNow);
 int NpcBhvrPendingNow();
 
@@ -951,7 +952,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
     NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR, nResolvedHour);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE, sAreaTag);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE, sRouteConfigured);
-    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK, nSlotFallback);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_FALLBACK, nSlotFallback);
 
     if (nSlotFallback)
     {
@@ -1034,6 +1035,11 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     int nNow;
 
     if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    if (NpcBhvrLodShouldSkipIdleTick(oNpc))
     {
         return;
     }

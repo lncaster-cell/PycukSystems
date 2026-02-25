@@ -51,6 +51,7 @@
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
 - `npc_runtime_modes_inc.nss` — runtime-контракт разделения `ambient/reactive` + extension points под cluster/LOD.
 - `npc_cluster_supervisor_inc.nss` — лёгкий cluster lifecycle supervisor (interest/grace, caps, rate-limit transitions).
+- `npc_lod_projection_inc.nss` — baseline hidden/LOD/projected pipeline с fast-forward/resync при reveal.
 
 ### Deprecated/compat API
 
@@ -110,6 +111,37 @@ Tick/degraded telemetry в runtime включает:
   - `npc_metric_cluster_hard_cap_hit_total`,
   - `npc_metric_cluster_rate_limit_hit_total`,
   - module-scoped per-cluster snapshot `npc_metric_cluster_running_interiors_<cluster_owner>`.
+
+### Hidden NPC + simulation LOD + projected resync (Phase C baseline)
+
+- Введена 3-уровневая LOD-модель для ambient NPC:
+  - `LOD0` (`NPC_BHVR_SIM_LOD_FULL`) — полная area-симуляция в интересе игрока;
+  - `LOD1` (`NPC_BHVR_SIM_LOD_REDUCED`) — скрытый/сжатый режим без обычного idle-loop hot-path;
+  - `LOD2` (`NPC_BHVR_SIM_LOD_PROJECTED`) — замороженный projected режим для `STOPPED`-областей.
+- Привязка к lifecycle:
+  - `RUNNING` -> преимущественно `LOD0` (+ дешёвый coarse hide baseline для части ambient NPC),
+  - `PAUSED` -> `LOD1`,
+  - `STOPPED` -> `LOD2`.
+- Hidden policy не делает фоновую пошаговую симуляцию: скрытые NPC хранят logical projection (slot/route/wp/state + hidden timestamp) и не получают heavy idle-refresh.
+- Reveal/resync выполняется детерминированно и дёшево:
+  - при смене slot — reset к каноническому anchor текущего slot/profile;
+  - при том же slot — fast-forward waypoint phase по elapsed-time (без replay пропущенных тиков/pathfinding-прокрутки).
+- Coarse same-area hiding (RUNNING) реализован budget-friendly gate для ambient NPC:
+  - nearest-player distance check + hysteresis (`hide distance` / `reveal distance`) + debounce toggle.
+- Reactive/combat путь не переводится автоматически в hidden LOD (LOD pipeline по умолчанию применяется к ambient слою).
+
+LOD runtime locals/config:
+- `npc_cfg_lod_exempt`, `npc_cfg_lod_running_hide`,
+- `npc_cfg_lod_running_hide_distance`, `npc_cfg_lod_running_reveal_distance`,
+- `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_phase_step_sec`.
+
+LOD observability metrics:
+- `npc_metric_lod_hidden_total`,
+- `npc_metric_lod_frozen_total`,
+- `npc_metric_lod_reveal_resync_total`,
+- `npc_metric_lod_fast_forward_total`,
+- `npc_metric_lod_reveal_slot_change_total`,
+- `npc_metric_lod_reveal_same_slot_total`.
 
 ## Activity primitives runtime-контракт
 
