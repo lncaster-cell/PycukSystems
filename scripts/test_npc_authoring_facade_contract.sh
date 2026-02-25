@@ -34,7 +34,7 @@ assert_has '#include "npc_authoring_facade_inc"' "$CORE_FILE"
 assert_has 'NpcBhvrAuthoringApplyNpcFacade\(oNpc\);' "$LIFECYCLE_FILE"
 assert_has 'NpcBhvrAuthoringApplyAreaFacade\(oArea\);' "$LIFECYCLE_FILE"
 
-# role/schedule/area_profile presets
+# role/area_profile presets + slot-route canonical authoring
 assert_has 'citizen' "$FACADE_FILE"
 assert_has 'worker' "$FACADE_FILE"
 assert_has 'merchant' "$FACADE_FILE"
@@ -42,6 +42,15 @@ assert_has 'guard' "$FACADE_FILE"
 assert_has 'innkeeper' "$FACADE_FILE"
 assert_has 'static' "$FACADE_FILE"
 
+assert_has 'npc_cfg_slot_dawn_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_morning_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_afternoon_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_evening_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_night_route' "$FACADE_FILE"
+assert_has 'npc_cfg_alert_route' "$FACADE_FILE"
+assert_has 'NPC_BHVR_VAR_ROUTE_PROFILE_ALERT' "$FACADE_FILE"
+
+# legacy schedule presets remain as compatibility-only migration path
 assert_has 'day_worker' "$FACADE_FILE"
 assert_has 'day_shop' "$FACADE_FILE"
 assert_has 'night_guard' "$FACADE_FILE"
@@ -58,13 +67,15 @@ assert_has 'guard_post' "$FACADE_FILE"
 
 # authoring locals wired
 assert_has 'npc_cfg_role' "$FACADE_FILE"
-assert_has 'npc_cfg_schedule' "$FACADE_FILE"
-assert_has 'npc_cfg_work_route' "$FACADE_FILE"
-assert_has 'npc_cfg_home_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_dawn_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_morning_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_afternoon_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_evening_route' "$FACADE_FILE"
+assert_has 'npc_cfg_slot_night_route' "$FACADE_FILE"
+assert_has 'npc_cfg_alert_route' "$FACADE_FILE"
 assert_has 'npc_cfg_city' "$FACADE_FILE"
 assert_has 'npc_cfg_cluster' "$FACADE_FILE"
 assert_has 'npc_cfg_area_profile' "$FACADE_FILE"
-
 # docs split and human/runtime separation
 assert_has 'Human-facing authoring contract' "$AUTHORING_DOC"
 assert_has 'Runtime/internal contract reference' "$RUNTIME_DOC"

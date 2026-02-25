@@ -1,6 +1,6 @@
 # Ambient Life V3 — Human-facing authoring contract
 
-Этот документ — **практический контракт для контентщика**: какие locals ставить вручную в toolset.
+Этот документ — **канонический практический контракт для контентщика**: какие locals ставить вручную в toolset.
 
 > Внутренний runtime-справочник (`npc_*`, cluster/LOD/tick internals, legacy bridge subset) вынесен в `docs/npc_runtime_internal_contract.md`.
 
@@ -16,20 +16,22 @@
   - OnDeath: `npc_death`
   - OnDialogue: `npc_dialogue`
 
-## 2) NPC authoring locals (ставятся вручную)
+## 2) NPC authoring locals (канонический путь)
 
 ### Обязательные
 
 - `npc_cfg_role`
-- `npc_cfg_schedule`
-- `npc_cfg_work_route`
-- `npc_cfg_home_route`
+- `npc_cfg_slot_dawn_route`
+- `npc_cfg_slot_morning_route`
+- `npc_cfg_slot_afternoon_route`
+- `npc_cfg_slot_evening_route`
+- `npc_cfg_slot_night_route`
 
 ### Опциональные
 
-- `npc_cfg_leisure_route`
 - `npc_cfg_force_reactive` (`0/1`)
 - `npc_cfg_allow_physical_hide` (`0/1`)
+- `npc_cfg_alert_route` (отдельный route только для режима `alert`)
 
 ### Preset values
 
@@ -40,15 +42,6 @@
 - `guard`
 - `innkeeper`
 - `static`
-
-**Schedule presets:**
-- `day_worker`
-- `day_shop`
-- `night_guard`
-- `tavern_late`
-- `always_home`
-- `always_static`
-- `custom` (escape hatch: ручной контроль schedule/runtime locals)
 
 ## 3) Area authoring locals (ставятся вручную)
 
@@ -68,61 +61,61 @@
 
 Из `npc_cfg_area_profile` фасад автоматически выставляет runtime defaults (dispatch/lifecycle/LOD/hide/cluster tuning), если низкоуровневые ключи не заданы явно.
 
-## 4) Waypoint/route authoring
+## 4) Каноническая модель поведения
 
-- Используется существующий `npc_route_*` keyspace (`count/loop/tag/activity/pause`).
-- Route id/tag: `[a-z0-9_]`, как и раньше.
-- `npc_cfg_work_route|home_route|leisure_route` задают пресетный маршрутный каркас, а runtime разворачивает это в `npc_activity_*` + route-profile locals.
+Каноническая цепочка authoring/runtime:
 
-## 5) Как работает facade
+`slot (time-of-day) -> route of this slot -> waypoint -> activity`
+
+- Слот выбирается по времени суток.
+- Для каждого slot берётся route из `npc_cfg_slot_*_route` (через фасад в `npc_route_profile_slot_*`).
+- Дальше применяется waypoint/route-point логика.
+- `activity` берётся только с waypoint (`npc_route_activity_<route>_<idx>`): slot **не** задаёт activity напрямую.
+
+## 5) Режимы поведения
+
+Поддерживаются только два режима:
+
+- `daily` — обычная slot-модель (`slot -> route -> waypoint -> activity`).
+- `alert` — служебный временный override.
+
+Если задан `npc_cfg_alert_route`, он используется как route override для `alert`; иначе остаётся обычный slot fallback.
+
+## 6) Как работает facade
 
 Пайплайн:
 
 `npc_cfg_* authoring -> facade normalization/derived config -> существующий npc_* runtime`
 
 - Внутренние `npc_*` locals **не удалены** и остаются runtime truth.
-- Основной ручной интерфейс — только `npc_cfg_*`; activity/runtime locals считаются internal/runtime-only и не рекомендуются для регулярной ручной настройки.
+- Основной ручной интерфейс — slot-route locals + role/area profile.
+- Role (`npc_cfg_role`) остаётся archetype/default-policy (ambient/reactive/hide), но больше не является скрытым расписанием.
 - Если низкоуровневые `npc_*` уже заданы явно, фасад не перетирает их «в лоб».
 
-## 6) Примеры
+## 7) Legacy / compatibility path (deprecated)
 
-### Кузнец (дневной рабочий)
+Старый пресетный путь сохранён только для совместимости и миграций:
+
+- `npc_cfg_schedule`
+- `npc_cfg_work_route`
+- `npc_cfg_home_route`
+- `npc_cfg_leisure_route`
+
+Legacy schedule presets (`day_worker`, `day_shop`, `night_guard`, `tavern_late`, `always_home`, `always_static`, `custom`) считаются **secondary/deprecated authoring path** и не являются канонической моделью для нового контента.
+
+## 8) Пример (канонический)
+
+### Кузнец (slot-маршруты)
 
 NPC:
 - `npc_cfg_role=worker`
-- `npc_cfg_schedule=day_worker`
-- `npc_cfg_work_route=smith_work_loop`
-- `npc_cfg_home_route=smith_home_loop`
-- `npc_cfg_leisure_route=market_evening_walk`
+- `npc_cfg_slot_dawn_route=smith_home_loop`
+- `npc_cfg_slot_morning_route=smith_work_loop`
+- `npc_cfg_slot_afternoon_route=smith_work_loop`
+- `npc_cfg_slot_evening_route=market_evening_walk`
+- `npc_cfg_slot_night_route=smith_home_loop`
 
 Area (улица):
 - `npc_cfg_city=neverwinter`
 - `npc_cfg_cluster=blacklake`
 - `npc_cfg_area_profile=city_exterior`
-
-### Стражник (ночной)
-
-NPC:
-- `npc_cfg_role=guard`
-- `npc_cfg_schedule=night_guard`
-- `npc_cfg_work_route=north_gate_patrol`
-- `npc_cfg_home_route=guard_barracks`
-- `npc_cfg_force_reactive=1`
-
-Area (пост):
-- `npc_cfg_city=neverwinter`
-- `npc_cfg_cluster=north_gate`
-- `npc_cfg_area_profile=guard_post`
-
-### Торговец (лавка)
-
-NPC:
-- `npc_cfg_role=merchant`
-- `npc_cfg_schedule=day_shop`
-- `npc_cfg_work_route=shop_counter_loop`
-- `npc_cfg_home_route=merchant_home`
-
-Area (интерьер лавки):
-- `npc_cfg_city=neverwinter`
-- `npc_cfg_cluster=market_square`
-- `npc_cfg_area_profile=shop_interior`

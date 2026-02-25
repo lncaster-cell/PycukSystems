@@ -63,6 +63,18 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return sRoute;
     }
 
+    if (NpcBhvrActivityResolveMode(oNpc) == NPC_BHVR_ACTIVITY_MODE_ALERT)
+    {
+        sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+            GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_ALERT),
+            oNpc
+        );
+        if (sRoute != "")
+        {
+            return sRoute;
+        }
+    }
+
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
         oNpc
