@@ -9,6 +9,8 @@
 #include "npc_activity_inc"
 #include "npc_sql_api_inc"
 #include "npc_wb_inc"
+#include "npc_runtime_modes_inc"
+#include "npc_cluster_supervisor_inc"
 
 const int NPC_BHVR_AREA_STATE_STOPPED = 0;
 const int NPC_BHVR_AREA_STATE_RUNNING = 1;
@@ -113,6 +115,9 @@ void NpcBhvrAreaStop(object oArea);
 void NpcBhvrOnAreaTick(object oArea);
 void NpcBhvrOnAreaMaintenance(object oArea);
 void NpcBhvrBootstrapModuleAreas();
+void NpcBhvrClusterOnPlayerAreaEnter(object oArea, int nNow);
+void NpcBhvrClusterOnPlayerAreaExit(object oArea, int nNow);
+void NpcBhvrClusterOrchestrateArea(object oArea);
 int NpcBhvrCountPlayersInAreaInternalApi(object oArea);
 int NpcBhvrCountPlayersInAreaExcludingInternalApi(object oArea, object oExclude);
 int NpcBhvrGetCachedPlayerCountInternal(object oArea);

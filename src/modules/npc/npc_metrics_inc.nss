@@ -46,6 +46,14 @@ const string NPC_BHVR_METRIC_IDLE_SKIPPED_QUEUE_PRESSURE_TOTAL = "npc_metric_idl
 const string NPC_BHVR_METRIC_REGISTRY_COMPACTION_REMOVED_TOTAL = "registry_compaction_removed_total";
 const string NPC_BHVR_METRIC_REGISTRY_COMPACTION_RUNS_TOTAL = "registry_compaction_runs_total";
 
+// Cluster lifecycle orchestration metrics.
+const string NPC_BHVR_METRIC_CLUSTER_TRANSITIONS_TOTAL = "npc_metric_cluster_transitions_total";
+const string NPC_BHVR_METRIC_CLUSTER_PAUSE_RESUME_TOTAL = "npc_metric_cluster_pause_resume_total";
+const string NPC_BHVR_METRIC_CLUSTER_PAUSE_STOP_TOTAL = "npc_metric_cluster_pause_stop_total";
+const string NPC_BHVR_METRIC_CLUSTER_SOFT_CAP_HIT_TOTAL = "npc_metric_cluster_soft_cap_hit_total";
+const string NPC_BHVR_METRIC_CLUSTER_HARD_CAP_HIT_TOTAL = "npc_metric_cluster_hard_cap_hit_total";
+const string NPC_BHVR_METRIC_CLUSTER_RATE_LIMIT_HIT_TOTAL = "npc_metric_cluster_rate_limit_hit_total";
+
 void NpcBhvrMetricSet(object oScope, string sMetric, int nValue)
 {
     if (!GetIsObjectValid(oScope))
