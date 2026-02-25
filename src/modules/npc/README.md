@@ -23,6 +23,12 @@
 
 ## Статус runtime foundation (Phase A)
 
+- Введено явное runtime-разделение слоёв: `ambient` (slot/activity/waypoint idle-flow) и `reactive` (perception/damage/threat queue-flow).
+- Введён dispatch-контракт области `npc_dispatch_mode` (`AMBIENT_ONLY` / `HYBRID` / `REACTIVE_ONLY`) с override-цепочкой `area var -> area cfg -> module cfg`.
+- Для NPC введён runtime-layer `npc_runtime_layer` (по умолчанию `ambient`, реактивный путь включается через `npc_cfg_layer` или `npc_cfg_reactive=TRUE`).
+- `OnPerception` и `OnDamaged` больше не обязательны для мирных NPC: hook-и обрабатываются только для reactive-layer.
+- Добавлены extension-points под следующий этап AL V3: `cluster owner`, `area interest state`, `npc simulation LOD`, `hidden/projected state`.
+
 - Реализован lifecycle area-controller: `RUNNING/PAUSED/STOPPED`.
 - Добавлены auto-start и auto-idle-stop механики area-loop.
 - RUNNING loop рескейджулится только в состоянии `RUNNING`; в `PAUSED` используется отдельный редкий watchdog-тик (`30s`) с отдельной метрикой.
@@ -43,6 +49,9 @@
 - `npc_registry_inc.nss` — registry internals (`NpcBhvrRegistry*`, индекс/слоты, idle broadcast).
 - `npc_activity_inc.nss` — контентные activity-primitives (адаптерный слой для будущего порта из AL).
 - `npc_metrics_inc.nss` — единый helper API для метрик (`NpcBhvrMetricInc/Add`).
+- `npc_runtime_modes_inc.nss` — runtime-контракт разделения `ambient/reactive` + extension points под cluster/LOD.
+- `npc_cluster_supervisor_inc.nss` — лёгкий cluster lifecycle supervisor (interest/grace, caps, rate-limit transitions).
+- `npc_lod_projection_inc.nss` — baseline hidden/LOD/projected pipeline с fast-forward/resync при reveal.
 
 ### Deprecated/compat API
 
@@ -75,6 +84,83 @@ Tick/degraded telemetry в runtime включает:
 
 - Idle broadcast budget адаптивный: при queue-pressure (`pending_total` выше runtime-порога от `npc_tick_max_events`, `npc_tick_soft_budget_ms` и `npc_tick_carryover_events`) применяется throttling `NPC_BHVR_IDLE_MAX_NPC_PER_TICK_DEFAULT`, при нормализации очереди budget автоматически возвращается к базовому значению.
 
+
+### Cluster lifecycle orchestration (Phase B baseline)
+
+- Lifecycle областей оркестрируется через cluster supervisor (`npc_cluster_supervisor_inc.nss`) и contracts:
+  - `npc_area_cluster_owner` (группировка областей),
+  - `npc_area_interest_state` (interest state),
+  - area lifecycle `RUNNING/PAUSED/STOPPED`.
+- Базовая interest policy:
+  - area с игроком -> `RUNNING`,
+  - area без игроков в grace-window (`npc_cluster_grace_until_at`) -> `PAUSED`,
+  - area без игроков после grace -> `STOPPED`.
+- Debounce door-churn: после ухода последнего игрока область переводится в `PAUSED`, а не сразу в `STOPPED`; при быстром возврате игрока выполняется resume через `RUNNING` без принудительного cold-stop.
+- Для интерьеров кластера добавлены guardrails:
+  - soft cap (`npc_cfg_cluster_interior_soft_cap`),
+  - hard cap (`npc_cfg_cluster_interior_hard_cap`),
+  - selection rule: oldest idle running interior candidates демотируются в `PAUSED/STOPPED`.
+- Добавлен cluster-level lifecycle rate limiter (token-bucket):
+  - `npc_cfg_cluster_transition_rate`,
+  - `npc_cfg_cluster_transition_burst`.
+- Cluster observability (baseline metrics):
+  - `npc_metric_cluster_transitions_total`,
+  - `npc_metric_cluster_pause_resume_total`,
+  - `npc_metric_cluster_pause_stop_total`,
+  - `npc_metric_cluster_soft_cap_hit_total`,
+  - `npc_metric_cluster_hard_cap_hit_total`,
+  - `npc_metric_cluster_rate_limit_hit_total`,
+  - module-scoped per-cluster snapshot `npc_metric_cluster_running_interiors_<cluster_owner>`.
+
+### Hidden NPC + simulation LOD + projected resync (Phase C baseline)
+
+- Введена 3-уровневая LOD-модель для ambient NPC:
+  - `LOD0` (`NPC_BHVR_SIM_LOD_FULL`) — полная area-симуляция в интересе игрока;
+  - `LOD1` (`NPC_BHVR_SIM_LOD_REDUCED`) — скрытый/сжатый режим без обычного idle-loop hot-path;
+  - `LOD2` (`NPC_BHVR_SIM_LOD_PROJECTED`) — замороженный projected режим для `STOPPED`-областей.
+- Привязка к lifecycle:
+  - `RUNNING` -> преимущественно `LOD0` (+ дешёвый coarse hide baseline для части ambient NPC),
+  - `PAUSED` -> `LOD1`,
+  - `STOPPED` -> `LOD2`.
+- Hidden policy не делает фоновую пошаговую симуляцию: скрытые NPC хранят logical projection (slot/route/wp/state + hidden timestamp) и не получают heavy idle-refresh.
+- Reveal/resync выполняется детерминированно и дёшево:
+  - при смене slot — reset к каноническому anchor текущего slot/profile;
+  - при том же slot — fast-forward waypoint phase по elapsed-time (без replay пропущенных тиков/pathfinding-прокрутки).
+- Coarse same-area hiding (RUNNING) реализован budget-friendly gate для ambient NPC:
+  - nearest-player distance check + hysteresis (`hide distance` / `reveal distance`) + debounce toggle.
+  - anti-churn guardrails: minimum hidden/visible windows + reveal cooldown + suppression redundant hide/reveal операций.
+- Reactive/combat путь не переводится автоматически в hidden LOD (LOD pipeline по умолчанию применяется к ambient слою).
+- Добавлен optional physical engine-hide path (opt-in):
+  - по умолчанию выключен (`npc_cfg_lod_physical_hide_enabled=0`),
+  - применяется только для явно разрешённых NPC (`npc_cfg_lod_physical_hide=1`) и только поверх logical projected source-of-truth,
+  - при невозможности безопасного physical transition используется logical-only fallback.
+
+LOD runtime locals/config:
+- `npc_cfg_lod_exempt`, `npc_cfg_lod_running_hide`,
+- `npc_cfg_lod_running_hide_distance`, `npc_cfg_lod_running_reveal_distance`,
+- `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_phase_step_sec`,
+- `npc_cfg_lod_min_hidden_sec`, `npc_cfg_lod_min_visible_sec`, `npc_cfg_lod_reveal_cooldown_sec`,
+- `npc_cfg_lod_physical_hide_enabled`, `npc_cfg_lod_physical_hide` (per-NPC),
+- `npc_cfg_lod_physical_min_hidden_sec`, `npc_cfg_lod_physical_min_visible_sec`, `npc_cfg_lod_physical_cooldown_sec`.
+
+LOD observability metrics:
+- `npc_metric_lod_hidden_total`,
+- `npc_metric_lod_frozen_total`,
+- `npc_metric_lod_reveal_resync_total`,
+- `npc_metric_lod_fast_forward_total`,
+- `npc_metric_lod_reveal_slot_change_total`,
+- `npc_metric_lod_reveal_same_slot_total`,
+- `npc_metric_lod_hide_suppressed_total`,
+- `npc_metric_lod_reveal_suppressed_total`,
+- `npc_metric_lod_hide_debounce_hit_total`,
+- `npc_metric_lod_reveal_cooldown_hit_total`,
+- `npc_metric_lod_reanchor_fallback_total`,
+- `npc_metric_lod_physical_hide_applied_total`,
+- `npc_metric_lod_physical_hide_suppressed_total`,
+- `npc_metric_lod_physical_reveal_applied_total`,
+- `npc_metric_lod_physical_reveal_suppressed_total`,
+- `npc_metric_lod_physical_cooldown_hit_total`,
+- `npc_metric_lod_physical_fallback_logical_only_total`.
 
 ## Activity primitives runtime-контракт
 
@@ -619,6 +705,8 @@ Pending/queue зеркало:
 
 ```bash
 bash scripts/test_npc_smoke.sh
+# optional standalone perf gate (also included in smoke):
+bash scripts/test_npc_lod_perf_gate.sh
 bash scripts/check_npc_lifecycle_contract.sh
 bash scripts/test_npc_fairness.sh
 bash scripts/test_npc_activity_contract.sh

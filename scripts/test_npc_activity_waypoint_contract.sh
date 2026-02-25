@@ -2,7 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_FILE="$ROOT_DIR/src/modules/npc/npc_activity_inc.nss"
+TARGET_ACTIVITY_FILE="$ROOT_DIR/src/modules/npc/npc_activity_inc.nss"
+TARGET_STATE_FILE="$ROOT_DIR/src/modules/npc/npc_activity_state_apply_inc.nss"
 
 assert_has() {
   local pattern="$1"
@@ -13,34 +14,49 @@ assert_has() {
   fi
 }
 
+assert_has_any() {
+  local pattern="$1"
+  shift
+  local file
+
+  for file in "$@"; do
+    if rg -q "$pattern" "$file"; then
+      return 0
+    fi
+  done
+
+  echo "[FAIL] missing pattern '$pattern' in any target file"
+  exit 1
+}
+
 # Static contract (required runtime keys/helpers present).
-assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";' "$TARGET_FILE"
-assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";' "$TARGET_FILE"
-assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";' "$TARGET_FILE"
-assert_has 'int NpcBhvrActivityNormalizeWaypointIndex\(' "$TARGET_FILE"
-assert_has 'string NpcBhvrActivityComposeWaypointState\(' "$TARGET_FILE"
-assert_has 'void NpcBhvrActivityApplyRouteState\(' "$TARGET_FILE"
-assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex\);' "$TARGET_FILE"
-assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex\(nWpIndex \+ 1, nWpCount, bLoop\)\);' "$TARGET_FILE"
-assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag\);' "$TARGET_FILE"
-assert_has 'const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";' "$TARGET_FILE"
-assert_has 'int NpcBhvrActivityResolveRoutePauseTicks\(' "$TARGET_FILE"
-assert_has 'string NpcBhvrActivityResolveAction\(' "$TARGET_FILE"
-assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote\);' "$TARGET_FILE"
-assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction\);' "$TARGET_FILE"
-assert_has 'GetLocalString\(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE\);' "$TARGET_FILE"
-assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_COOLDOWN, nCooldown \+ nPauseTicks\);' "$TARGET_FILE"
-assert_has 'const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;' "$TARGET_FILE"
-assert_has 'const int NPC_BHVR_ACTIVITY_ID_GUARD = 43;' "$TARGET_FILE"
-assert_has 'int NpcBhvrActivityResolveRoutePointActivity\(' "$TARGET_FILE"
-assert_has 'string NpcBhvrActivityGetCustomAnims\(' "$TARGET_FILE"
-assert_has 'string NpcBhvrActivityGetNumericAnims\(' "$TARGET_FILE"
-assert_has 'string NpcBhvrActivityGetWaypointTagRequirement\(' "$TARGET_FILE"
-assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId\);' "$TARGET_FILE"
-assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims\);' "$TARGET_FILE"
-assert_has 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims\);' "$TARGET_FILE"
-assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner\(nActivityId\)\);' "$TARGET_FILE"
-assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair\(nActivityId\)\);' "$TARGET_FILE"
+assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";' "$TARGET_ACTIVITY_FILE"
+assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_COUNT = "npc_activity_wp_count";' "$TARGET_ACTIVITY_FILE"
+assert_has 'const string NPC_BHVR_VAR_ACTIVITY_WP_LOOP = "npc_activity_wp_loop";' "$TARGET_ACTIVITY_FILE"
+assert_has 'int NpcBhvrActivityNormalizeWaypointIndex\(' "$TARGET_ACTIVITY_FILE"
+assert_has 'string NpcBhvrActivityComposeWaypointState\(' "$TARGET_ACTIVITY_FILE"
+assert_has_any 'void NpcBhvrActivityApplyRouteState\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex\);' "$TARGET_ACTIVITY_FILE"
+assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex\(nWpIndex \+ 1, nWpCount, bLoop\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has 'const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";' "$TARGET_ACTIVITY_FILE"
+assert_has_any 'int NpcBhvrActivityResolveRoutePauseTicks\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'string NpcBhvrActivityResolveAction\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has 'GetLocalString\(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE\);' "$TARGET_ACTIVITY_FILE"
+assert_has_any 'NpcBhvrActivitySetCooldownTicks\(oNpc, nCooldown \+ nPauseTicks, nNow\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has 'const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;' "$TARGET_ACTIVITY_FILE"
+assert_has 'const int NPC_BHVR_ACTIVITY_ID_GUARD = 43;' "$TARGET_ACTIVITY_FILE"
+assert_has_any 'int NpcBhvrActivityResolveRoutePointActivity\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'string NpcBhvrActivityGetCustomAnims\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'string NpcBhvrActivityGetNumericAnims\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'string NpcBhvrActivityGetWaypointTagRequirement\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner\(nActivityId\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair\(nActivityId\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 
 # Behavioral contract (emulated): index clamp/loop + state suffix composition.
 python3 - <<'PY'
