@@ -1,126 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-is_hour_in_window() {
+resolve_time_slot() {
   local hour="$1"
-  local start="$2"
-  local end="$3"
 
-  if (( start < 0 || start > 23 || end < 0 || end > 23 )); then
-    echo 0
+  if (( hour < 0 || hour > 23 )); then
+    echo "afternoon"
     return 0
   fi
 
-  if (( start == end )); then
-    echo 0
-    return 0
-  fi
-
-  if (( start < end )); then
-    if (( hour >= start && hour < end )); then
-      echo 1
-    else
-      echo 0
-    fi
-    return 0
-  fi
-
-  if (( hour >= start || hour < end )); then
-    echo 1
+  if (( hour >= 5 && hour < 8 )); then
+    echo "dawn"
+  elif (( hour >= 8 && hour < 12 )); then
+    echo "morning"
+  elif (( hour >= 12 && hour < 17 )); then
+    echo "afternoon"
+  elif (( hour >= 17 && hour < 22 )); then
+    echo "evening"
   else
-    echo 0
+    echo "night"
   fi
 }
 
-is_slot_window_active() {
-  local hour="$1"
-  local start_raw="$2"
-  local end_raw="$3"
-
-  if [[ -z "$start_raw" || -z "$end_raw" ]]; then
-    echo 0
-    return 0
+resolve_idle_dispatch() {
+  local route_effective="$1"
+  if [[ -z "$route_effective" ]]; then
+    route_effective="default_route"
   fi
 
-  echo "$(is_hour_in_window "$hour" "$start_raw" "$end_raw")"
-}
-
-resolve_scheduled_slot() {
-  local schedule_enabled="$1"
-  local hour="$2"
-  local critical_start="$3"
-  local critical_end="$4"
-  local priority_start="$5"
-  local priority_end="$6"
-  local current_slot="$7"
-
-  if (( schedule_enabled == 0 )); then
-    echo "$current_slot"
-    return 0
-  fi
-
-  if [[ "$(is_slot_window_active "$hour" "$critical_start" "$critical_end")" == "1" ]]; then
-    echo "critical"
-    return 0
-  fi
-
-  if [[ "$(is_slot_window_active "$hour" "$priority_start" "$priority_end")" == "1" ]]; then
-    echo "priority"
-    return 0
-  fi
-
-  echo "default"
-}
-
-route_for_slot() {
-  local slot="$1"
-  case "$slot" in
-    critical) echo "critical_safe" ;;
-    priority) echo "priority_patrol" ;;
-    *) echo "default_route" ;;
-  esac
-}
-
-dispatch_branch_for_slot() {
-  local slot="$1"
-  case "$slot" in
-    critical) echo "NpcBhvrActivityApplyCriticalSafeRoute" ;;
-    priority) echo "NpcBhvrActivityApplyPriorityRoute" ;;
-    *) echo "NpcBhvrActivityApplyDefaultRoute" ;;
-  esac
-}
-
-cooldown_for_slot() {
-  local slot="$1"
-  case "$slot" in
-    priority) echo "2" ;;
-    *) echo "1" ;;
-  esac
-}
-
-simulate_schedule_resolve_idle_tick() {
-  local enabled="$1"
-  local hour="$2"
-  local c_start="$3"
-  local c_end="$4"
-  local p_start="$5"
-  local p_end="$6"
-  local current_slot="$7"
-
-  local resolved_slot
-  resolved_slot="$(resolve_scheduled_slot "$enabled" "$hour" "$c_start" "$c_end" "$p_start" "$p_end" "$current_slot")"
-
-  local effective_route
-  effective_route="$(route_for_slot "$resolved_slot")"
-
-  local branch
-  branch="$(dispatch_branch_for_slot "$resolved_slot")"
-
-  local cooldown
-  cooldown="$(cooldown_for_slot "$resolved_slot")"
-
-  # stdout protocol: branch|npc_activity_slot|npc_activity_route_effective|npc_activity_last|npc_activity_cooldown
-  echo "$branch|$resolved_slot|$effective_route|$hour|$cooldown"
+  # stdout protocol: dispatch_fn|route|base_state|cooldown
+  echo "NpcBhvrActivityApplyRouteState|$route_effective|idle_route|1"
 }
 
 assert_eq() {
@@ -133,72 +42,42 @@ assert_eq() {
   fi
 }
 
-assert_case() {
+assert_slot() {
   local name="$1"
-  local enabled="$2"
-  local hour="$3"
-  local c_start="$4"
-  local c_end="$5"
-  local p_start="$6"
-  local p_end="$7"
-  local current_slot="$8"
-  local expected="$9"
+  local hour="$2"
+  local expected="$3"
 
   local actual
-  actual="$(resolve_scheduled_slot "$enabled" "$hour" "$c_start" "$c_end" "$p_start" "$p_end" "$current_slot")"
+  actual="$(resolve_time_slot "$hour")"
   assert_eq "$actual" "$expected" "$name"
   echo "[OK] $name"
 }
 
-assert_case "schedule disabled keeps runtime slot" 0 12 22 6 8 18 "priority" "priority"
-assert_case "critical window overrides" 1 23 22 6 8 18 "default" "critical"
-assert_case "priority window picked when critical not active" 1 10 22 6 8 18 "default" "priority"
-assert_case "outside all windows falls back to default" 1 7 22 6 8 18 "critical" "default"
-assert_case "invalid equal bounds do not activate slot" 1 3 -1 -1 0 0 "default" "default"
-assert_case "missing critical end does not activate critical slot" 1 23 22 "" 8 18 "default" "default"
-assert_case "missing priority start does not activate priority slot" 1 10 22 6 "" 18 "default" "default"
-assert_case "missing both priority bounds does not activate priority slot" 1 10 22 6 "" "" "default" "default"
-
-assert_dispatch_case() {
+assert_dispatch() {
   local name="$1"
-  local enabled="$2"
-  local hour="$3"
-  local c_start="$4"
-  local c_end="$5"
-  local p_start="$6"
-  local p_end="$7"
-  local current_slot="$8"
-  local expected_branch="$9"
-  local expected_slot="${10}"
-  local expected_route="${11}"
-  local expected_last="${12}"
-  local expected_cooldown="${13}"
+  local route_effective="$2"
+  local expected_route="$3"
 
-  local result branch slot route last cooldown
-  result="$(simulate_schedule_resolve_idle_tick "$enabled" "$hour" "$c_start" "$c_end" "$p_start" "$p_end" "$current_slot")"
-  IFS='|' read -r branch slot route last cooldown <<<"$result"
+  local result fn route base cooldown
+  result="$(resolve_idle_dispatch "$route_effective")"
+  IFS='|' read -r fn route base cooldown <<<"$result"
 
-  assert_eq "$branch" "$expected_branch" "$name branch"
-  assert_eq "$slot" "$expected_slot" "$name npc_activity_slot"
-  assert_eq "$route" "$expected_route" "$name npc_activity_route_effective"
-  assert_eq "$last" "$expected_last" "$name npc_activity_last"
-  assert_eq "$cooldown" "$expected_cooldown" "$name npc_activity_cooldown"
+  assert_eq "$fn" "NpcBhvrActivityApplyRouteState" "$name function"
+  assert_eq "$route" "$expected_route" "$name route"
+  assert_eq "$base" "idle_route" "$name base state"
+  assert_eq "$cooldown" "1" "$name cooldown"
   echo "[OK] $name"
 }
 
-assert_dispatch_case \
-  "schedule-resolve prefers critical branch and updates locals" \
-  1 23 22 6 8 18 "default" \
-  "NpcBhvrActivityApplyCriticalSafeRoute" "critical" "critical_safe" "23" "1"
+assert_slot "05:00 -> dawn" 5 "dawn"
+assert_slot "08:00 -> morning" 8 "morning"
+assert_slot "12:00 -> afternoon" 12 "afternoon"
+assert_slot "17:00 -> evening" 17 "evening"
+assert_slot "23:00 -> night" 23 "night"
 
-assert_dispatch_case \
-  "schedule-resolve picks priority branch when critical inactive and updates locals" \
-  1 10 22 6 8 18 "default" \
-  "NpcBhvrActivityApplyPriorityRoute" "priority" "priority_patrol" "10" "2"
-
-assert_dispatch_case \
-  "schedule-resolve falls back to default branch and updates locals" \
-  1 7 22 6 8 18 "critical" \
-  "NpcBhvrActivityApplyDefaultRoute" "default" "default_route" "7" "1"
+assert_dispatch "empty effective route falls back to default_route" "" "default_route"
+assert_dispatch "semantic critical_safe route stays data-only route" "critical_safe" "critical_safe"
+assert_dispatch "semantic priority_patrol route stays data-only route" "priority_patrol" "priority_patrol"
+assert_dispatch "custom route is applied without semantic branching" "market_evening_walk" "market_evening_walk"
 
 echo "[OK] npc_activity schedule contract tests passed"

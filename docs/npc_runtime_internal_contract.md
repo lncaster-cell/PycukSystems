@@ -29,6 +29,10 @@
   - `npc_activity_slot`, `npc_activity_route`
   - `npc_activity_slot_effective`, `npc_activity_route_effective`
   - `npc_activity_state`, `npc_activity_last`, `npc_activity_last_ts`
+- Activity runtime-only diagnostics/internal:
+  - `npc_activity_resolved_hour`, `npc_activity_area_effective`
+  - `npc_activity_route_config_effective`, `npc_activity_slot_fallback`, `npc_activity_invalid_slot_last`
+  - `npc_activity_precheck_l1_stamp`, `npc_activity_precheck_l2_stamp`
 - Waypoint/route runtime:
   - `npc_activity_wp_index`, `npc_activity_wp_count`, `npc_activity_wp_loop`
   - `npc_activity_route_tag`, `npc_activity_action`
@@ -66,7 +70,7 @@
 Legacy `al_*` поддерживается только как migration adapter (`npc_legacy_al_bridge_inc.nss`).
 
 ### Поддержанный subset `al_* -> npc_*`
-- `al_slot` -> `npc_activity_slot`
+- `al_slot` -> `npc_activity_slot` (legacy aliases `default|priority|critical` normalизуются в daypart `afternoon|morning|night`)
 - `al_route` -> `npc_activity_route` (через normalize/fallback)
 - `al_schedule_enabled` -> `npc_activity_schedule_enabled`
 - `al_schedule_critical_start/end` -> legacy-compat migration в daypart slot `night`

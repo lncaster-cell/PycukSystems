@@ -37,11 +37,11 @@
 Инварианты для `NpcBhvrActivityOnIdleTick`:
 - при `cooldown > 0` — только декремент cooldown на 1 и early-return;
 - при `cooldown == 0` выбирается ровно одна ветка:
-  1. `critical_safe` (приоритет №1: `slot=critical` или route-map -> `critical_safe`) → `idle_critical_safe`, `cooldown=1`;
-  2. `priority_patrol` (приоритет №2: `slot=priority` или route-map -> `priority_patrol`) → `idle_priority_patrol`, `cooldown=2`;
-  3. `default` (fallback) → `idle_default`, `cooldown=1`.
+  1. resolve current time slot (daypart);
+  2. resolve effective route через fallback-цепочку;
+  3. применить единый dispatch `NpcBhvrActivityApplyRouteState(route, "idle_route", cooldown=1)`.
 
-**Что считается fail:** отсутствие приоритета critical над priority, множественный dispatch за один idle tick, либо неверный cooldown после dispatch.
+**Что считается fail:** множественный dispatch за один idle tick, либо обход canonical route-apply path через отдельные semantic-ветки `critical/priority/default`.
 
 ## 5) Waypoint/route-point runtime semantics
 
@@ -52,17 +52,17 @@
 - loop-policy берётся из `npc_route_loop_<routeId>` (`>0` loop, `<0` stop-at-tail, `0` default loop);
 - `npc_activity_route_tag` участвует в формировании состояния `<base_state>_<tag>_<i>_of_<N>`;
 - `npc_activity_slot_emote` резолвится через slot-aware цепочку `NPC-local(slot) -> area-local(slot) -> area-global -> NPC-global`;
-- `npc_activity_action` вычисляется детерминированно из slot/route/waypoint (`critical => guard_hold`, `priority_patrol => patrol_move/patrol_scan`, `default => ambient_*`), а `npc_route_pause_ticks_<routeId>` добавляется к cooldown.
+- `npc_activity_action` вычисляется детерминированно из slot/route/waypoint (`night/critical_safe => guard_hold`, `morning/priority_patrol => patrol_move/patrol_scan`, иначе `ambient_*`), а `npc_route_pause_ticks_<routeId>` добавляется к cooldown.
 
 **Что считается fail:** waypoint-индекс не обновляется после dispatch, route-tag игнорируется при наличии waypoint-count, или slot-emote не резолвится по slot-aware цепочке.
 
 ## 6) E2E schedule-aware semantics (`npc_activity_slot`, `npc_activity_route_effective`, `npc_activity_last_ts`)
 
 Инварианты e2e-уровня для расписаний:
-- переходы `npc_activity_slot` по времени детерминированы: `critical` имеет приоритет над `priority`, вне окон — fallback в `default`;
-- после schedule-aware resolve dispatch-ветка выбирается строго по приоритету `critical > priority > default` (через `NpcBhvrActivityApplyCriticalSafeRoute` / `NpcBhvrActivityApplyPriorityRoute` / `NpcBhvrActivityApplyDefaultRoute`), а не по предыдущему runtime-slot;
+- переходы `npc_activity_slot` по времени детерминированы через daypart mapping (`dawn|morning|afternoon|evening|night`);
+- после schedule-aware resolve dispatch всегда идёт по единому route path (`NpcBhvrActivityApplyRouteState`), а не по отдельным semantic веткам;
 - boundary-кейсы проверяются явно: границы часа (`start` включительно, `end` исключительно) и граница суток (`23:59:59 -> 00:00:00`);
-- при пустом расписании (`npc_schedule_start_* / npc_schedule_end_*` не заданы или невалидны) слот не «залипает» в старом состоянии и fallback-ится в `default`;
+- при пустом расписании (`npc_schedule_start_* / npc_schedule_end_*` не заданы или невалидны) слот не «залипает» и остаётся daypart-детерминированным;
 - `npc_activity_route_effective` следует fallback-цепочке независимо от невалидного configured route;
 - `npc_activity_last_ts` формируется как `hour*3600 + minute*60 + second` и корректно сбрасывается при переходе суток.
 

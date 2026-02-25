@@ -66,11 +66,6 @@ const string NPC_BHVR_ACTIVITY_SLOT_LEGACY_DEFAULT = "default";
 const string NPC_BHVR_ACTIVITY_SLOT_LEGACY_PRIORITY = "priority";
 const string NPC_BHVR_ACTIVITY_SLOT_LEGACY_CRITICAL = "critical";
 
-const string NPC_BHVR_ACTIVITY_MODE_DEFAULT = "default";
-const string NPC_BHVR_ACTIVITY_MODE_PRIORITY = "priority";
-const string NPC_BHVR_ACTIVITY_MODE_CRITICAL = "critical";
-const string NPC_BHVR_VAR_ACTIVITY_MODE = "npc_activity_mode";
-
 const string NPC_BHVR_ACTIVITY_ROUTE_DEFAULT = "default_route";
 const string NPC_BHVR_ACTIVITY_ROUTE_PRIORITY = "priority_patrol";
 const string NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE = "critical_safe";
@@ -80,10 +75,6 @@ const int NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN = 1;
 const int NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN = 32;
 const int NPC_BHVR_ACTIVITY_ROUTE_TAG_MIN_LEN = 1;
 const int NPC_BHVR_ACTIVITY_ROUTE_TAG_MAX_LEN = 24;
-
-const int NPC_BHVR_ACTIVITY_HINT_IDLE = 1;
-const int NPC_BHVR_ACTIVITY_HINT_PATROL = 2;
-const int NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE = 3;
 
 // AmbientLiveV2 activity IDs (ported from legacy AL data layer).
 const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;
@@ -427,37 +418,6 @@ string NpcBhvrActivityAdapterNormalizeSlot(string sSlot)
     }
 
     return NPC_BHVR_ACTIVITY_SLOT_AFTERNOON;
-}
-
-int NpcBhvrActivityMapRouteHint(string sRouteId)
-{
-    // Adapter-layer: map resolved npc route profile to runtime activity hint.
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
-    {
-        return NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE;
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
-    {
-        return NPC_BHVR_ACTIVITY_HINT_PATROL;
-    }
-
-    return NPC_BHVR_ACTIVITY_HINT_IDLE;
-}
-
-string NpcBhvrActivityResolveModeForRoute(string sRouteId)
-{
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
-    {
-        return NPC_BHVR_ACTIVITY_MODE_CRITICAL;
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
-    {
-        return NPC_BHVR_ACTIVITY_MODE_PRIORITY;
-    }
-
-    return NPC_BHVR_ACTIVITY_MODE_DEFAULT;
 }
 
 int NpcBhvrActivityResolveRouteCount(object oNpc, string sRouteId)
@@ -904,32 +864,6 @@ int NpcBhvrActivityResolveRoutePauseTicks(object oNpc, string sRouteId)
 }
 
 
-int NpcBhvrActivityAdapterIsCriticalSafe(string sSlot, int nRouteHint)
-{
-    return sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_CRITICAL || nRouteHint == NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE;
-}
-
-int NpcBhvrActivityAdapterIsPriority(string sSlot, int nRouteHint)
-{
-    return sSlot == NPC_BHVR_ACTIVITY_SLOT_LEGACY_PRIORITY || nRouteHint == NPC_BHVR_ACTIVITY_HINT_PATROL;
-}
-
-
-void NpcBhvrActivityApplyCriticalSafeRoute(object oNpc)
-{
-    NpcBhvrActivityApplyRouteState(oNpc, NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE, "idle_critical_safe", 1);
-}
-
-void NpcBhvrActivityApplyDefaultRoute(object oNpc)
-{
-    NpcBhvrActivityApplyRouteState(oNpc, NPC_BHVR_ACTIVITY_ROUTE_DEFAULT, "idle_default", 1);
-}
-
-void NpcBhvrActivityApplyPriorityRoute(object oNpc)
-{
-    NpcBhvrActivityApplyRouteState(oNpc, NPC_BHVR_ACTIVITY_ROUTE_PRIORITY, "idle_priority_patrol", 2);
-}
-
 void NpcBhvrActivityOnAreaActivate(object oArea)
 {
     NpcBhvrLegacyBridgeMigrateAreaDefaults(oArea);
@@ -1000,7 +934,6 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
 
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE, sSlot);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
-    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, NpcBhvrActivityResolveModeForRoute(sRoute));
     NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR, nResolvedHour);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE, sAreaTag);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_CONFIG_EFFECTIVE, sRouteConfigured);
@@ -1082,7 +1015,6 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     string sRoute;
     string sRouteConfiguredRaw;
     string sAreaTag;
-    int nRouteHint;
     int nResolvedHour;
     int bScheduleEnabled;
     int nNow;
@@ -1151,28 +1083,12 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
 
     sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
-    nRouteHint = NpcBhvrActivityMapRouteHint(sRoute);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, NpcBhvrActivityResolveModeForRoute(sRoute));
-
-    // Canonical dispatcher path: slot -> route -> waypoint activity.
-    // Legacy semantic routes are treated as runtime modes only.
-    if (nRouteHint == NPC_BHVR_ACTIVITY_HINT_CRITICAL_SAFE)
+    // Canonical dispatcher path: slot -> route -> waypoint state -> waypoint activity -> apply.
+    // Semantic route IDs (critical_safe/priority_patrol) are now just route data, not a control-flow branch.
+    if (sRoute == "")
     {
-        NpcBhvrActivityApplyCriticalSafeRoute(oNpc);
-        return;
+        sRoute = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;
     }
 
-    if (nRouteHint == NPC_BHVR_ACTIVITY_HINT_PATROL)
-    {
-        NpcBhvrActivityApplyPriorityRoute(oNpc);
-        return;
-    }
-
-    if (sRoute != "" && sRoute != NPC_BHVR_ACTIVITY_ROUTE_DEFAULT)
-    {
-        NpcBhvrActivityApplyRouteState(oNpc, sRoute, "idle_route", 1);
-        return;
-    }
-
-    NpcBhvrActivityApplyDefaultRoute(oNpc);
+    NpcBhvrActivityApplyRouteState(oNpc, sRoute, "idle_route", 1);
 }
