@@ -6,14 +6,13 @@ string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot);
 
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
 {
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_PRIORITY)
+    if (NpcBhvrActivityIsValidIdentifierValue(
+        sRouteId,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MIN_LEN,
+        NPC_BHVR_ACTIVITY_ROUTE_ID_MAX_LEN
+    ))
     {
-        return NPC_BHVR_ACTIVITY_ROUTE_PRIORITY;
-    }
-
-    if (sRouteId == NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE)
-    {
-        return NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE;
+        return sRouteId;
     }
 
     return NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;

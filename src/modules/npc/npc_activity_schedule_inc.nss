@@ -4,62 +4,43 @@ string NpcBhvrActivityScheduleStartKey(string sSlot);
 string NpcBhvrActivityScheduleEndKey(string sSlot);
 int NpcBhvrActivityIsHourInWindow(int nHour, int nStart, int nEnd);
 int NpcBhvrActivityIsScheduleEnabled(object oNpc, object oArea);
+string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 
-int NpcBhvrActivityTryResolveScheduledSlot(object oNpc, int nHour, string sSlot)
+string NpcBhvrActivityResolveTimeOfDaySlot(int nHour)
 {
-    int nStart;
-    int nEnd;
-    int bStartPresent;
-    int bEndPresent;
-
-    bStartPresent = GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(sSlot)) != "";
-    bEndPresent = GetLocalString(oNpc, NpcBhvrActivityScheduleEndKey(sSlot)) != "";
-
-    if (!bStartPresent || !bEndPresent)
+    // Canonical daypart mapping:
+    // 05-07 dawn, 08-11 morning, 12-16 afternoon, 17-21 evening, 22-04 night.
+    if (nHour >= 5 && nHour < 8)
     {
-        if (bStartPresent != bEndPresent)
-        {
-            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL);
-        }
-        return FALSE;
+        return NPC_BHVR_ACTIVITY_SLOT_DAWN;
     }
 
-    nStart = GetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(sSlot));
-    nEnd = GetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(sSlot));
-
-    if (!NpcBhvrActivityIsHourInWindow(nHour, nStart, nEnd))
+    if (nHour >= 8 && nHour < 12)
     {
-        if (nStart < 0 || nStart > 23 || nEnd < 0 || nEnd > 23 || nStart == nEnd)
-        {
-            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL);
-        }
-        return FALSE;
+        return NPC_BHVR_ACTIVITY_SLOT_MORNING;
     }
 
-    return TRUE;
+    if (nHour >= 12 && nHour < 17)
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_AFTERNOON;
+    }
+
+    if (nHour >= 17 && nHour < 22)
+    {
+        return NPC_BHVR_ACTIVITY_SLOT_EVENING;
+    }
+
+    return NPC_BHVR_ACTIVITY_SLOT_NIGHT;
 }
 
 string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurrentSlot, int bEnabled, int nHour)
 {
-    if (!GetIsObjectValid(oNpc))
+    // Slot is always time-of-day. Schedule toggle is preserved for compatibility,
+    // but no longer redefines slot semantics.
+    if (nHour < 0 || nHour > 23)
     {
-        return sCurrentSlot;
+        return NpcBhvrActivityAdapterNormalizeSlot(sCurrentSlot);
     }
 
-    if (!bEnabled)
-    {
-        return sCurrentSlot;
-    }
-
-    if (NpcBhvrActivityTryResolveScheduledSlot(oNpc, nHour, NPC_BHVR_ACTIVITY_SLOT_CRITICAL))
-    {
-        return NPC_BHVR_ACTIVITY_SLOT_CRITICAL;
-    }
-
-    if (NpcBhvrActivityTryResolveScheduledSlot(oNpc, nHour, NPC_BHVR_ACTIVITY_SLOT_PRIORITY))
-    {
-        return NPC_BHVR_ACTIVITY_SLOT_PRIORITY;
-    }
-
-    return NPC_BHVR_ACTIVITY_SLOT_DEFAULT;
+    return NpcBhvrActivityResolveTimeOfDaySlot(nHour);
 }

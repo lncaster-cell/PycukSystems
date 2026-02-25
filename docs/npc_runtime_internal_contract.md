@@ -69,9 +69,9 @@ Legacy `al_*` поддерживается только как migration adapter
 - `al_slot` -> `npc_activity_slot`
 - `al_route` -> `npc_activity_route` (через normalize/fallback)
 - `al_schedule_enabled` -> `npc_activity_schedule_enabled`
-- `al_schedule_critical_start/end` -> `npc_schedule_start_critical` / `npc_schedule_end_critical`
-- `al_schedule_priority_start/end` -> `npc_schedule_start_priority` / `npc_schedule_end_priority`
-- `al_route_default|priority|critical` -> area route profile defaults (`npc_route_profile_*`)
+- `al_schedule_critical_start/end` -> legacy-compat migration в daypart slot `night`
+- `al_schedule_priority_start/end` -> legacy-compat migration в daypart slot `morning`
+- `al_route_default|priority|critical` -> area route profile defaults (`npc_route_profile_*`) с canonical daypart slot-map
 - `al_route_count_*|loop_*|tag_*|pause_*|activity_*` -> canonical `npc_route_*`
 
 ### Intentionally not supported
