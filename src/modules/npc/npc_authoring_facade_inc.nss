@@ -2,10 +2,19 @@
 // Thin layer: only normalizes npc_cfg_* authoring locals and derives runtime defaults.
 
 const string NPC_BHVR_CFG_ROLE = "npc_cfg_role";
+const string NPC_BHVR_CFG_SLOT_DAWN_ROUTE = "npc_cfg_slot_dawn_route";
+const string NPC_BHVR_CFG_SLOT_MORNING_ROUTE = "npc_cfg_slot_morning_route";
+const string NPC_BHVR_CFG_SLOT_AFTERNOON_ROUTE = "npc_cfg_slot_afternoon_route";
+const string NPC_BHVR_CFG_SLOT_EVENING_ROUTE = "npc_cfg_slot_evening_route";
+const string NPC_BHVR_CFG_SLOT_NIGHT_ROUTE = "npc_cfg_slot_night_route";
+const string NPC_BHVR_CFG_ALERT_ROUTE = "npc_cfg_alert_route";
+
+// Legacy/compat authoring locals (migration-only path).
 const string NPC_BHVR_CFG_SCHEDULE = "npc_cfg_schedule";
 const string NPC_BHVR_CFG_WORK_ROUTE = "npc_cfg_work_route";
 const string NPC_BHVR_CFG_HOME_ROUTE = "npc_cfg_home_route";
 const string NPC_BHVR_CFG_LEISURE_ROUTE = "npc_cfg_leisure_route";
+
 const string NPC_BHVR_CFG_FORCE_REACTIVE = "npc_cfg_force_reactive";
 const string NPC_BHVR_CFG_ALLOW_PHYSICAL_HIDE = "npc_cfg_allow_physical_hide";
 
@@ -14,7 +23,7 @@ const string NPC_BHVR_CFG_CLUSTER = "npc_cfg_cluster";
 const string NPC_BHVR_CFG_AREA_PROFILE = "npc_cfg_area_profile";
 
 const string NPC_BHVR_CFG_DERIVED_ROLE = "npc_cfg_derived_role";
-const string NPC_BHVR_CFG_DERIVED_SCHEDULE = "npc_cfg_derived_schedule";
+const string NPC_BHVR_CFG_DERIVED_SCHEDULE = "npc_cfg_derived_schedule"; // legacy-derived marker
 const string NPC_BHVR_CFG_DERIVED_AREA_PROFILE = "npc_cfg_derived_area_profile";
 const string NPC_BHVR_CFG_DERIVED_CLUSTER_OWNER = "npc_cfg_derived_cluster_owner";
 
@@ -64,6 +73,54 @@ void NpcBhvrAuthoringSetIntIfMissing(object oTarget, string sKey, int nValue)
     }
 
     SetLocalInt(oTarget, sKey, nValue);
+}
+
+
+void NpcBhvrAuthoringApplyNpcSlotRouteIfPresent(object oNpc, string sCfgKey, string sSlot)
+{
+    string sRoute;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, sCfgKey), oNpc);
+    if (sRoute == "")
+    {
+        return;
+    }
+
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot), sRoute);
+}
+
+void NpcBhvrAuthoringApplyNpcAlertRouteIfPresent(object oNpc)
+{
+    string sAlertRoute;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    sAlertRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_CFG_ALERT_ROUTE), oNpc);
+    if (sAlertRoute == "")
+    {
+        return;
+    }
+
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_ALERT, sAlertRoute);
+}
+
+void NpcBhvrAuthoringApplyNpcSlotRoutes(object oNpc)
+{
+    NpcBhvrAuthoringApplyNpcSlotRouteIfPresent(oNpc, NPC_BHVR_CFG_SLOT_DAWN_ROUTE, NPC_BHVR_ACTIVITY_SLOT_DAWN);
+    NpcBhvrAuthoringApplyNpcSlotRouteIfPresent(oNpc, NPC_BHVR_CFG_SLOT_MORNING_ROUTE, NPC_BHVR_ACTIVITY_SLOT_MORNING);
+    NpcBhvrAuthoringApplyNpcSlotRouteIfPresent(oNpc, NPC_BHVR_CFG_SLOT_AFTERNOON_ROUTE, NPC_BHVR_ACTIVITY_SLOT_AFTERNOON);
+    NpcBhvrAuthoringApplyNpcSlotRouteIfPresent(oNpc, NPC_BHVR_CFG_SLOT_EVENING_ROUTE, NPC_BHVR_ACTIVITY_SLOT_EVENING);
+    NpcBhvrAuthoringApplyNpcSlotRouteIfPresent(oNpc, NPC_BHVR_CFG_SLOT_NIGHT_ROUTE, NPC_BHVR_ACTIVITY_SLOT_NIGHT);
+
+    NpcBhvrAuthoringApplyNpcAlertRouteIfPresent(oNpc);
 }
 
 string NpcBhvrAuthoringResolveNpcRouteDefault(object oNpc)
@@ -189,6 +246,15 @@ void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
     }
 
     sRole = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_ROLE), "citizen");
+
+    SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_ROLE, sRole);
+
+    NpcBhvrAuthoringApplyNpcRolePreset(oNpc, sRole);
+
+    // Canonical path: explicit slot routes from npc_cfg_slot_*_route.
+    NpcBhvrAuthoringApplyNpcSlotRoutes(oNpc);
+
+    // Compatibility path: schedule/work/home/leisure presets are migration-only fallback.
     sSchedule = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_SCHEDULE), "day_worker");
     sRouteWork = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_CFG_WORK_ROUTE), oNpc);
     sRouteHome = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(GetLocalString(oNpc, NPC_BHVR_CFG_HOME_ROUTE), oNpc);
@@ -199,10 +265,7 @@ void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
         sRouteLeisure = NpcBhvrAuthoringResolveNpcRouteDefault(oNpc);
     }
 
-    SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_ROLE, sRole);
     SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_SCHEDULE, sSchedule);
-
-    NpcBhvrAuthoringApplyNpcRolePreset(oNpc, sRole);
     NpcBhvrAuthoringApplyNpcSchedulePreset(oNpc, sSchedule, sRouteWork, sRouteHome, sRouteLeisure);
 
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_FORCE_REACTIVE) == TRUE)

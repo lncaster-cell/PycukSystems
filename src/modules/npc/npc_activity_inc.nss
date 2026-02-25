@@ -24,6 +24,7 @@ const string NPC_BHVR_ACTIVITY_MODE_ALERT = "alert";
 
 const string NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX = "npc_route_profile_slot_";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT = "npc_route_profile_default";
+const string NPC_BHVR_VAR_ROUTE_PROFILE_ALERT = "npc_route_profile_alert";
 const string NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX = "npc_route_cache_slot_";
 const string NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT = "npc_route_cache_default";
 
