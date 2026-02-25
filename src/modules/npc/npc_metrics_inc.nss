@@ -61,6 +61,11 @@ const string NPC_BHVR_METRIC_LOD_REVEAL_RESYNC_TOTAL = "npc_metric_lod_reveal_re
 const string NPC_BHVR_METRIC_LOD_FAST_FORWARD_TOTAL = "npc_metric_lod_fast_forward_total";
 const string NPC_BHVR_METRIC_LOD_REVEAL_SLOT_CHANGE_TOTAL = "npc_metric_lod_reveal_slot_change_total";
 const string NPC_BHVR_METRIC_LOD_REVEAL_SAME_SLOT_TOTAL = "npc_metric_lod_reveal_same_slot_total";
+const string NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL = "npc_metric_lod_hide_suppressed_total";
+const string NPC_BHVR_METRIC_LOD_REVEAL_SUPPRESSED_TOTAL = "npc_metric_lod_reveal_suppressed_total";
+const string NPC_BHVR_METRIC_LOD_HIDE_DEBOUNCE_HIT_TOTAL = "npc_metric_lod_hide_debounce_hit_total";
+const string NPC_BHVR_METRIC_LOD_REVEAL_COOLDOWN_HIT_TOTAL = "npc_metric_lod_reveal_cooldown_hit_total";
+const string NPC_BHVR_METRIC_LOD_REANCHOR_FALLBACK_TOTAL = "npc_metric_lod_reanchor_fallback_total";
 
 void NpcBhvrMetricSet(object oScope, string sMetric, int nValue)
 {

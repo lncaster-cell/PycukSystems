@@ -128,12 +128,14 @@ Tick/degraded telemetry в runtime включает:
   - при том же slot — fast-forward waypoint phase по elapsed-time (без replay пропущенных тиков/pathfinding-прокрутки).
 - Coarse same-area hiding (RUNNING) реализован budget-friendly gate для ambient NPC:
   - nearest-player distance check + hysteresis (`hide distance` / `reveal distance`) + debounce toggle.
+  - anti-churn guardrails: minimum hidden/visible windows + reveal cooldown + suppression redundant hide/reveal операций.
 - Reactive/combat путь не переводится автоматически в hidden LOD (LOD pipeline по умолчанию применяется к ambient слою).
 
 LOD runtime locals/config:
 - `npc_cfg_lod_exempt`, `npc_cfg_lod_running_hide`,
 - `npc_cfg_lod_running_hide_distance`, `npc_cfg_lod_running_reveal_distance`,
-- `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_phase_step_sec`.
+- `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_phase_step_sec`,
+- `npc_cfg_lod_min_hidden_sec`, `npc_cfg_lod_min_visible_sec`, `npc_cfg_lod_reveal_cooldown_sec`.
 
 LOD observability metrics:
 - `npc_metric_lod_hidden_total`,
@@ -141,7 +143,12 @@ LOD observability metrics:
 - `npc_metric_lod_reveal_resync_total`,
 - `npc_metric_lod_fast_forward_total`,
 - `npc_metric_lod_reveal_slot_change_total`,
-- `npc_metric_lod_reveal_same_slot_total`.
+- `npc_metric_lod_reveal_same_slot_total`,
+- `npc_metric_lod_hide_suppressed_total`,
+- `npc_metric_lod_reveal_suppressed_total`,
+- `npc_metric_lod_hide_debounce_hit_total`,
+- `npc_metric_lod_reveal_cooldown_hit_total`,
+- `npc_metric_lod_reanchor_fallback_total`.
 
 ## Activity primitives runtime-контракт
 
