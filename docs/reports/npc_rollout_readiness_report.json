@@ -1,0 +1,674 @@
+{
+  "scanned_files": 46,
+  "scan_roots": [
+    "src"
+  ],
+  "tier_counts": {
+    "READY": 42,
+    "MANUAL": 3,
+    "BRIDGEABLE": 1
+  },
+  "legacy_coverage": {
+    "supported_total": 15,
+    "ambiguous_total": 0,
+    "unsupported_total": 0,
+    "supported_keys": {
+      "al_route_count_": 1,
+      "al_route_loop_": 1,
+      "al_schedule_enabled": 1,
+      "al_route_tag_": 1,
+      "al_schedule_critical_end": 1,
+      "al_route_critical": 1,
+      "al_slot": 1,
+      "al_route_activity_": 1,
+      "al_route_default": 1,
+      "al_schedule_priority_end": 1,
+      "al_route_priority": 1,
+      "al_route": 1,
+      "al_schedule_priority_start": 1,
+      "al_route_pause_": 1,
+      "al_schedule_critical_start": 1
+    },
+    "ambiguous_keys": {},
+    "unsupported_keys": {}
+  },
+  "hook_wiring": {
+    "canonical_contract_path": "docs/npc_toolset_authoring_contract.md",
+    "canonical_contract_exists": true,
+    "canonical_hooks_expected": 10,
+    "canonical_hooks_present": 10,
+    "canonical_hooks": {
+      "npc_area_enter": {
+        "path": "src/modules/npc/npc_area_enter.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_area_exit": {
+        "path": "src/modules/npc/npc_area_exit.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_area_maintenance": {
+        "path": "src/modules/npc/npc_area_maintenance.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_area_tick": {
+        "path": "src/modules/npc/npc_area_tick.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_damaged": {
+        "path": "src/modules/npc/npc_damaged.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_death": {
+        "path": "src/modules/npc/npc_death.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_dialogue": {
+        "path": "src/modules/npc/npc_dialogue.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_module_load": {
+        "path": "src/modules/npc/npc_module_load.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_perception": {
+        "path": "src/modules/npc/npc_perception.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      },
+      "npc_spawn": {
+        "path": "src/modules/npc/npc_spawn.nss",
+        "exists": true,
+        "includes_npc_core": true,
+        "status": "ok"
+      }
+    },
+    "noncanonical_hooklike_in_npc_runtime": []
+  },
+  "files": [
+    {
+      "path": "src/modules/npc/npc_legacy_al_bridge_inc.nss",
+      "tier": "BRIDGEABLE",
+      "canonical_keys": 2,
+      "legacy_supported": [
+        "al_route",
+        "al_route_activity_",
+        "al_route_count_",
+        "al_route_critical",
+        "al_route_default",
+        "al_route_loop_",
+        "al_route_pause_",
+        "al_route_priority",
+        "al_route_tag_",
+        "al_schedule_critical_end",
+        "al_schedule_critical_start",
+        "al_schedule_enabled",
+        "al_schedule_priority_end",
+        "al_schedule_priority_start",
+        "al_slot"
+      ],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "legacy usage fits supported bridge subset"
+      ]
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_area_tick.nss",
+      "tier": "MANUAL",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "noncanonical hook-like script naming or wiring"
+      ]
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_module_load.nss",
+      "tier": "MANUAL",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "noncanonical hook-like script naming or wiring"
+      ]
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_spawn.nss",
+      "tier": "MANUAL",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "noncanonical hook-like script naming or wiring"
+      ]
+    },
+    {
+      "path": "src/controllers/lifecycle_controller.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/experimental/npc_repo_contract_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 3,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_repo_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_repo_runtime_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 3,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_sql_api_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 8,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_wb_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 6,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_writebehind_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/module_skeleton/mod_skel_core.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/module_skeleton/module_skeleton_core.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_activity_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 50,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_activity_migration_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_activity_route_resolution_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_activity_schedule_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_activity_state_apply_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_area_enter.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_area_exit.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_area_maintenance.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_area_tick.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_cluster_supervisor_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 17,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_compat_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_core.nss",
+      "tier": "READY",
+      "canonical_keys": 46,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_damaged.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_death.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_dialogue.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_legacy_compat_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_lifecycle_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 2,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_local_write_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_lod_projection_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 26,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_metrics_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 60,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_module_load.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_perception.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_queue_deferred_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_queue_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 8,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_queue_index_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_queue_legacy_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 5,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_queue_pending_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 2,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_queue_ring_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 3,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_registry_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 0,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "no legacy risk markers detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_runtime_modes_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 9,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_spawn.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    },
+    {
+      "path": "src/modules/npc/npc_tick_inc.nss",
+      "tier": "READY",
+      "canonical_keys": 1,
+      "legacy_supported": [],
+      "legacy_ambiguous": [],
+      "legacy_unsupported": [],
+      "vanilla_hook_refs": [],
+      "reasons": [
+        "canonical npc_* contract usage detected"
+      ]
+    }
+  ]
+}

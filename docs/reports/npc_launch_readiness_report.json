@@ -1,0 +1,91 @@
+{
+  "summary": {
+    "verdict": "GO",
+    "smoke_status": "GREEN",
+    "open_p1_cases": 0,
+    "open_total_cases": 0,
+    "active_exceptions": 4,
+    "pilot_candidates_total": 7,
+    "pilot_safe_candidates": 7
+  },
+  "criteria": [
+    {
+      "name": "No OPEN/P1 blockers",
+      "status": "PASS",
+      "details": "open_p1=0"
+    },
+    {
+      "name": "No OPEN blockers",
+      "status": "PASS",
+      "details": "open_total=0"
+    },
+    {
+      "name": "Smoke/contracts green",
+      "status": "PASS",
+      "details": "GREEN"
+    },
+    {
+      "name": "Exception registry has active governed entries",
+      "status": "PASS",
+      "details": "active_exceptions=4"
+    },
+    {
+      "name": "Required governance reports exist",
+      "status": "PASS",
+      "details": "missing=none"
+    },
+    {
+      "name": "Required launch docs exist",
+      "status": "PASS",
+      "details": "missing=none"
+    },
+    {
+      "name": "Pilot target is READY/BRIDGEABLE",
+      "status": "PASS",
+      "details": "matched=7, unsafe=0"
+    },
+    {
+      "name": "Execution helper report available",
+      "status": "PASS",
+      "details": "mode=apply"
+    }
+  ],
+  "pilot_scope": {
+    "include_patterns": [
+      "src/integrations/nwnx_sqlite/*"
+    ],
+    "matched": [
+      {
+        "path": "src/integrations/nwnx_sqlite/experimental/npc_repo_contract_inc.nss",
+        "tier": "READY"
+      },
+      {
+        "path": "src/integrations/nwnx_sqlite/npc_repo_inc.nss",
+        "tier": "READY"
+      },
+      {
+        "path": "src/integrations/nwnx_sqlite/npc_repo_runtime_inc.nss",
+        "tier": "READY"
+      },
+      {
+        "path": "src/integrations/nwnx_sqlite/npc_sql_api_inc.nss",
+        "tier": "READY"
+      },
+      {
+        "path": "src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss",
+        "tier": "READY"
+      },
+      {
+        "path": "src/integrations/nwnx_sqlite/npc_wb_inc.nss",
+        "tier": "READY"
+      },
+      {
+        "path": "src/integrations/nwnx_sqlite/npc_writebehind_inc.nss",
+        "tier": "READY"
+      }
+    ],
+    "unsafe": []
+  },
+  "stop_conditions_now": [],
+  "recommendation": "Pilot rollout can proceed for the selected scope with standard monitoring and post-apply report regeneration."
+}

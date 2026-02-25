@@ -1,0 +1,66 @@
+{
+  "summary": {
+    "mode": "apply",
+    "tiers": [
+      "READY",
+      "BRIDGEABLE"
+    ],
+    "candidates_total": 7,
+    "changed_files": 0,
+    "already_canonical": 7,
+    "manual_conflicted_skips": 0,
+    "safe_skips": 0,
+    "bridge_conversions": 0
+  },
+  "results": [
+    {
+      "path": "src/integrations/nwnx_sqlite/experimental/npc_repo_contract_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_repo_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_repo_runtime_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_sql_api_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_sqlite_api_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_wb_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    },
+    {
+      "path": "src/integrations/nwnx_sqlite/npc_writebehind_inc.nss",
+      "status": "skip",
+      "tier": "READY",
+      "details": "already canonical/no supported legacy keys",
+      "replacements": 0
+    }
+  ]
+}
