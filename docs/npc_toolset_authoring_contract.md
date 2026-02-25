@@ -1,87 +1,128 @@
-# Ambient Life V3 Toolset Authoring Contract (Canonical)
+# Ambient Life V3 — Human-facing authoring contract
 
-Этот документ — **канонический** контракт настройки контента для нового runtime `src/modules/npc/*`.
+Этот документ — **практический контракт для контентщика**: какие locals ставить вручную в toolset.
+
+> Внутренний runtime-справочник (`npc_*`, cluster/LOD/tick internals, legacy bridge subset) вынесен в `docs/npc_runtime_internal_contract.md`.
 
 ## 1) Hook scripts (обязательная привязка)
 
 - Module OnLoad: `npc_module_load`
 - Area OnEnter / OnExit: `npc_area_enter` / `npc_area_exit`
-- Area heartbeat/timer dispatch: `npc_area_tick` и `npc_area_maintenance` (через runtime scheduler)
+- Area tick/maintenance: `npc_area_tick`, `npc_area_maintenance`
 - Creature hooks:
   - OnSpawn: `npc_spawn`
-  - OnPerception: `npc_perception` (только для reactive-path)
-  - OnDamaged: `npc_damaged` (только для reactive-path)
+  - OnPerception: `npc_perception` (если нужен reactive-path)
+  - OnDamaged: `npc_damaged` (если нужен reactive-path)
   - OnDeath: `npc_death`
   - OnDialogue: `npc_dialogue`
 
-## 2) Canonical locals (npc_*)
+## 2) NPC authoring locals (ставятся вручную)
 
-### NPC-level
-- Runtime layer/dispatch:
-  - `npc_runtime_layer` / `npc_cfg_layer` / `npc_cfg_reactive`
-- Activity/profile:
-  - `npc_activity_slot`, `npc_activity_route`
-  - `npc_activity_slot_effective`, `npc_activity_route_effective`
-  - `npc_activity_state`, `npc_activity_last`, `npc_activity_last_ts`
-- Waypoint/route runtime:
-  - `npc_activity_wp_index`, `npc_activity_wp_count`, `npc_activity_wp_loop`
-  - `npc_activity_route_tag`, `npc_activity_action`
-  - `npc_route_count_<route>`, `npc_route_loop_<route>`, `npc_route_tag_<route>`, `npc_route_pause_ticks_<route>`, `npc_route_activity_<route>_<idx>`
-- LOD/projection:
-  - `npc_npc_sim_lod`, `npc_npc_projected_state`
-  - `npc_lod_hidden_at`, `npc_lod_projected_*`
-- Optional physical hide:
-  - `npc_cfg_lod_physical_hide` (per-NPC opt-in)
+### Обязательные
 
-### Area-level
-- Lifecycle/cluster:
-  - `npc_area_state`, `npc_area_cluster_owner`, `npc_area_interest_state`
-- Runtime dispatch:
-  - `npc_dispatch_mode`
-- Cluster knobs:
-  - `npc_cfg_cluster_grace_sec`
-  - `npc_cfg_cluster_interior_soft_cap`, `npc_cfg_cluster_interior_hard_cap`
-  - `npc_cfg_cluster_transition_rate`, `npc_cfg_cluster_transition_burst`
-- LOD knobs:
-  - `npc_cfg_lod_running_hide`, `npc_cfg_lod_running_hide_distance`, `npc_cfg_lod_running_reveal_distance`
-  - `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_min_hidden_sec`, `npc_cfg_lod_min_visible_sec`
-  - `npc_cfg_lod_reveal_cooldown_sec`, `npc_cfg_lod_phase_step_sec`
-  - `npc_cfg_lod_physical_hide_enabled`, `npc_cfg_lod_physical_min_hidden_sec`, `npc_cfg_lod_physical_min_visible_sec`, `npc_cfg_lod_physical_cooldown_sec`
+- `npc_cfg_role`
+- `npc_cfg_schedule`
+- `npc_cfg_work_route`
+- `npc_cfg_home_route`
 
-### Waypoint/route anchors
-- Используется canonical `npc_route_*` keyspace (count/loop/tag/activity/pause).
-- Route id/tag должны быть валидными (`[a-z0-9_]`, с fallback к default policy).
+### Опциональные
 
-## 3) Legacy AL migration bridge
+- `npc_cfg_leisure_route`
+- `npc_cfg_force_reactive` (`0/1`)
+- `npc_cfg_allow_physical_hide` (`0/1`)
 
-Legacy `al_*` поддерживается только как **migration-only adapter** (`npc_legacy_al_bridge_inc.nss`).
-После нормализации canonical truth остаётся `npc_*`.
+### Preset values
 
-### Поддержанный subset `al_* -> npc_*`
-- `al_slot` -> `npc_activity_slot`
-- `al_route` -> `npc_activity_route` (через normalize/fallback)
-- `al_schedule_enabled` -> `npc_activity_schedule_enabled`
-- `al_schedule_critical_start/end` -> `npc_schedule_start_critical` / `npc_schedule_end_critical`
-- `al_schedule_priority_start/end` -> `npc_schedule_start_priority` / `npc_schedule_end_priority`
-- `al_route_default|priority|critical` -> area route profile defaults (`npc_route_profile_*`)
-- `al_route_count_*|loop_*|tag_*|pause_*|activity_*` -> canonical `npc_route_*`
+**Role presets:**
+- `citizen`
+- `worker`
+- `merchant`
+- `guard`
+- `innkeeper`
+- `static`
 
-### Intentionally not supported
-- Любые legacy AL ключи вне указанного subset.
-- Неподдержанные/невалидные route значения не становятся canonical truth автоматически; вместо этого используется controlled fallback + diagnostics.
+**Schedule presets:**
+- `day_worker`
+- `day_shop`
+- `night_guard`
+- `tavern_late`
+- `always_home`
+- `always_static`
+- `custom` (escape hatch: ручной контроль schedule/runtime locals)
 
-## 4) Migration points and idempotency
+## 3) Area authoring locals (ставятся вручную)
 
-- Migration-on-spawn: `NpcBhvrLegacyBridgeMigrateNpc`
-- Migration-on-activate: `NpcBhvrLegacyBridgeMigrateAreaDefaults`
-- Idempotency: version stamps
-  - `npc_legacy_bridge_npc_version`
-  - `npc_legacy_bridge_area_version`
+### Минимум
 
-## 5) Diagnostics
+- `npc_cfg_city`
+- `npc_cfg_cluster`
+- `npc_cfg_area_profile`
 
-- `npc_metric_legacy_migrated_npc_total`
-- `npc_metric_legacy_migrated_area_total`
-- `npc_metric_legacy_normalized_keys_total`
-- `npc_metric_legacy_unsupported_keys_total`
-- `npc_metric_legacy_fallback_total`
+### Preset values (`npc_cfg_area_profile`)
+
+- `city_exterior`
+- `shop_interior`
+- `house_interior`
+- `tavern`
+- `guard_post`
+
+Из `npc_cfg_area_profile` фасад автоматически выставляет runtime defaults (dispatch/lifecycle/LOD/hide/cluster tuning), если низкоуровневые ключи не заданы явно.
+
+## 4) Waypoint/route authoring
+
+- Используется существующий `npc_route_*` keyspace (`count/loop/tag/activity/pause`).
+- Route id/tag: `[a-z0-9_]`, как и раньше.
+- `npc_cfg_work_route|home_route|leisure_route` задают пресетный маршрутный каркас, а runtime разворачивает это в `npc_activity_*` + route-profile locals.
+
+## 5) Как работает facade
+
+Пайплайн:
+
+`npc_cfg_* authoring -> facade normalization/derived config -> существующий npc_* runtime`
+
+- Внутренние `npc_*` locals **не удалены** и остаются runtime truth.
+- Но они больше не являются основным ручным интерфейсом.
+- Если низкоуровневые `npc_*` уже заданы явно, фасад не перетирает их «в лоб».
+
+## 6) Примеры
+
+### Кузнец (дневной рабочий)
+
+NPC:
+- `npc_cfg_role=worker`
+- `npc_cfg_schedule=day_worker`
+- `npc_cfg_work_route=smith_work_loop`
+- `npc_cfg_home_route=smith_home_loop`
+- `npc_cfg_leisure_route=market_evening_walk`
+
+Area (улица):
+- `npc_cfg_city=neverwinter`
+- `npc_cfg_cluster=blacklake`
+- `npc_cfg_area_profile=city_exterior`
+
+### Стражник (ночной)
+
+NPC:
+- `npc_cfg_role=guard`
+- `npc_cfg_schedule=night_guard`
+- `npc_cfg_work_route=north_gate_patrol`
+- `npc_cfg_home_route=guard_barracks`
+- `npc_cfg_force_reactive=1`
+
+Area (пост):
+- `npc_cfg_city=neverwinter`
+- `npc_cfg_cluster=north_gate`
+- `npc_cfg_area_profile=guard_post`
+
+### Торговец (лавка)
+
+NPC:
+- `npc_cfg_role=merchant`
+- `npc_cfg_schedule=day_shop`
+- `npc_cfg_work_route=shop_counter_loop`
+- `npc_cfg_home_route=merchant_home`
+
+Area (интерьер лавки):
+- `npc_cfg_city=neverwinter`
+- `npc_cfg_cluster=market_square`
+- `npc_cfg_area_profile=shop_interior`

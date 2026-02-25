@@ -97,6 +97,8 @@ void NpcBhvrAreaActivate(object oArea)
         return;
     }
 
+    NpcBhvrAuthoringApplyAreaFacade(oArea);
+
     // Единый источник применения runtime-budget (area -> module -> defaults + normalisation):
     // только NpcBhvrApplyTickRuntimeConfig.
     NpcBhvrApplyTickRuntimeConfig(oArea);
@@ -368,6 +370,7 @@ void NpcBhvrBootstrapModuleAreasImpl()
     oArea = GetFirstArea();
     while (GetIsObjectValid(oArea))
     {
+        NpcBhvrAuthoringApplyAreaFacade(oArea);
         NpcBhvrApplyTickRuntimeConfig(oArea);
 
         if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_STATE) == NPC_BHVR_AREA_STATE_RUNNING)
@@ -395,6 +398,7 @@ void NpcBhvrOnSpawnImpl(object oNpc)
     }
 
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_SPAWN_COUNT);
+    NpcBhvrAuthoringApplyNpcFacade(oNpc);
     NpcBhvrResolveNpcLayer(oNpc);
     NpcBhvrActivityOnSpawn(oNpc);
     NpcBhvrLodApplyForAreaStateToNpc(oNpc, NpcBhvrAreaGetState(GetArea(oNpc)), NpcBhvrPendingNow());
@@ -518,6 +522,7 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
         return;
     }
 
+    NpcBhvrAuthoringApplyAreaFacade(oArea);
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
     if (!GetIsPC(oEntering))
     {

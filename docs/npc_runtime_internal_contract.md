@@ -1,0 +1,79 @@
+# Ambient Life V3 — Runtime/internal contract reference
+
+Технический справочник по внутреннему контракту runtime. Для ручной настройки используйте `docs/npc_toolset_authoring_contract.md`.
+
+## 1) Three-level local model
+
+### A. Authoring locals (user-facing)
+
+- NPC: `npc_cfg_role`, `npc_cfg_schedule`, `npc_cfg_work_route`, `npc_cfg_home_route`, `npc_cfg_leisure_route`, `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`
+- Area: `npc_cfg_city`, `npc_cfg_cluster`, `npc_cfg_area_profile`
+
+### B. Derived config (facade-computed)
+
+- `npc_cfg_derived_role`
+- `npc_cfg_derived_schedule`
+- `npc_cfg_derived_area_profile`
+- `npc_cfg_derived_cluster_owner`
+
+### C. Runtime locals (engine/internal)
+
+Существующий `npc_*` runtime keyspace: lifecycle/dispatch/LOD/queue/activity/route runtime.
+
+## 2) Canonical runtime locals (`npc_*`)
+
+### NPC-level
+- Runtime layer/dispatch:
+  - `npc_runtime_layer` / `npc_cfg_layer` / `npc_cfg_reactive`
+- Activity/profile:
+  - `npc_activity_slot`, `npc_activity_route`
+  - `npc_activity_slot_effective`, `npc_activity_route_effective`
+  - `npc_activity_state`, `npc_activity_last`, `npc_activity_last_ts`
+- Waypoint/route runtime:
+  - `npc_activity_wp_index`, `npc_activity_wp_count`, `npc_activity_wp_loop`
+  - `npc_activity_route_tag`, `npc_activity_action`
+  - `npc_route_count_<route>`, `npc_route_loop_<route>`, `npc_route_tag_<route>`, `npc_route_pause_ticks_<route>`, `npc_route_activity_<route>_<idx>`
+- LOD/projection:
+  - `npc_npc_sim_lod`, `npc_npc_projected_state`
+  - `npc_lod_hidden_at`, `npc_lod_projected_*`
+- Optional physical hide:
+  - `npc_cfg_lod_physical_hide` (per-NPC opt-in)
+
+### Area-level
+- Lifecycle/cluster:
+  - `npc_area_state`, `npc_area_cluster_owner`, `npc_area_interest_state`
+- Runtime dispatch:
+  - `npc_dispatch_mode`
+- Cluster knobs:
+  - `npc_cfg_cluster_grace_sec`
+  - `npc_cfg_cluster_interior_soft_cap`, `npc_cfg_cluster_interior_hard_cap`
+  - `npc_cfg_cluster_transition_rate`, `npc_cfg_cluster_transition_burst`
+- LOD knobs:
+  - `npc_cfg_lod_running_hide`, `npc_cfg_lod_running_hide_distance`, `npc_cfg_lod_running_reveal_distance`
+  - `npc_cfg_lod_running_debounce_sec`, `npc_cfg_lod_min_hidden_sec`, `npc_cfg_lod_min_visible_sec`
+  - `npc_cfg_lod_reveal_cooldown_sec`, `npc_cfg_lod_phase_step_sec`
+  - `npc_cfg_lod_physical_hide_enabled`, `npc_cfg_lod_physical_min_hidden_sec`, `npc_cfg_lod_physical_min_visible_sec`, `npc_cfg_lod_physical_cooldown_sec`
+
+## 3) Facade compatibility rules
+
+- Facade — тонкий слой над текущим runtime, не второй runtime.
+- Legacy bridge (`al_* -> npc_*`) остаётся migration-only и не ломается.
+- Низкоуровневые runtime locals сохраняют обратную совместимость.
+- При наличии уже выставленных runtime/config locals фасад применяет пресеты как defaults и не должен агрессивно перетирать explicit overrides.
+
+## 4) Legacy AL migration bridge
+
+Legacy `al_*` поддерживается только как migration adapter (`npc_legacy_al_bridge_inc.nss`).
+
+### Поддержанный subset `al_* -> npc_*`
+- `al_slot` -> `npc_activity_slot`
+- `al_route` -> `npc_activity_route` (через normalize/fallback)
+- `al_schedule_enabled` -> `npc_activity_schedule_enabled`
+- `al_schedule_critical_start/end` -> `npc_schedule_start_critical` / `npc_schedule_end_critical`
+- `al_schedule_priority_start/end` -> `npc_schedule_start_priority` / `npc_schedule_end_priority`
+- `al_route_default|priority|critical` -> area route profile defaults (`npc_route_profile_*`)
+- `al_route_count_*|loop_*|tag_*|pause_*|activity_*` -> canonical `npc_route_*`
+
+### Intentionally not supported
+- Любые legacy AL ключи вне указанного subset.
+- Неподдержанные/невалидные route значения не становятся canonical truth автоматически; используется controlled fallback + diagnostics.
