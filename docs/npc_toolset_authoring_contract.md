@@ -33,6 +33,17 @@
 - `npc_cfg_allow_physical_hide` (`0/1`)
 - `npc_cfg_alert_route` (отдельный route только для режима `alert`)
 
+### Строгие границы канонического пути (anti-drift)
+
+Для **нового** контента канонический human-facing путь — только `npc_cfg_role + npc_cfg_slot_*_route` (и опциональные `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`).
+
+Следующее **не является** основным рекомендованным путём и не должно использоваться как primary authoring для новых NPC:
+
+- `npc_cfg_schedule` и любые schedule presets;
+- semantic/legacy slot-модель `default|priority|critical`;
+- schedule-window keys (`*_schedule_*_start/end`);
+- low-level runtime knobs (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_npc_sim_lod`, runtime/diagnostics locals).
+
 ### Preset values
 
 **Role presets:**
@@ -79,7 +90,7 @@
 - `daily` — обычная slot-модель (`slot -> route -> waypoint -> activity`).
 - `alert` — служебный временный override.
 
-Если задан `npc_cfg_alert_route`, он используется как route override для `alert`; иначе остаётся обычный slot fallback.
+Если задан `npc_cfg_alert_route`, он используется как route override для `alert`; иначе используется обычная slot-route цепочка без возврата к semantic/window модели.
 
 ## 6) Как работает facade
 
@@ -102,8 +113,9 @@
 - `npc_cfg_home_route`
 - `npc_cfg_leisure_route`
 
-Legacy schedule presets (`day_worker`, `day_shop`, `night_guard`, `tavern_late`, `always_home`, `always_static`, `custom`) считаются **secondary/deprecated authoring path** и не являются канонической моделью для нового контента.
+Legacy schedule presets (`day_worker`, `day_shop`, `night_guard`, `tavern_late`, `always_home`, `always_static`, `custom`) считаются **compatibility-only / deprecated / migration-only** и не являются канонической моделью для нового контента.
 `custom` остаётся только как deprecated compatibility-вариант без расширения route-ветвления active-path, а не как свободный escape hatch для произвольных runtime locals.
+Legacy aliases `default|priority|critical` и schedule-window semantics допускаются только в migration-compatible нормализации, но не как ручной authoring-контракт.
 
 ## 8) Пример (канонический)
 

@@ -2,6 +2,13 @@
 
 Технический справочник по внутреннему контракту runtime. Для ручной настройки используйте `docs/npc_toolset_authoring_contract.md`.
 
+## 0) Scope boundary (strict)
+
+Этот документ описывает **только runtime/internal** слой и не задаёт рекомендованный human-facing интерфейс.
+
+- Для ручной настройки NPC/Area используйте только `docs/npc_toolset_authoring_contract.md`.
+- Любые `npc_*` runtime knobs, diagnostics locals, dispatch/LOD switches и compatibility bridge keys из этого документа — **не primary authoring path**.
+
 ## 1) Three-level local model
 
 ### A. Authoring locals (user-facing)
@@ -76,7 +83,7 @@
 
 `activity` всегда берётся с waypoint (`npc_route_activity_<route>_<idx>`), а не из slot/mode напрямую.
 
-## 4) Facade compatibility rules
+## 4) Facade compatibility rules (strictly secondary)
 
 - Facade — тонкий слой над текущим runtime, не второй runtime.
 - Legacy bridge (`al_* -> npc_*`) остаётся migration-only и не ломается.

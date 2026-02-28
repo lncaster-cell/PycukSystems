@@ -25,6 +25,15 @@ Runtime/internal справочник вынесен в `docs/npc_runtime_intern
 
 После этих шагов модуль считается готовым к интеграции в модуль NWN2 (при корректной привязке hook-скриптов).
 
+### Канонический human-facing путь (strict)
+
+Для ручной настройки новых NPC используйте только:
+- `npc_cfg_role`
+- `npc_cfg_slot_dawn_route|npc_cfg_slot_morning_route|npc_cfg_slot_afternoon_route|npc_cfg_slot_evening_route|npc_cfg_slot_night_route`
+- опционально: `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`
+
+`npc_cfg_schedule`, legacy semantic slots (`default|priority|critical`), schedule windows и low-level runtime knobs не являются primary authoring path и относятся к compatibility/runtime-слою.
+
 ## Статус runtime foundation (Phase A)
 
 - Введено явное runtime-разделение слоёв: `ambient` (slot/activity/waypoint idle-flow) и `reactive` (perception/damage/threat queue-flow).

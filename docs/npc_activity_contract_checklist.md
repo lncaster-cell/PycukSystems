@@ -1,6 +1,15 @@
 # NPC Activity Contract Checklist
 
 
+## 0) Strict contract boundary (human-facing)
+
+Инварианты документации/контракта:
+- канонический human-facing путь описывается через `npc_cfg_role` + `npc_cfg_slot_*_route` (+ опциональные `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`);
+- schedule windows и semantic slots `default|priority|critical` не описываются как primary authoring mechanism;
+- low-level runtime knobs (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_npc_sim_lod`, diagnostics/runtime locals) не выдаются за user-facing контракт.
+
+**Что считается fail:** любое возвращение legacy semantic/window модели в основной раздел human-facing контракта.
+
 Чеклист фиксирует проверяемые инварианты activity-layer контракта NPC Bhvr из `src/modules/npc/README.md` и даёт команды для быстрого smoke/regression прогона.
 
 ## 1) Route fallback resolve order
