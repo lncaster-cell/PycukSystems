@@ -182,29 +182,13 @@ string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot)
     );
 }
 
-int NpcBhvrActivityIsScheduleEnabled(object oNpc, object oArea)
-{
-    if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED))
-    {
-        return TRUE;
-    }
-
-    if (GetIsObjectValid(oArea) && GetLocalInt(oArea, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED))
-    {
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-
-string NpcBhvrActivityComposePrecheckL1Stamp(int nResolvedHour, string sAreaTag, int bScheduleEnabled)
+string NpcBhvrActivityComposePrecheckL1Stamp(int nResolvedHour, string sAreaTag)
 {
     string sAreaHash;
     string sStamp;
 
     sAreaHash = NpcBhvrSafeHash(sAreaTag, NPC_BHVR_LOCAL_KEY_HASH_LENGTH);
-    sStamp = IntToString(nResolvedHour) + "|" + sAreaHash + "|" + IntToString(bScheduleEnabled);
+    sStamp = IntToString(nResolvedHour) + "|" + sAreaHash;
 
     return sStamp;
 }
@@ -975,7 +959,6 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     string sRoute;
     string sAreaTag;
     int nResolvedHour;
-    int bScheduleEnabled;
     int nNow;
 
     if (!GetIsObjectValid(oNpc))
@@ -996,8 +979,6 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
 
     oArea = GetArea(oNpc);
     nResolvedHour = GetTimeHour();
-    bScheduleEnabled = NpcBhvrActivityIsScheduleEnabled(oNpc, oArea);
-
     if (GetIsObjectValid(oArea))
     {
         sAreaTag = GetTag(oArea);
@@ -1009,8 +990,7 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
 
     sPrecheckL1Stamp = NpcBhvrActivityComposePrecheckL1Stamp(
         nResolvedHour,
-        sAreaTag,
-        bScheduleEnabled
+        sAreaTag
     );
 
     if (NpcBhvrActivityNeedsPrecheckL1Refresh(oNpc, sPrecheckL1Stamp))

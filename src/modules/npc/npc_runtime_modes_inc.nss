@@ -24,7 +24,6 @@ const string NPC_BHVR_VAR_NPC_LAYER = "npc_runtime_layer";
 const string NPC_BHVR_CFG_NPC_FORCE_REACTIVE = "npc_cfg_force_reactive";
 // Deprecated compatibility-only knobs (not canonical human-facing authoring).
 const string NPC_BHVR_CFG_NPC_LAYER = "npc_cfg_layer";
-const string NPC_BHVR_CFG_NPC_REACTIVE = "npc_cfg_reactive";
 
 // Cluster/LOD extension points for Ambient Life V3.
 const string NPC_BHVR_VAR_AREA_CLUSTER_OWNER = "npc_area_cluster_owner";
@@ -107,10 +106,6 @@ int NpcBhvrResolveNpcLayer(object oNpc)
         nLayer = GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_LAYER);
     }
 
-    if (nLayer <= 0 && GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_REACTIVE) == TRUE)
-    {
-        nLayer = NPC_BHVR_LAYER_REACTIVE;
-    }
 
     oArea = GetArea(oNpc);
     nDispatchMode = NpcBhvrResolveAreaDispatchMode(oArea);

@@ -1,6 +1,5 @@
 // Schedule/slot resolution helpers.
 
-int NpcBhvrActivityIsScheduleEnabled(object oNpc, object oArea);
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 
 string NpcBhvrActivityResolveTimeOfDaySlot(int nHour)

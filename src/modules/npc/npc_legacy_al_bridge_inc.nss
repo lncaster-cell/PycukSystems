@@ -9,10 +9,6 @@ const string NPC_BHVR_VAR_LEGACY_BRIDGE_AREA_VERSION = "npc_legacy_bridge_area_v
 const string NPC_BHVR_LEGACY_VAR_SLOT = "al_slot";
 const string NPC_BHVR_LEGACY_VAR_ROUTE = "al_route";
 const string NPC_BHVR_LEGACY_VAR_SCHEDULE_ENABLED = "al_schedule_enabled";
-const string NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_START = "al_schedule_critical_start";
-const string NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_END = "al_schedule_critical_end";
-const string NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_START = "al_schedule_priority_start";
-const string NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_END = "al_schedule_priority_end";
 
 const string NPC_BHVR_LEGACY_VAR_AREA_ROUTE_DEFAULT = "al_route_default";
 const string NPC_BHVR_LEGACY_VAR_AREA_ROUTE_PRIORITY = "al_route_priority";

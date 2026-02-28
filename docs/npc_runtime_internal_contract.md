@@ -37,7 +37,7 @@
 
 ### NPC-level
 - Runtime layer/dispatch:
-  - `npc_runtime_layer` / `npc_cfg_layer` / `npc_cfg_reactive`
+  - `npc_runtime_layer` / `npc_cfg_layer`
 - Activity/profile:
   - `npc_activity_mode` (`daily|alert`)
   - `npc_activity_slot`
