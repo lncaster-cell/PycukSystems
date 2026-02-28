@@ -62,6 +62,8 @@ string NpcBhvrAuthoringResolveIdentityType(object oNpc)
 
 int NpcBhvrAuthoringIsFutureRespawnCandidate(object oNpc)
 {
+    // Compatibility shim for authoring contract checks; canonical callers should
+    // use NpcBhvrAuthoringResolveIdentityType(...) directly.
     return NpcBhvrAuthoringResolveIdentityType(oNpc) == "commoner";
 }
 
