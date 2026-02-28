@@ -30,26 +30,6 @@ int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int 
 void NpcBhvrPendingAreaTouchAt(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus, int nNow);
 
 
-void NpcBhvrAreaRouteCacheWarmup(object oArea)
-{
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    SetLocalInt(oArea, "npc_route_cache_warm", TRUE);
-}
-
-void NpcBhvrAreaRouteCacheInvalidate(object oArea)
-{
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    DeleteLocalInt(oArea, "npc_route_cache_warm");
-}
-
 string NpcBhvrPendingStatusToString(int nStatus)
 {
     if (nStatus == NPC_BHVR_PENDING_STATUS_QUEUED)

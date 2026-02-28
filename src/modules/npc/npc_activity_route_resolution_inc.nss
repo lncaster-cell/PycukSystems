@@ -2,7 +2,6 @@
 
 int NpcBhvrActivityIsSupportedRoute(string sRouteId);
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot);
-string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot);
 
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId)
 {
@@ -81,7 +80,19 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return NpcBhvrActivityAdapterNormalizeRoute("");
     }
 
-    sRoute = NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot);
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
+        oArea
+    );
+    if (sRoute != "")
+    {
+        return sRoute;
+    }
+
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
+        GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
+        oArea
+    );
     if (sRoute != "")
     {
         return sRoute;
