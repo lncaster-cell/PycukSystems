@@ -6,6 +6,7 @@ const string NPC_BHVR_CFG_LOD_RUNNING_HIDE = "npc_cfg_lod_running_hide";
 const string NPC_BHVR_CFG_LOD_RUNNING_HIDE_DISTANCE = "npc_cfg_lod_running_hide_distance";
 const string NPC_BHVR_CFG_LOD_RUNNING_REVEAL_DISTANCE = "npc_cfg_lod_running_reveal_distance";
 const string NPC_BHVR_CFG_LOD_RUNNING_DEBOUNCE_SEC = "npc_cfg_lod_running_debounce_sec";
+const string NPC_BHVR_CFG_LOD_RUNNING_SCAN_INTERVAL_SEC = "npc_cfg_lod_running_scan_interval_sec";
 const string NPC_BHVR_CFG_LOD_PHASE_STEP_SEC = "npc_cfg_lod_phase_step_sec";
 const string NPC_BHVR_CFG_LOD_MIN_HIDDEN_SEC = "npc_cfg_lod_min_hidden_sec";
 const string NPC_BHVR_CFG_LOD_MIN_VISIBLE_SEC = "npc_cfg_lod_min_visible_sec";
@@ -28,10 +29,12 @@ const string NPC_BHVR_VAR_LOD_PROJECTED_WP_LOOP = "npc_lod_projected_wp_loop";
 const string NPC_BHVR_VAR_LOD_LAST_REVEAL_AT = "npc_lod_last_reveal_at";
 const string NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN = "npc_lod_physical_hidden";
 const string NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT = "npc_lod_last_physical_toggle_at";
+const string NPC_BHVR_VAR_LOD_LAST_DISTANCE_CHECK_AT = "npc_lod_last_distance_check_at";
 
 const int NPC_BHVR_LOD_RUNNING_HIDE_DISTANCE_DEFAULT = 35;
 const int NPC_BHVR_LOD_RUNNING_REVEAL_DISTANCE_DEFAULT = 25;
 const int NPC_BHVR_LOD_RUNNING_DEBOUNCE_SEC_DEFAULT = 6;
+const int NPC_BHVR_LOD_RUNNING_SCAN_INTERVAL_SEC_DEFAULT = 3;
 const int NPC_BHVR_LOD_PHASE_STEP_SEC_DEFAULT = 12;
 const int NPC_BHVR_LOD_MIN_HIDDEN_SEC_DEFAULT = 5;
 const int NPC_BHVR_LOD_MIN_VISIBLE_SEC_DEFAULT = 4;
@@ -134,7 +137,6 @@ void NpcBhvrLodTryApplyPhysicalHide(object oNpc, int nNow)
     oArea = GetArea(oNpc);
     if (!NpcBhvrLodPhysicalHidePolicyAllowed(oNpc, oArea))
     {
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL);
         return;
     }
 
@@ -176,7 +178,6 @@ void NpcBhvrLodTryApplyPhysicalReveal(object oNpc, int nNow)
     oArea = GetArea(oNpc);
     if (!NpcBhvrLodPhysicalHidePolicyAllowed(oNpc, oArea))
     {
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL);
         return;
     }
 
@@ -427,6 +428,8 @@ int NpcBhvrLodShouldHideInRunningArea(object oNpc, object oArea, int nNow)
     int nLastToggle;
     int nProjected;
     int nNearest;
+    int nScanInterval;
+    int nLastScan;
 
     if (!GetIsObjectValid(oNpc) || !GetIsObjectValid(oArea))
     {
@@ -445,6 +448,11 @@ int NpcBhvrLodShouldHideInRunningArea(object oNpc, object oArea, int nNow)
     }
 
     nDebounce = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_RUNNING_DEBOUNCE_SEC, NPC_BHVR_LOD_RUNNING_DEBOUNCE_SEC_DEFAULT);
+    nScanInterval = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_RUNNING_SCAN_INTERVAL_SEC, NPC_BHVR_LOD_RUNNING_SCAN_INTERVAL_SEC_DEFAULT);
+    if (nScanInterval <= 0)
+    {
+        nScanInterval = NPC_BHVR_LOD_RUNNING_SCAN_INTERVAL_SEC_DEFAULT;
+    }
     nMinHiddenSec = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_MIN_HIDDEN_SEC, NPC_BHVR_LOD_MIN_HIDDEN_SEC_DEFAULT);
     nMinVisibleSec = NpcBhvrLodResolveConfig(oArea, NPC_BHVR_CFG_LOD_MIN_VISIBLE_SEC, NPC_BHVR_LOD_MIN_VISIBLE_SEC_DEFAULT);
     nLastToggle = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT);
@@ -470,6 +478,12 @@ int NpcBhvrLodShouldHideInRunningArea(object oNpc, object oArea, int nNow)
         return nNearest > nRevealDistance;
     }
 
+    nLastScan = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_DISTANCE_CHECK_AT);
+    if (nLastScan > 0 && (nNow - nLastScan) < nScanInterval)
+    {
+        return FALSE;
+    }
+
     if (nLastToggle > 0 && (nNow - nLastToggle) < nDebounce)
     {
         NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_HIDE_DEBOUNCE_HIT_TOTAL);
@@ -482,6 +496,7 @@ int NpcBhvrLodShouldHideInRunningArea(object oNpc, object oArea, int nNow)
         return FALSE;
     }
 
+    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_DISTANCE_CHECK_AT, nNow);
     return nNearest > nHideDistance;
 }
 
