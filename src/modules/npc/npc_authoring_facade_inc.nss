@@ -2,6 +2,7 @@
 // Thin layer: only normalizes npc_cfg_* authoring locals and derives runtime defaults.
 
 const string NPC_BHVR_CFG_ROLE = "npc_cfg_role";
+const string NPC_BHVR_CFG_IDENTITY_TYPE = "npc_cfg_identity_type";
 const string NPC_BHVR_CFG_SLOT_DAWN_ROUTE = "npc_cfg_slot_dawn_route";
 const string NPC_BHVR_CFG_SLOT_MORNING_ROUTE = "npc_cfg_slot_morning_route";
 const string NPC_BHVR_CFG_SLOT_AFTERNOON_ROUTE = "npc_cfg_slot_afternoon_route";
@@ -23,6 +24,7 @@ const string NPC_BHVR_CFG_CLUSTER = "npc_cfg_cluster";
 const string NPC_BHVR_CFG_AREA_PROFILE = "npc_cfg_area_profile";
 
 const string NPC_BHVR_CFG_DERIVED_ROLE = "npc_cfg_derived_role";
+const string NPC_BHVR_CFG_DERIVED_IDENTITY_TYPE = "npc_cfg_derived_identity_type";
 const string NPC_BHVR_CFG_DERIVED_SCHEDULE = "npc_cfg_derived_schedule"; // legacy-derived marker
 const string NPC_BHVR_CFG_DERIVED_AREA_PROFILE = "npc_cfg_derived_area_profile";
 const string NPC_BHVR_CFG_DERIVED_CLUSTER_OWNER = "npc_cfg_derived_cluster_owner";
@@ -38,6 +40,29 @@ string NpcBhvrAuthoringNormalizeTokenOrDefault(string sValue, string sFallback)
     }
 
     return sNormalized;
+}
+
+string NpcBhvrAuthoringResolveIdentityType(object oNpc)
+{
+    string sIdentityType;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return "named";
+    }
+
+    sIdentityType = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_IDENTITY_TYPE), "named");
+    if (sIdentityType != "commoner")
+    {
+        return "named";
+    }
+
+    return "commoner";
+}
+
+int NpcBhvrAuthoringIsFutureRespawnCandidate(object oNpc)
+{
+    return NpcBhvrAuthoringResolveIdentityType(oNpc) == "commoner";
 }
 
 int NpcBhvrAuthoringHasStringLocal(object oTarget, string sKey)
@@ -229,6 +254,7 @@ void NpcBhvrAuthoringApplyNpcRolePreset(object oNpc, string sRole)
 
 void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
 {
+    string sIdentityType;
     string sRole;
     string sSchedule;
     string sRouteWork;
@@ -240,8 +266,10 @@ void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
         return;
     }
 
+    sIdentityType = NpcBhvrAuthoringResolveIdentityType(oNpc);
     sRole = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_ROLE), "citizen");
 
+    SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_IDENTITY_TYPE, sIdentityType);
     SetLocalString(oNpc, NPC_BHVR_CFG_DERIVED_ROLE, sRole);
 
     NpcBhvrAuthoringApplyNpcRolePreset(oNpc, sRole);

@@ -32,6 +32,7 @@
 - `npc_cfg_force_reactive` (`0/1`) — **единственный канонический human-facing override** для reactive-пути
 - `npc_cfg_allow_physical_hide` (`0/1`)
 - `npc_cfg_alert_route` (отдельный route только для режима `alert`)
+- `npc_cfg_identity_type` (`named|commoner`) — world-identity тип NPC (не равен `role`)
 
 ### Строгие границы канонического пути (anti-drift)
 
@@ -92,7 +93,26 @@
 
 Если задан `npc_cfg_alert_route`, он используется как route override для `alert`; иначе используется обычная slot-route цепочка без возврата к semantic/window модели.
 
-## 6) Как работает facade
+## 6) Identity type (authoring contract)
+
+Новый human-facing local:
+
+- `npc_cfg_identity_type`
+
+Поддерживаемые значения:
+
+- `named` — постоянный NPC, **не** кандидат на будущий respawn
+- `commoner` — массовый NPC, кандидат на будущий respawn
+
+Важно:
+
+- Это отдельная ось от `npc_cfg_role`.
+- `role` отвечает за archetype поведения (`worker`, `guard`, `merchant` и т. д.).
+- `identity_type` отвечает только за тип существования NPC в мире (`named|commoner`).
+- На текущем этапе respawn intentionally deferred: нет respawn manager, delayed respawn, persistence или изменений death/cleanup flow.
+- Текущий runtime-path (slot -> route -> waypoint -> activity) не меняется от `identity_type`; local вводится как authoring-контракт и подготовка к future respawn для `commoner`.
+
+## 7) Как работает facade
 
 Пайплайн:
 
@@ -104,7 +124,7 @@
 - Низкоуровневые ручки (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_cfg_layer`, `npc_cfg_reactive`, `npc_npc_sim_lod`, runtime counters/diagnostics locals) — internal/runtime-only и не считаются каноническим authoring-путём.
 - Если низкоуровневые `npc_*` уже заданы явно, фасад не перетирает их «в лоб».
 
-## 7) Legacy / compatibility path (deprecated)
+## 8) Legacy / compatibility path (deprecated)
 
 Старый пресетный путь сохранён только для совместимости и миграций:
 
@@ -117,7 +137,7 @@ Legacy schedule presets (`day_worker`, `day_shop`, `night_guard`, `tavern_late`,
 `custom` остаётся только как deprecated compatibility-вариант без расширения route-ветвления active-path, а не как свободный escape hatch для произвольных runtime locals.
 Legacy aliases `default|priority|critical` и schedule-window semantics допускаются только в migration-compatible нормализации, но не как ручной authoring-контракт.
 
-## 8) Пример (канонический)
+## 9) Пример (канонический)
 
 ### Кузнец (slot-маршруты)
 

@@ -15,6 +15,7 @@
 
 - NPC (canonical):
   - `npc_cfg_role`
+  - `npc_cfg_identity_type` (`named|commoner`)
   - `npc_cfg_slot_dawn_route`, `npc_cfg_slot_morning_route`, `npc_cfg_slot_afternoon_route`, `npc_cfg_slot_evening_route`, `npc_cfg_slot_night_route`
   - `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`
   - optional: `npc_cfg_alert_route`
@@ -23,6 +24,7 @@
 ### B. Derived config (facade-computed)
 
 - `npc_cfg_derived_role`
+- `npc_cfg_derived_identity_type`
 - `npc_cfg_derived_schedule` (legacy compatibility marker)
 - `npc_cfg_derived_area_profile`
 - `npc_cfg_derived_cluster_owner`
@@ -89,6 +91,7 @@
 - Legacy bridge (`al_* -> npc_*`) остаётся migration-only и не ломается.
 - Низкоуровневые runtime locals сохраняют обратную совместимость.
 - Preset schedule authoring (`npc_cfg_schedule` + work/home/leisure) остаётся legacy/compatibility path и не считается каноническим контрактом.
+- Identity contract (`npc_cfg_identity_type`) нормализуется фасадом в `npc_cfg_derived_identity_type` (`named|commoner`) и пока не меняет death/cleanup/runtime-dispatch path; это только каркас под future respawn-контур для `commoner`.
 - При наличии уже выставленных runtime/config locals фасад применяет пресеты как defaults и не должен агрессивно перетирать explicit overrides.
 
 ## 5) Legacy AL migration bridge
