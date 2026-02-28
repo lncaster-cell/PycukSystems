@@ -14,6 +14,15 @@ assert_has() {
     exit 1
   fi
 }
+assert_not_has() {
+  local pattern="$1"
+  local file="$2"
+
+  if rg -q "$pattern" "$file"; then
+    echo "[FAIL] unexpected pattern '$pattern' in $file"
+    exit 1
+  fi
+}
 
 assert_has "NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL" "$METRICS_FILE"
 assert_has "int NpcBhvrActivityAdapterWasSlotFallback\(" "$ACTIVITY_FILE"
@@ -24,6 +33,7 @@ assert_has "NpcBhvrMetricInc\(oNpc, NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL\
 # route всё равно резолвится по нормализованному slot.
 assert_has "sSlot = NpcBhvrActivityAdapterNormalizeSlot\(sSlotRaw\);" "$ACTIVITY_FILE"
 assert_has "sRoute = NpcBhvrActivityResolveRouteProfile\(oNpc, sSlot\);" "$ACTIVITY_FILE"
+assert_not_has "int NpcBhvrActivityIsScheduleEnabled\(" "$ACTIVITY_FILE"
 
 bash "$ROOT_DIR/scripts/test_npc_activity_route_contract.sh"
 bash "$ROOT_DIR/scripts/test_npc_activity_waypoint_contract.sh"

@@ -121,7 +121,7 @@
 - Внутренние `npc_*` locals **не удалены** и остаются runtime truth.
 - Основной ручной интерфейс — slot-route locals + role/area profile.
 - Role (`npc_cfg_role`) остаётся archetype/default-policy (ambient/reactive/hide), но больше не является скрытым расписанием.
-- Низкоуровневые ручки (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_cfg_layer`, `npc_cfg_reactive`, `npc_npc_sim_lod`, runtime counters/diagnostics locals) — internal/runtime-only и не считаются каноническим authoring-путём.
+- Низкоуровневые ручки (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_cfg_layer`, `npc_npc_sim_lod`, runtime counters/diagnostics locals) — internal/runtime-only и не считаются каноническим authoring-путём.
 - Если низкоуровневые `npc_*` уже заданы явно, фасад не перетирает их «в лоб».
 
 ## 8) Legacy / compatibility path (deprecated)
