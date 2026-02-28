@@ -74,8 +74,6 @@ expect_order(
     idle,
     [
         'sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);',
-        'if (sRoute == "")',
-        'sRoute = NPC_BHVR_ACTIVITY_ROUTE_DEFAULT;',
         'NpcBhvrActivityApplyRouteState(oNpc, sRoute, "idle_route", 1);',
     ],
     'idle canonical dispatch',
@@ -83,9 +81,7 @@ expect_order(
 expect_not_contains(idle, 'NpcBhvrActivityApplyCriticalSafeRoute(oNpc);', 'idle canonical dispatch')
 expect_not_contains(idle, 'NpcBhvrActivityApplyPriorityRoute(oNpc);', 'idle canonical dispatch')
 
-expect_contains(resolve, 'GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE)', 'resolve fallback chain')
 expect_contains(resolve, 'NpcBhvrActivitySlotRouteProfileKey(sSlot)', 'resolve fallback chain')
-expect_contains(resolve, 'NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT', 'resolve fallback chain')
 expect_contains(resolve, 'NpcBhvrActivityRouteCacheResolveForSlot(oArea, sSlot)', 'resolve fallback chain')
 expect_contains(resolve, 'return NpcBhvrActivityAdapterNormalizeRoute("");', 'resolve fallback chain')
 

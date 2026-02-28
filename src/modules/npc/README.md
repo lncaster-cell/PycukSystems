@@ -188,7 +188,6 @@ Legacy migration diagnostics:
 
 - Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
   - `npc_activity_slot` (time-of-day slot: `dawn|morning|afternoon|evening|night`),
-  - `npc_activity_route` (явно сконфигурированный route-profile на NPC; если пусто — используется fallback-цепочка),
   - `npc_activity_route_effective` (диагностическое зеркало effective route-profile после fallback-резолва),
   - `npc_activity_slot_fallback` (`0|1`, признак fallback в `default` при невалидном slot),
   - `npc_activity_state` (начальное состояние `spawn_ready`),
@@ -201,12 +200,11 @@ Legacy migration diagnostics:
   - `npc_activity_slot_emote` (resolved ambient emote для активного slot, с fallback `NPC-slot -> area-slot -> area-global -> NPC-global`),
   - `npc_activity_action` (resolved action-token для игрового runtime-dispatch: `guard_hold|patrol_move|patrol_scan|patrol_ready|ambient_*`).
 - Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
-  1) `npc_activity_route` на NPC (если явно задан);
+  1) для `alert`: `npc_route_profile_alert` на NPC;
   2) `npc_route_profile_slot_<slot>` на NPC;
-  3) `npc_route_profile_default` на NPC;
-  4) area-level cache `npc_route_cache_slot_<slot>` (при первом обращении заполняется из area locals);
-  5) area-level cache `npc_route_cache_default`;
-  6) `default_route`.
+  3) area-level cache `npc_route_cache_slot_<slot>` (при первом обращении заполняется из area locals);
+  4) area-level cache `npc_route_cache_default`;
+  5) `default_route`.
 - Lifecycle area cache:
   - `routes_cached` (`0|1`) — признак валидного area-level cache;
   - `routes_cache_version` — монотонная версия cache (увеличивается на invalidate/warmup-cycle);
@@ -228,17 +226,16 @@ Legacy migration diagnostics:
 
 ### Контракт входных/выходных состояний activity primitives
 
-- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` и `npc_route_profile_default` на NPC/area; `npc_activity_cooldown_until_ts` может быть отрицательным.
+- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` на NPC и area cache (`npc_route_cache_slot_<slot>`/`npc_route_cache_default`); `npc_activity_cooldown_until_ts` может быть отрицательным.
 - **Выход `NpcBhvrActivityOnSpawn`:**
   - `slot` нормализован в daypart-значения (`dawn|morning|afternoon|evening|night`),
-  - `npc_activity_route` сохраняет только явно заданный route (или очищается, если route не задан),
   - `npc_activity_route_effective` выставляется как effective route-profile после slot-based fallback-резолва,
   - `state=spawn_ready`,
   - `last=spawn_ready`,
   - `last_ts` обновлён,
   - `cooldown_until_ts >= 0`,
   - waypoint-runtime locals нормализованы и готовы к первому idle-dispatch.
-- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (slot нормализуется, невалидный route отбрасывается и заменяется fallback-резолвом).
+- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные route profile locals (slot нормализуется и ведёт к fallback-резолву).
 - **Допустимые значения `slot`:** только `dawn|morning|afternoon|evening|night`. Legacy-значения `default|priority|critical` мигрируются в daypart alias (`afternoon|morning|night`).
 - **Выход `NpcBhvrActivityOnIdleTick`:**
   - при активном cooldown (`npc_activity_cooldown_until_ts > now`) выполняется early-return без записи;
@@ -646,7 +643,6 @@ NPC runtime учитывает:
 ## 6.2 NPC locals (activity/pending)
 
 - `npc_activity_slot`
-- `npc_activity_route`
 - `npc_activity_route_effective`
 - `npc_activity_state`
 - `npc_activity_last`

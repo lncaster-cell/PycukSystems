@@ -103,7 +103,7 @@
 - `npc_cfg_leisure_route`
 
 Legacy schedule presets (`day_worker`, `day_shop`, `night_guard`, `tavern_late`, `always_home`, `always_static`, `custom`) считаются **secondary/deprecated authoring path** и не являются канонической моделью для нового контента.
-`custom` остаётся только как deprecated compatibility-вариант (ограниченный fallback до `npc_route_profile_default`), а не как свободный escape hatch для произвольных runtime locals.
+`custom` остаётся только как deprecated compatibility-вариант без расширения route-ветвления active-path, а не как свободный escape hatch для произвольных runtime locals.
 
 ## 8) Пример (канонический)
 
