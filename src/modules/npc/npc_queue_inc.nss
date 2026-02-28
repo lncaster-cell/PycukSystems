@@ -398,12 +398,6 @@ void NpcBhvrQueueClear(object oArea)
 }
 
 
-void NpcBhvrQueueApplyDepthAndTotalsDelta(object oArea, int nPriority, int nDepth, int nDelta)
-{
-    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth);
-    NpcBhvrQueueApplyTotalsDelta(oArea, nDelta);
-}
-
 int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
 {
     int nDepth;
@@ -428,7 +422,8 @@ int NpcBhvrQueueAppendSubject(object oArea, object oSubject, int nPriority)
     SetLocalObject(oArea, NpcBhvrQueueSubjectKey(nPriority, nTail), oSubject);
     NpcBhvrQueueIndexSet(oArea, oSubject, nPriority, nTail);
     NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrQueueTailKey(nPriority), nTail);
-    NpcBhvrQueueApplyDepthAndTotalsDelta(oArea, nPriority, nDepth + 1, 1);
+    NpcBhvrQueueSetDepthForPriority(oArea, nPriority, nDepth + 1);
+    NpcBhvrQueueApplyTotalsDelta(oArea, 1);
     return TRUE;
 }
 
