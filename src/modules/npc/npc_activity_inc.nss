@@ -24,8 +24,6 @@ const string NPC_BHVR_ACTIVITY_MODE_ALERT = "alert";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX = "npc_route_profile_slot_";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT = "npc_route_profile_default";
 const string NPC_BHVR_VAR_ROUTE_PROFILE_ALERT = "npc_route_profile_alert";
-const string NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX = "npc_route_cache_slot_";
-const string NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT = "npc_route_cache_default";
 
 // Waypoint/ambient activity runtime locals.
 const string NPC_BHVR_VAR_ACTIVITY_WP_INDEX = "npc_activity_wp_index";
@@ -56,6 +54,7 @@ const string NPC_BHVR_VAR_ROUTE_RUNTIME_PAUSE_KEY = "npc_route_runtime_pause_key
 
 const int NPC_BHVR_LOCAL_KEY_MAX_LENGTH = 64;
 const int NPC_BHVR_LOCAL_KEY_HASH_LENGTH = 6;
+const int NPC_BHVR_CFG_INT_UNSET = -1;
 
 const string NPC_BHVR_ACTIVITY_SLOT_DAWN = "dawn";
 const string NPC_BHVR_ACTIVITY_SLOT_MORNING = "morning";
@@ -150,36 +149,6 @@ int NpcBhvrPendingNow();
 string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
 {
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
-}
-
-
-string NpcBhvrActivityRouteCacheSlotKey(string sSlot)
-{
-    return NPC_BHVR_VAR_ROUTE_CACHE_SLOT_PREFIX + sSlot;
-}
-
-string NpcBhvrActivityRouteCacheResolveForSlot(object oArea, string sSlot)
-{
-    string sRoute;
-
-    if (!GetIsObjectValid(oArea))
-    {
-        return "";
-    }
-
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NpcBhvrActivityRouteCacheSlotKey(sSlot)),
-        oArea
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    return NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oArea, NPC_BHVR_VAR_ROUTE_CACHE_DEFAULT),
-        oArea
-    );
 }
 
 string NpcBhvrActivityComposePrecheckL1Stamp(int nResolvedHour, string sAreaTag)
@@ -408,7 +377,7 @@ int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag)
         return TRUE;
     }
 
-    if (nLoopFlag < 0)
+    if (nLoopFlag == 0)
     {
         return FALSE;
     }
@@ -426,7 +395,7 @@ int NpcBhvrActivityResolveRouteLoop(object oNpc, string sRouteId)
         NPC_BHVR_VAR_ROUTE_RUNTIME_LOOP_KEY,
         "nb_rl_",
         NPC_BHVR_VAR_ROUTE_LOOP_PREFIX,
-        0
+        NPC_BHVR_CFG_INT_UNSET
     );
     return NpcBhvrActivityResolveLoopFlagOrDefault(nLoopFlag);
 }
@@ -500,7 +469,7 @@ int ReadRouteRuntimeIntWithFallback(
         );
 
         nValue = NpcBhvrActivityReadMigratedRouteInt(oOwner, sRouteIdNormalized, sKey, sLegacyPrefix);
-        if (nValue != 0)
+        if (nValue != NPC_BHVR_CFG_INT_UNSET)
         {
             return nValue;
         }

@@ -213,14 +213,9 @@ Legacy migration diagnostics:
 - Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
   1) для `alert`: `npc_route_profile_alert` на NPC;
   2) `npc_route_profile_slot_<slot>` на NPC;
-  3) area-level cache `npc_route_cache_slot_<slot>` (при первом обращении заполняется из area locals);
-  4) area-level cache `npc_route_cache_default`;
+  3) `npc_route_profile_slot_<slot>` на area;
+  4) `npc_route_profile_default` на area;
   5) `default_route`.
-- Lifecycle area cache:
-  - `routes_cached` (`0|1`) — признак валидного area-level cache;
-  - `routes_cache_version` — монотонная версия cache (увеличивается на invalidate/warmup-cycle);
-  - `NpcBhvrAreaRouteCacheWarmup` выполняет первичный prewarm при активации area-loop и идемпотентен при повторных вызовах (без полного re-scan);
-  - `NpcBhvrAreaRouteCacheInvalidate` очищает cache и переводит следующий resolve в controlled rescan/warmup.
 - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (разрешены любые lowercase/underscore идентификаторы длиной 1..32), чтобы fallback-цепочка не блокировалась мусорными значениями, и завершает нормализацию через `NpcBhvrActivityAdapterNormalizeRoute` как канонический adapter-step.
 - При отбрасывании невалидного route-id инкрементируется `npc_metric_activity_invalid_route_total`.
 - Idle-dispatch (`NpcBhvrActivityOnIdleTick`) использует единый канонический путь: `resolve current time slot -> resolve slot route -> resolve waypoint state -> resolve waypoint activity -> apply`.
@@ -231,13 +226,13 @@ Legacy migration diagnostics:
 - Применение route-state централизовано в `NpcBhvrActivityApplyRouteState`, который обновляет transition, cooldown и waypoint/runtime locals.
 - Route-point/waypoint контракт задаётся через `npc_*`-locals (без `al_*` keyspace):
   - `npc_route_count_<routeId>` — количество waypoint-узлов в route (NPC-local приоритетнее area-local);
-  - `npc_route_loop_<routeId>` — loop policy (`>0` loop enabled, `<0` loop disabled, `0` = default enabled);
+  - `npc_route_loop_<routeId>` — loop policy (`-1` = unset/default enabled, `0` = explicit disabled, `>0` = explicit enabled).
   - `npc_route_tag_<routeId>` — route-tag для генерации состояния формата `<base_state>_<tag>_<index>_of_<count>`;
   - `npc_route_pause_ticks_<routeId>` — добавка к cooldown после dispatch для route-point pacing.
 
 ### Контракт входных/выходных состояний activity primitives
 
-- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` на NPC и area cache (`npc_route_cache_slot_<slot>`/`npc_route_cache_default`); `npc_activity_cooldown_until_ts` может быть отрицательным.
+- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` на NPC и area (`npc_route_profile_slot_<slot>`/`npc_route_profile_default`); `npc_activity_cooldown_until_ts` может быть отрицательным.
 - **Выход `NpcBhvrActivityOnSpawn`:**
   - `slot` нормализован в daypart-значения (`dawn|morning|afternoon|evening|night`),
   - `npc_activity_route_effective` выставляется как effective route-profile после slot-based fallback-резолва,

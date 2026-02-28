@@ -150,6 +150,11 @@ string NpcBhvrActivityRouteMigratedFlagKey(string sRouteId)
     return "migrated_" + sRouteId;
 }
 
+string NpcBhvrActivityRouteMigratedIntFlagKey(string sRuntimeKey)
+{
+    return "migrated_int_" + sRuntimeKey;
+}
+
 void NpcBhvrActivityPrewarmRouteRuntime(object oOwner, string sRouteId, object oMetricScope)
 {
     string sRouteIdNormalized;
@@ -202,18 +207,20 @@ int NpcBhvrActivityReadMigratedRouteInt(object oOwner, string sRouteId, string s
 {
     int nValue;
     string sMigratedFlagKey;
+    string sMigratedIntFlagKey;
     string sLegacyKey;
+
+    sMigratedIntFlagKey = NpcBhvrActivityRouteMigratedIntFlagKey(sRuntimeKey);
+    if (GetLocalInt(oOwner, sMigratedIntFlagKey) == TRUE)
+    {
+        return GetLocalInt(oOwner, sRuntimeKey);
+    }
 
     nValue = GetLocalInt(oOwner, sRuntimeKey);
     if (nValue != 0)
     {
+        SetLocalInt(oOwner, sMigratedIntFlagKey, TRUE);
         return nValue;
-    }
-
-    sMigratedFlagKey = NpcBhvrActivityRouteMigratedFlagKey(sRouteId);
-    if (GetLocalInt(oOwner, sMigratedFlagKey) == TRUE)
-    {
-        return 0;
     }
 
     sLegacyKey = sLegacyPrefix + sRouteId;
@@ -221,11 +228,18 @@ int NpcBhvrActivityReadMigratedRouteInt(object oOwner, string sRouteId, string s
     if (nValue != 0)
     {
         SetLocalInt(oOwner, sRuntimeKey, nValue);
+        SetLocalInt(oOwner, sMigratedIntFlagKey, TRUE);
         DeleteLocalInt(oOwner, sLegacyKey);
+        return nValue;
     }
 
+    SetLocalInt(oOwner, sRuntimeKey, NPC_BHVR_CFG_INT_UNSET);
+    SetLocalInt(oOwner, sMigratedIntFlagKey, TRUE);
+
+    sMigratedFlagKey = NpcBhvrActivityRouteMigratedFlagKey(sRouteId);
     SetLocalInt(oOwner, sMigratedFlagKey, TRUE);
-    return nValue;
+
+    return NPC_BHVR_CFG_INT_UNSET;
 }
 
 string NpcBhvrActivityReadMigratedRouteString(object oOwner, string sRouteId, string sRuntimeKey, string sLegacyPrefix)

@@ -103,7 +103,6 @@ void NpcBhvrAreaActivate(object oArea)
     // только NpcBhvrApplyTickRuntimeConfig.
     NpcBhvrApplyTickRuntimeConfig(oArea);
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_RUNNING);
-    NpcBhvrAreaRouteCacheWarmup(oArea);
     NpcBhvrActivityOnAreaActivate(oArea);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     // Contract: один area-loop на область.
@@ -142,7 +141,6 @@ void NpcBhvrAreaStop(object oArea)
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
-    NpcBhvrAreaRouteCacheInvalidate(oArea);
     NpcBhvrRegistryResetIdleCursor(oArea);
     NpcBhvrQueueClear(oArea);
 }
@@ -569,7 +567,6 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
         }
 
         NpcBhvrRegistryRemove(oArea, oExiting);
-        NpcBhvrAreaRouteCacheInvalidate(oArea);
         return;
     }
 
