@@ -1,24 +1,31 @@
 # NPC Activity Contract Checklist
 
 
+## 0) Strict contract boundary (human-facing)
+
+Инварианты документации/контракта:
+- канонический human-facing путь описывается через `npc_cfg_role` + `npc_cfg_slot_*_route` (+ опциональные `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`);
+- schedule windows и semantic slots `default|priority|critical` не описываются как primary authoring mechanism;
+- low-level runtime knobs (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_npc_sim_lod`, diagnostics/runtime locals) не выдаются за user-facing контракт.
+
+**Что считается fail:** любое возвращение legacy semantic/window модели в основной раздел human-facing контракта.
+
 Чеклист фиксирует проверяемые инварианты activity-layer контракта NPC Bhvr из `src/modules/npc/README.md` и даёт команды для быстрого smoke/regression прогона.
 
 ## 1) Route fallback resolve order
 
 Инвариант (`NpcBhvrActivityResolveRouteProfile`): effective route выбирается строго в таком порядке:
-1. `npc_activity_route` на NPC (если явно задан);
-2. `npc_route_profile_slot_<slot>` на NPC;
-3. `npc_route_profile_default` на NPC;
-4. `npc_route_profile_slot_<slot>` на area;
-5. `npc_route_profile_default` на area;
-6. `default_route`.
+1. Для `alert`: `npc_route_profile_alert` на NPC (если валиден).
+2. `npc_route_profile_slot_<slot>` на NPC.
+3. `npc_route_cache_slot_<slot>` на area.
+4. `npc_route_cache_default` на area.
+5. `default_route`.
 
 **Что считается fail:** любой рефакторинг, который нарушает приоритет источников (например, area override раньше NPC override).
 
-## 2) Разделение configured vs effective route
+## 2) Effective route invariants
 
 Инвариант:
-- `npc_activity_route` хранит только явно сконфигурированный route (или очищается);
 - `npc_activity_route_effective` всегда хранит итог fallback-резолва (валидный route-id или `default_route`).
 
 **Что считается fail:** смешение семантик (например, запись fallback-значения в configured поле).
@@ -28,7 +35,7 @@
 Инварианты:
 - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидный route-id и не блокирует fallback-цепочку;
 - `slot` нормализуется в daypart (`dawn|morning|afternoon|evening|night`), legacy `default|priority|critical` допустимы только как alias;
-- в `NpcBhvrActivityOnIdleTick` пустые/невалидные `slot/route` допустимы и приводятся к валидному effective маршруту через fallback.
+- в `NpcBhvrActivityOnIdleTick` пустые/невалидные route profile locals допустимы и приводятся к валидному effective маршруту через fallback.
 
 **Что считается fail:** невалидные route/slot сохраняются и напрямую ломают ветвление idle-dispatch.
 

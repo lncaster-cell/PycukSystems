@@ -54,15 +54,6 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
         return NpcBhvrActivityAdapterNormalizeRoute("");
     }
 
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE),
-        oNpc
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
     if (NpcBhvrActivityResolveMode(oNpc) == NPC_BHVR_ACTIVITY_MODE_ALERT)
     {
         sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
@@ -77,15 +68,6 @@ string NpcBhvrActivityResolveRouteProfile(object oNpc, string sSlot)
 
     sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
         GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(sSlot)),
-        oNpc
-    );
-    if (sRoute != "")
-    {
-        return sRoute;
-    }
-
-    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(
-        GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT),
         oNpc
     );
     if (sRoute != "")
