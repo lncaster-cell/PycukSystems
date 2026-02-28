@@ -160,7 +160,6 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     if (sSchedule == "always_home")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_NIGHT);
         return;
     }
@@ -168,7 +167,6 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     if (sSchedule == "always_static")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, FALSE);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_AFTERNOON);
         return;
     }
@@ -177,7 +175,6 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_NIGHT, sRouteWork);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteLeisure);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_EVENING);
         return;
     }
@@ -186,7 +183,6 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_EVENING, sRouteWork);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_AFTERNOON);
         return;
     }
@@ -196,7 +192,6 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_MORNING, sRouteWork);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_AFTERNOON, sRouteWork);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
         NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_MORNING);
         return;
     }
@@ -204,14 +199,12 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     if (sSchedule == "custom")
     {
         // Deprecated compatibility: custom no longer opens arbitrary runtime tuning.
-        // We only allow default route fallback and keep slot/daypart flow canonical.
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteLeisure);
+        // Keep slot/daypart flow canonical without adding extra route-profile branches.
         return;
     }
 
     // day_worker default
     NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
     NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_MORNING);
 }
 
