@@ -130,7 +130,7 @@ string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetri
 int ReadRouteRuntimeIntWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, int nFallback);
 string ReadRouteRuntimeStringWithFallback(object oNpc, string sRouteId, string sRuntimeKeyVar, string sRouteKeyPrefix, string sLegacyPrefix, string sFallback);
 int NpcBhvrActivityResolveLoopFlagOrDefault(int nLoopFlag);
-string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurrentSlot, int bScheduleEnabled, int nResolvedHour);
+string NpcBhvrActivityResolveScheduledSlotForContext(string sCurrentSlot, int nResolvedHour);
 string NpcBhvrActivityAdapterNormalizeSlot(string sSlot);
 string NpcBhvrActivityNormalizeMode(string sMode);
 string NpcBhvrActivityResolveMode(object oNpc);
@@ -282,9 +282,7 @@ void NpcBhvrActivityRunHeavyRefreshForIdle(object oNpc, int nResolvedHour, objec
     string sSlotCached;
     sSlotRaw = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT);
     sSlot = NpcBhvrActivityResolveScheduledSlotForContext(
-        oNpc,
         NpcBhvrActivityAdapterNormalizeSlot(sSlotRaw),
-        NpcBhvrActivityIsScheduleEnabled(oNpc, oArea),
         nResolvedHour
     );
     sSlotCached = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
@@ -496,8 +494,7 @@ int ReadRouteRuntimeIntWithFallback(
         else
         {
             NpcBhvrLegacyBridgeMigrateNpc(oNpc);
-
-    oArea = GetArea(oNpc);
+            oArea = GetArea(oNpc);
             oOwner = OBJECT_INVALID;
             if (GetIsObjectValid(oArea))
             {
@@ -879,9 +876,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
         sAreaTag = "";
     }
     sSlot = NpcBhvrActivityResolveScheduledSlotForContext(
-        oNpc,
         sSlot,
-        NpcBhvrActivityIsScheduleEnabled(oNpc, oArea),
         nResolvedHour
     );
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
@@ -969,7 +964,7 @@ void NpcBhvrActivityOnSpawn(object oNpc)
     NpcBhvrLegacyBridgeMigrateNpc(oNpc);
     NpcBhvrActivityRefreshProfileState(oNpc);
     NpcBhvrActivityInitRuntimeState(oNpc);
-    NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");
+    NpcBhvrActivitySetTransitionState(oNpc, "spawn_ready");
 }
 
 void NpcBhvrActivityOnIdleTick(object oNpc)

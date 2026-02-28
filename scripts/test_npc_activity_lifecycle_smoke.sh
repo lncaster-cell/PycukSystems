@@ -63,7 +63,7 @@ expect_order(
         'NpcBhvrLegacyBridgeMigrateNpc(oNpc);',
         'NpcBhvrActivityRefreshProfileState(oNpc);',
         'NpcBhvrActivityInitRuntimeState(oNpc);',
-        'NpcBhvrActivityAdapterStampTransition(oNpc, "spawn_ready");',
+        'NpcBhvrActivitySetTransitionState(oNpc, "spawn_ready");',
     ],
     'spawn order',
 )

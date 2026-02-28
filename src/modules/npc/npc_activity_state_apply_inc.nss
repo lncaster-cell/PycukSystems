@@ -55,7 +55,7 @@ string NpcBhvrActivityResolveAction(object oNpc, string sMode, string sSlot, int
     return "ambient_idle";
 }
 
-void NpcBhvrActivityAdapterStampTransition(object oNpc, string sState)
+void NpcBhvrActivitySetTransitionState(object oNpc, string sState)
 {
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE, sState);
     SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST, sState);
@@ -96,7 +96,7 @@ void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseSt
     sWaypointRequirement = NpcBhvrActivityGetWaypointTagRequirement(nActivityId);
     nNow = NpcBhvrPendingNow();
 
-    NpcBhvrActivityAdapterStampTransition(oNpc, sState);
+    NpcBhvrActivitySetTransitionState(oNpc, sState);
     NpcBhvrActivitySetCooldownTicks(oNpc, nCooldown + nPauseTicks, nNow);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
     SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bLoop);

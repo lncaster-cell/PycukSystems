@@ -195,7 +195,7 @@ Legacy migration diagnostics:
   - `NpcBhvrActivityAdapterNormalizeRoute`,
   - `NpcBhvrActivityResolveRouteProfile`,
   - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty`,
-  - `NpcBhvrActivityAdapterStampTransition`.
+  - `NpcBhvrActivitySetTransitionState`.
 
 - Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
   - `npc_activity_slot` (time-of-day slot: `dawn|morning|afternoon|evening|night`),
@@ -260,7 +260,7 @@ Legacy migration diagnostics:
 Канонический slot-resolver на `spawn` и `idle tick` теперь time-based:
 
 - daypart mapping: `05-07 dawn`, `08-11 morning`, `12-16 afternoon`, `17-21 evening`, `22-04 night`;
-- `NpcBhvrActivityResolveScheduledSlotForContext(oNpc, sCurrentSlot, bScheduleEnabled, nResolvedHour)` возвращает daypart slot;
+- `NpcBhvrActivityResolveScheduledSlotForContext(sCurrentSlot, nResolvedHour)` возвращает daypart slot;
 - `npc_activity_schedule_enabled` сохранён только как legacy-compat flag и не участвует в выборе slot;
 - legacy `default|priority|critical` маппятся в `afternoon|morning|night` только как alias-compatibility.
 

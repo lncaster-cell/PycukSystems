@@ -30,7 +30,7 @@ string NpcBhvrActivityResolveTimeOfDaySlot(int nHour)
     return NPC_BHVR_ACTIVITY_SLOT_NIGHT;
 }
 
-string NpcBhvrActivityResolveScheduledSlotForContext(object oNpc, string sCurrentSlot, int bEnabled, int nHour)
+string NpcBhvrActivityResolveScheduledSlotForContext(string sCurrentSlot, int nHour)
 {
     // Slot is always time-of-day. Schedule toggle is preserved for compatibility,
     // but no longer redefines slot semantics.
