@@ -18,6 +18,7 @@ errors = []
 
 required_authoring_keys = [
     'npc_cfg_role',
+    'npc_cfg_identity_type',
     'npc_cfg_slot_dawn_route',
     'npc_cfg_slot_morning_route',
     'npc_cfg_slot_afternoon_route',
@@ -38,6 +39,8 @@ required_authoring_guards = [
     'default|priority|critical',
     'npc_cfg_schedule',
     'compatibility-only / deprecated / migration-only',
+    'respawn intentionally deferred',
+    'role` отвечает за archetype поведения',
 ]
 for marker in required_authoring_guards:
     if marker not in authoring:

@@ -29,10 +29,12 @@ Runtime/internal справочник вынесен в `docs/npc_runtime_intern
 
 Для ручной настройки новых NPC используйте только:
 - `npc_cfg_role`
+- `npc_cfg_identity_type` (`named|commoner`)
 - `npc_cfg_slot_dawn_route|npc_cfg_slot_morning_route|npc_cfg_slot_afternoon_route|npc_cfg_slot_evening_route|npc_cfg_slot_night_route`
 - опционально: `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`
 
 `npc_cfg_schedule`, legacy semantic slots (`default|priority|critical`), schedule windows и low-level runtime knobs не являются primary authoring path и относятся к compatibility/runtime-слою.
+`npc_cfg_role` (поведенческий archetype) и `npc_cfg_identity_type` (тип существования в мире) — разные оси и не смешиваются; `npc_cfg_identity_type` на этом этапе не включает respawn runtime и служит authoring-контрактом для будущего respawn только у `commoner`.
 
 ## Статус runtime foundation (Phase A)
 
