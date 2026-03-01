@@ -132,9 +132,24 @@ void main()
         SetLocalInt(oNpc, "al_last_slot", -1);
     }
 
-    AL_RefreshRouteForSlot(oNpc, nSlot);
     if (nEvent != AL_EVT_ROUTE_REPEAT)
     {
+        string sDesiredTag = AL_GetDesiredRouteTag(oNpc, nSlot);
+        string sCurrentTag = AL_GetRouteTag(oNpc, nSlot);
+
+        if (sDesiredTag == "")
+        {
+            AL_ClearRoute(oNpc, nSlot);
+        }
+        else
+        {
+            if (sCurrentTag != "" && sCurrentTag != sDesiredTag)
+            {
+                AL_ClearRoute(oNpc, nSlot);
+            }
+            AL_CacheRouteFromTag(oNpc, nSlot, sDesiredTag);
+        }
+
         AL_ResetRouteIndex(oNpc);
     }
 

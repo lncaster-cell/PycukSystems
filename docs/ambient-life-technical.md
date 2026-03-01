@@ -32,9 +32,9 @@ NPC events
 │  └─ если в area есть игроки: unhide + AL_EVT_RESYNC, иначе hide
 ├─ al_npc_onud.nss
 │  ├─ единая точка обработки AL_EVT_SLOT_*, AL_EVT_RESYNC, AL_EVT_ROUTE_REPEAT
-│  ├─ пересобирает/обновляет route для nSlot
+│  ├─ пересобирает route для nSlot только по NPC local `alwp<slot>`
 │  ├─ управляет route loop и повторной доставкой AL_EVT_ROUTE_REPEAT
-│  └─ применяет активность/анимацию (в т.ч. fallback)
+│  └─ применяет активность/анимацию без legacy fallback-источников
 └─ al_npc_ondeath.nss
    ├─ чистит связи training/bar пар
    ├─ сбрасывает area-кэш пар (если погиб ключевой NPC)
@@ -52,7 +52,7 @@ Domain includes
 │  ├─ AL_QueueRoute() (Move/Jump/Repeat)
 │  └─ AL_HandleRouteAreaTransition() (смена area, перерегистрация, ресинк)
 ├─ al_npc_acts_inc.nss
-│  ├─ AL_GetWaypointActivityForSlot() + fallback activity
+│  ├─ AL_GetWaypointActivityForSlot() строго из waypoint `al_activity`
 │  ├─ проверка route requirements / training / bar pair
 │  └─ применение custom/numeric анимаций
 └─ al_acts_inc.nss
@@ -141,10 +141,7 @@ Domain includes
    - `AL_RegisterNPC` в новой area,
    - если в новой area нет игроков — NPC скрывается и route очищается,
    - `AL_EVT_RESYNC` для выравнивания состояния.
-4. **Fallback активности:** если route/требования не выполняются, выбирается fallback:
-   - slot-specific `al_slot_activity_<slot>` (NPC -> area),
-   - затем `al_default_activity` (NPC -> area),
-   - если ничего не задано — `AL_ACT_NPC_ACT_ONE`.
+4. **Источник активности:** активность берётся только из `al_activity` текущего waypoint маршрута; если точка/активность некорректна — используется безопасный `AL_ACT_NPC_ACT_ONE`.
 5. **Обработка скрытого состояния:** при `AL_ACT_NPC_HIDDEN` активный route прекращается (clear actions + сброс runtime route locals).
 
 ---
@@ -154,10 +151,10 @@ Domain includes
 ### 6.1 Известные риски
 
 1. **Тихое переполнение registry:** при достижении `AL_MAX_NPCS` лишние NPC не получают событий (скрытое функциональное выпадение).
-2. **Расхождение route tag vs activity requirements:** если activity требует специальный tag (`AL_WP_PACE`, `AL_WP_WWP`), а route tag другой/пустой, система уйдёт в fallback activity.
+2. **Расхождение route tag vs activity requirements:** если activity требует специальный tag (`AL_WP_PACE`, `AL_WP_WWP`), а route tag другой/пустой, система принудительно переключится в `AL_ACT_NPC_ACT_ONE`.
 3. **Ошибки в transition metadata у waypoint:** неполный `al_transition_*` может ломать межзоновые переходы и вызывать неожиданные route reset/resync.
 4. **Переизбыток `AL_EVT_ROUTE_REPEAT`:** при большом числе NPC возможен шум событий и частые ActionQueue перестроения.
-5. **Зависимости на парные роли (training/bar):** смерть/деспаун одного NPC приводит к деградации активности второго в fallback.
+5. **Зависимости на парные роли (training/bar):** смерть/деспаун одного NPC приводит к деградации активности второго в `AL_ACT_NPC_ACT_ONE`.
 
 ### 6.2 Рекомендации по расширению
 
@@ -165,10 +162,10 @@ Domain includes
 1. Добавить константу в `al_acts_inc.nss`.
 2. Прописать анимации в `AL_GetActivityCustomAnims` и/или `AL_GetActivityNumericAnims`.
 3. Если нужно — задать требования в `AL_GetActivityWaypointTag`, `AL_ActivityRequiresTrainingPartner`, `AL_ActivityRequiresBarPair`.
-4. Проверить fallback-поведение в `AL_GetWaypointActivityForSlot`.
+4. Проверить, что `al_activity` проставлен на всех waypoint целевого маршрута.
 
 #### Новые route tags
-1. Выбрать нейминг вида `AL_WP_<TAG>` и согласовать его с `alwp<slot>` locals (если используется override на NPC).
+1. Выбрать нейминг вида `AL_WP_<TAG>` и задать его напрямую в NPC locals `alwp0` и `alwp5`.
 2. Проверить, что соответствующие waypoint действительно существуют в area и доступны для кэша.
 3. Для межзоновых маршрутов валидировать `al_transition_location` или набор `al_transition_area/x/y/z/facing`.
 4. Прогнать сценарии:

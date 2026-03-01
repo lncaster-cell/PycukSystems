@@ -32,21 +32,10 @@ string AL_GetDesiredRouteKey(int nSlot)
     return "alwp" + IntToString(nSlot);
 }
 
-string AL_GetDefaultRouteTag(int nSlot)
-{
-    return "AL_WP_S" + IntToString(nSlot);
-}
-
 string AL_GetDesiredRouteTag(object oNpc, int nSlot)
 {
     string sKey = AL_GetDesiredRouteKey(nSlot);
-    string sTag = GetLocalString(oNpc, sKey);
-    if (sTag != "")
-    {
-        return sTag;
-    }
-
-    return AL_GetDefaultRouteTag(nSlot);
+    return GetLocalString(oNpc, sKey);
 }
 
 int AL_GetRouteCount(object oNpc, int nSlot)
