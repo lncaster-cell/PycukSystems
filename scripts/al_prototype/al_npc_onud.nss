@@ -53,19 +53,26 @@ void AL_MarkAnimationApplied(object oNpc, int nIntervalSeconds)
 
 void AL_DebugLog(object oNpc, string sMessage)
 {
-    if (GetLocalInt(oNpc, "al_debug") != 1)
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
     {
-        object oArea = GetArea(oNpc);
-        if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
-        {
-            return;
-        }
+        return;
+    }
+
+    if (GetLocalInt(oNpc, "al_debug") != 1 && GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
     }
 
     object oPc = GetFirstPC();
-    if (GetIsObjectValid(oPc))
+    while (GetIsObjectValid(oPc))
     {
-        SendMessageToPC(oPc, sMessage);
+        if (GetArea(oPc) == oArea)
+        {
+            SendMessageToPC(oPc, sMessage);
+        }
+
+        oPc = GetNextPC();
     }
 }
 

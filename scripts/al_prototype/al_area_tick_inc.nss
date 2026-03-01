@@ -15,9 +15,14 @@ void AL_AreaDebugLog(object oArea, string sMessage)
     }
 
     object oPc = GetFirstPC();
-    if (GetIsObjectValid(oPc))
+    while (GetIsObjectValid(oPc))
     {
-        SendMessageToPC(oPc, sMessage);
+        if (GetArea(oPc) == oArea)
+        {
+            SendMessageToPC(oPc, sMessage);
+        }
+
+        oPc = GetNextPC();
     }
 }
 
