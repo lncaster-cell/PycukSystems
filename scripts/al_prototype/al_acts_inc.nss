@@ -2,6 +2,13 @@
 // This file provides static mappings for activity IDs to animation lists and
 // optional waypoint/tag requirements. It is data only and does not perform
 // any runtime tag searches.
+//
+// Animation source policy:
+// - AL_GetActivityCustomAnims / AL_GetLocateWrapperCustomAnims are the primary
+//   source for activities listed there.
+// - AL_GetActivityNumericAnims is only for activities that do not have custom
+//   mappings.
+// - Do not duplicate the same activity in both custom and numeric tables.
 
 const int AL_ACT_NPC_HIDDEN = 0;
 const int AL_ACT_NPC_ACT_ONE = 1;
@@ -127,10 +134,6 @@ string AL_GetActivityNumericAnims(int nActivity)
 {
     switch (nActivity)
     {
-        case AL_ACT_NPC_ANGRY: return "10";
-        case AL_ACT_NPC_SAD: return "9";
-        case AL_ACT_NPC_COOK: return "35, 36";
-        case AL_ACT_NPC_DANCE_FEMALE: return "27";
     }
 
     return "";
