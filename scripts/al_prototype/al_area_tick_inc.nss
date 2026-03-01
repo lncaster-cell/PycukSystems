@@ -90,6 +90,7 @@ void AL_CacheAreaRoutes(object oArea)
                     DeleteLocalInt(oArea, sResetPrefix + "max");
                     DeleteLocalInt(oArea, sResetPrefix + "max_set");
                     DeleteLocalInt(oArea, sResetPrefix + "gap_logged");
+                    DeleteLocalInt(oArea, sResetPrefix + "missing_index_logged");
                     DeleteLocalInt(oArea, sResetPrefix + "idx_built");
                     DeleteLocalInt(oArea, sResetPrefix + "has_index");
                 }
@@ -124,7 +125,12 @@ void AL_CacheAreaRoutes(object oArea)
 
                 if (bRequiresIndex && !GetLocalInt(oObj, "al_route_index_set"))
                 {
-                    AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " missing al_route_index; skipped.");
+                    string sMissingIndexLoggedKey = sAreaPrefix + "missing_index_logged";
+                    if (!GetLocalInt(oArea, sMissingIndexLoggedKey))
+                    {
+                        AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " missing al_route_index; skipped.");
+                        SetLocalInt(oArea, sMissingIndexLoggedKey, TRUE);
+                    }
                     oObj = GetNextObjectInArea(oArea);
                     continue;
                 }
