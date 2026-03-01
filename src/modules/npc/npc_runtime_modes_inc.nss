@@ -46,17 +46,16 @@ int NpcBhvrResolveAreaDispatchMode(object oArea)
 {
     object oModule;
     int nMode;
+    int nResolvedMode;
 
     if (!GetIsObjectValid(oArea))
     {
         return NPC_BHVR_DISPATCH_MODE_HYBRID;
     }
 
-    nMode = GetLocalInt(oArea, NPC_BHVR_VAR_DISPATCH_MODE);
-    if (nMode <= 0)
-    {
-        nMode = GetLocalInt(oArea, NPC_BHVR_CFG_DISPATCH_MODE);
-    }
+    // Do not treat runtime mirror as authoritative input: this value is a
+    // derived cache and must be recomputed from config sources.
+    nMode = GetLocalInt(oArea, NPC_BHVR_CFG_DISPATCH_MODE);
 
     if (nMode <= 0)
     {
@@ -64,9 +63,10 @@ int NpcBhvrResolveAreaDispatchMode(object oArea)
         nMode = GetLocalInt(oModule, NPC_BHVR_CFG_DISPATCH_MODE);
     }
 
-    nMode = NpcBhvrNormalizeDispatchMode(nMode);
-    SetLocalInt(oArea, NPC_BHVR_VAR_DISPATCH_MODE, nMode);
-    return nMode;
+    nResolvedMode = NpcBhvrNormalizeDispatchMode(nMode);
+    // Keep compatibility mirror for diagnostics/external consumers.
+    SetLocalInt(oArea, NPC_BHVR_VAR_DISPATCH_MODE, nResolvedMode);
+    return nResolvedMode;
 }
 
 int NpcBhvrNormalizeNpcLayer(int nLayer)
@@ -90,12 +90,8 @@ int NpcBhvrResolveNpcLayer(object oNpc)
         return NPC_BHVR_LAYER_AMBIENT;
     }
 
-    nLayer = GetLocalInt(oNpc, NPC_BHVR_VAR_NPC_LAYER);
-    if (nLayer > 0)
-    {
-        return NpcBhvrNormalizeNpcLayer(nLayer);
-    }
-
+    // Always resolve from config + area mode so runtime does not stick on
+    // stale cached layer after config/dispatch changes.
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_NPC_FORCE_REACTIVE) == TRUE)
     {
         nLayer = NPC_BHVR_LAYER_REACTIVE;
@@ -115,6 +111,7 @@ int NpcBhvrResolveNpcLayer(object oNpc)
     }
 
     nLayer = NpcBhvrNormalizeNpcLayer(nLayer);
+    // Keep compatibility mirror for diagnostics/external consumers.
     SetLocalInt(oNpc, NPC_BHVR_VAR_NPC_LAYER, nLayer);
     return nLayer;
 }
@@ -147,7 +144,7 @@ void NpcBhvrAreaSetClusterOwner(object oArea, string sClusterOwner)
         return;
     }
 
-    SetLocalString(oArea, NPC_BHVR_VAR_AREA_CLUSTER_OWNER, sClusterOwner);
+    NpcBhvrSetLocalStringIfChanged(oArea, NPC_BHVR_VAR_AREA_CLUSTER_OWNER, sClusterOwner);
 }
 
 string NpcBhvrAreaGetClusterOwner(object oArea)
@@ -172,7 +169,7 @@ void NpcBhvrAreaSetInterestState(object oArea, int nState)
         nState = NPC_BHVR_AREA_INTEREST_UNKNOWN;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_AREA_INTEREST_STATE, nState);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_AREA_INTEREST_STATE, nState);
 }
 
 int NpcBhvrAreaGetInterestState(object oArea)
@@ -205,7 +202,7 @@ void NpcBhvrSetNpcSimulationLod(object oNpc, int nLod)
         nLod = NPC_BHVR_SIM_LOD_FULL;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_NPC_SIM_LOD, nLod);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_NPC_SIM_LOD, nLod);
 }
 
 int NpcBhvrGetNpcSimulationLod(object oNpc)
@@ -238,7 +235,7 @@ void NpcBhvrSetNpcProjectedState(object oNpc, int nState)
         nState = NPC_BHVR_PROJECTED_VISIBLE;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_NPC_PROJECTED_STATE, nState);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_NPC_PROJECTED_STATE, nState);
 }
 
 int NpcBhvrGetNpcProjectedState(object oNpc)

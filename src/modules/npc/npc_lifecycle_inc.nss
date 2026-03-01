@@ -6,6 +6,7 @@ void NpcBhvrOnAreaMaintenance(object oArea);
 void NpcBhvrOnAreaMaintenanceImpl(object oArea);
 void NpcBhvrBootstrapModuleAreas();
 void NpcBhvrQueuePurgeSubject(object oArea, object oSubject);
+void NpcBhvrAreaEnsureRegistryCoverageOnActivate(object oArea);
 
 int NpcBhvrAreaGetState(object oArea)
 {
@@ -29,7 +30,7 @@ void NpcBhvrAreaSetStateInternal(object oArea, int nState)
         return;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_AREA_STATE, nState);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_AREA_STATE, nState);
 }
 
 
@@ -85,8 +86,8 @@ int NpcBhvrGetCachedPlayerCountInternal(object oArea)
     if (!GetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED) || nPlayers > 1024)
     {
         nPlayers = NpcBhvrCountPlayersInAreaInternalApi(oArea);
-        SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
-        SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
     }
 
     return nPlayers;
@@ -104,17 +105,48 @@ void NpcBhvrAreaActivate(object oArea)
     // Единый источник применения runtime-budget (area -> module -> defaults + normalisation):
     // только NpcBhvrApplyTickRuntimeConfig.
     NpcBhvrApplyTickRuntimeConfig(oArea);
+    // Activation/resume safety: ensure registry contains currently live NPCs
+    // so idle/LOD/runtime paths do not depend on historical queue state.
+    NpcBhvrAreaEnsureRegistryCoverageOnActivate(oArea);
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrActivityOnAreaActivate(oArea);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     // Contract: один area-loop на область.
     if (GetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING) != TRUE)
     {
-        SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, TRUE);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, TRUE);
         DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
     }
 
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
+}
+
+void NpcBhvrAreaEnsureRegistryCoverageOnActivate(object oArea)
+{
+    object oIter;
+    int nRegistryCountBefore;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    // Keep activate-path deterministic: compact stale entries first and only
+    // do a full area scan when registry is empty (cold boot/legacy stop-path).
+    NpcBhvrRegistryCompactInvalidEntries(oArea, NPC_BHVR_REGISTRY_COMPACTION_BATCH_CAP_DEFAULT);
+
+    nRegistryCountBefore = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    if (nRegistryCountBefore > 0)
+    {
+        return;
+    }
+
+    oIter = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oIter))
+    {
+        NpcBhvrRegistryInsert(oArea, oIter);
+        oIter = GetNextObjectInArea(oArea);
+    }
 }
 
 void NpcBhvrAreaPause(object oArea)
@@ -139,8 +171,8 @@ void NpcBhvrAreaStop(object oArea)
 
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
-    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
-    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
     NpcBhvrRegistryResetIdleCursor(oArea);
     NpcBhvrQueueClear(oArea);
 }
@@ -181,9 +213,9 @@ void NpcBhvrOnAreaTickImpl(object oArea)
 
     if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
     {
-        SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
-        SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
-        SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+        NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
         return;
     }
 
@@ -334,7 +366,7 @@ void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec)
         return;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, TRUE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, TRUE);
     DelayCommand(fDelaySec, ExecuteScript("npc_area_maintenance", oArea));
 }
 
@@ -347,13 +379,13 @@ void NpcBhvrOnAreaMaintenanceImpl(object oArea)
         return;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
     if (GetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS) == TRUE)
     {
         return;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, TRUE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, TRUE);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
 
     NpcBhvrQueueReconcileDeferredTotal(oArea, TRUE);
@@ -361,7 +393,7 @@ void NpcBhvrOnAreaMaintenanceImpl(object oArea)
 
     NpcBhvrClusterOrchestrateArea(oArea);
     nAreaState = NpcBhvrAreaGetState(oArea);
-    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
     if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
     {
         return;
@@ -539,6 +571,7 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
 {
     int nPlayers;
     int nEnteringType;
+    int nNow;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oEntering))
     {
@@ -565,16 +598,18 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
 
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
     nPlayers = NpcBhvrGetCachedPlayerCountInternal(oArea) + 1;
-    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
-    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
 
-    NpcBhvrClusterOnPlayerAreaEnter(oArea, NpcBhvrPendingNow());
+    nNow = NpcBhvrPendingNow();
+    NpcBhvrClusterOnPlayerAreaEnter(oArea, nNow);
 }
 
 void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
 {
     int nPlayers;
     int nExitingType;
+    int nNow;
 
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oExiting))
     {
@@ -610,16 +645,17 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
         }
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
-    SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
 
+    nNow = NpcBhvrPendingNow();
     if (nPlayers <= 0)
     {
-        NpcBhvrClusterOnPlayerAreaExit(oArea, NpcBhvrPendingNow());
+        NpcBhvrClusterOnPlayerAreaExit(oArea, nNow);
     }
     else
     {
-        NpcBhvrClusterOnPlayerAreaEnter(oArea, NpcBhvrPendingNow());
+        NpcBhvrClusterOnPlayerAreaEnter(oArea, nNow);
     }
 }
 

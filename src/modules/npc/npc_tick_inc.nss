@@ -162,7 +162,7 @@ void NpcBhvrSetTickMaxEvents(object oArea, int nValue)
         nValue = NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nValue);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nValue);
 }
 
 int NpcBhvrGetTickSoftBudgetMs(object oArea)
@@ -195,7 +195,7 @@ void NpcBhvrSetTickSoftBudgetMs(object oArea, int nValue)
         nValue = NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nValue);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nValue);
 }
 
 void NpcBhvrApplyTickRuntimeConfig(object oArea)

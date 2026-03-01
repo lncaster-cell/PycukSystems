@@ -206,10 +206,10 @@ void NpcBhvrPendingAreaTouchAt(object oArea, object oSubject, int nPriority, int
     // nNow to NpcBhvrPendingAreaTouchAt(...) and NPC-local *At update.
     sNpcKey = NpcBhvrPendingSubjectTag(oSubject);
     NpcBhvrPendingAreaMigrateLegacy(oArea, oSubject, sNpcKey);
-    SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
-    SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nReasonCode);
-    SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), NpcBhvrPendingStatusToString(nStatus));
-    SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), nNow);
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nPriority);
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nReasonCode);
+    NpcBhvrSetLocalStringIfChanged(oArea, NpcBhvrPendingStatusKey(sNpcKey), NpcBhvrPendingStatusToString(nStatus));
+    NpcBhvrSetLocalIntIfChanged(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), nNow);
 }
 
 void NpcBhvrPendingAreaClear(object oArea, object oSubject)
