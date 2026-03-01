@@ -43,10 +43,22 @@ void main()
         if (GetLocalObject(oArea, "al_bar_bartender") == oNpc)
         {
             DeleteLocalObject(oArea, "al_bar_bartender");
+
+            object oBartenderRef = GetLocalObject(oArea, "al_bar_bartender_ref");
+            if (!GetIsObjectValid(oBartenderRef) || oBartenderRef == oNpc)
+            {
+                DeleteLocalObject(oArea, "al_bar_bartender_ref");
+            }
         }
         if (GetLocalObject(oArea, "al_bar_barmaid") == oNpc)
         {
             DeleteLocalObject(oArea, "al_bar_barmaid");
+
+            object oBarmaidRef = GetLocalObject(oArea, "al_bar_barmaid_ref");
+            if (!GetIsObjectValid(oBarmaidRef) || oBarmaidRef == oNpc)
+            {
+                DeleteLocalObject(oArea, "al_bar_barmaid_ref");
+            }
         }
     }
     AL_UnregisterNPC(oNpc);
