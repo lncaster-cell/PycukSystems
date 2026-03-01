@@ -114,7 +114,6 @@ void NpcBhvrAreaActivate(object oArea)
         DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
     }
 
-    NpcBhvrOnAreaMaintenanceImpl(oArea);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
@@ -128,7 +127,6 @@ void NpcBhvrAreaPause(object oArea)
     // Pause only toggles lifecycle state; queue/pending counters remain untouched.
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_PAUSED);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_PAUSED);
-    NpcBhvrOnAreaMaintenanceImpl(oArea);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
@@ -139,7 +137,6 @@ void NpcBhvrAreaStop(object oArea)
         return;
     }
 
-    NpcBhvrOnAreaMaintenanceImpl(oArea);
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
