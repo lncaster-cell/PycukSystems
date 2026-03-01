@@ -195,6 +195,12 @@ void AL_UnregisterNPC(object oNpc)
     {
         object oEntry = GetLocalObject(oArea, "al_npc_" + IntToString(iIndex));
 
+        if (!GetIsObjectValid(oEntry))
+        {
+            iCount = AL_PruneRegistrySlot(oArea, iIndex, iCount);
+            continue;
+        }
+
         if (oEntry == oNpc)
         {
             AL_PruneRegistrySlot(oArea, iIndex, iCount);
