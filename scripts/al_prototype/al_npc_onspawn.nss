@@ -84,6 +84,11 @@ void AL_InitTrainingPartner(object oNpc)
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
     {
         SetLocalObject(oNpc, "al_training_partner", oPartner);
+
+        if (GetIsObjectValid(oPartner) && GetArea(oPartner) == GetArea(oNpc))
+        {
+            SetLocalObject(oPartner, "al_training_partner", oNpc);
+        }
     }
 }
 
