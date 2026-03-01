@@ -59,26 +59,36 @@ void AL_CacheAreaRoutes(object oArea)
 
                     string sResetPrefix = "al_route_" + sResetTag + "_";
                     int iExistingCount = GetLocalInt(oArea, sResetPrefix + "n");
-                    int iExistingMax = GetLocalInt(oArea, sResetPrefix + "max");
-                    if (!GetLocalInt(oArea, sResetPrefix + "max_set"))
-                    {
-                        iExistingMax = iExistingCount - 1;
-                    }
                     int iResetIndex = 0;
-                    int iResetLimit = iExistingMax + 1;
-                    if (iResetLimit < 0)
+                    int iSeenCount = GetLocalInt(oArea, sResetPrefix + "seen_n");
+                    if (iSeenCount > 0)
                     {
-                        iResetLimit = 0;
+                        while (iResetIndex < iSeenCount)
+                        {
+                            int iSeenIndex = GetLocalInt(oArea, sResetPrefix + "seen_" + IntToString(iResetIndex));
+                            string sResetIndex = sResetPrefix + IntToString(iSeenIndex);
+                            DeleteLocalLocation(oArea, sResetIndex);
+                            DeleteLocalInt(oArea, sResetIndex + "_activity");
+                            DeleteLocalInt(oArea, sResetIndex + "_set");
+                            DeleteLocalLocation(oArea, sResetIndex + "_jump");
+                            DeleteLocalInt(oArea, sResetPrefix + "seen_" + IntToString(iResetIndex));
+                            iResetIndex++;
+                        }
                     }
-                    while (iResetIndex < iResetLimit)
+                    else
                     {
-                        string sResetIndex = sResetPrefix + IntToString(iResetIndex);
-                        DeleteLocalLocation(oArea, sResetIndex);
-                        DeleteLocalInt(oArea, sResetIndex + "_activity");
-                        DeleteLocalInt(oArea, sResetIndex + "_set");
-                        DeleteLocalLocation(oArea, sResetIndex + "_jump");
-                        iResetIndex++;
+                        // Legacy fallback for old caches that do not have seen_* yet.
+                        while (iResetIndex < iExistingCount)
+                        {
+                            string sResetIndex = sResetPrefix + IntToString(iResetIndex);
+                            DeleteLocalLocation(oArea, sResetIndex);
+                            DeleteLocalInt(oArea, sResetIndex + "_activity");
+                            DeleteLocalInt(oArea, sResetIndex + "_set");
+                            DeleteLocalLocation(oArea, sResetIndex + "_jump");
+                            iResetIndex++;
+                        }
                     }
+
                     iResetIndex = 0;
                     while (iResetIndex < iExistingCount)
                     {
@@ -86,10 +96,9 @@ void AL_CacheAreaRoutes(object oArea)
                         iResetIndex++;
                     }
                     DeleteLocalInt(oArea, sResetPrefix + "n");
+                    DeleteLocalInt(oArea, sResetPrefix + "seen_n");
                     DeleteLocalInt(oArea, sResetPrefix + "count");
                     DeleteLocalInt(oArea, sResetPrefix + "count_reset");
-                    DeleteLocalInt(oArea, sResetPrefix + "max");
-                    DeleteLocalInt(oArea, sResetPrefix + "max_set");
                     DeleteLocalInt(oArea, sResetPrefix + "gap_logged");
                     DeleteLocalInt(oArea, sResetPrefix + "idx_built");
                     DeleteLocalInt(oArea, sResetPrefix + "has_index");
@@ -152,6 +161,10 @@ void AL_CacheAreaRoutes(object oArea)
                 SetLocalInt(oArea, sIndexMarker, TRUE);
                 SetLocalInt(oArea, sAreaPrefix + "count", GetLocalInt(oArea, sAreaPrefix + "count") + 1);
 
+                int nSeenCount = GetLocalInt(oArea, sAreaPrefix + "seen_n");
+                SetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(nSeenCount), nIndex);
+                SetLocalInt(oArea, sAreaPrefix + "seen_n", nSeenCount + 1);
+
                 SetLocalLocation(oArea, sIndex, GetLocation(oObj));
                 int nActivity = GetLocalInt(oObj, "al_activity");
                 if (nActivity > 0)
@@ -188,25 +201,6 @@ void AL_CacheAreaRoutes(object oArea)
                     }
                 }
 
-                string sMaxKey = sAreaPrefix + "max";
-                string sMaxSetKey = sAreaPrefix + "max_set";
-                int nMaxIndex = GetLocalInt(oArea, sMaxKey);
-                if (!GetLocalInt(oArea, sMaxSetKey))
-                {
-                    nMaxIndex = -1;
-                }
-                else if (nMaxIndex < 0 || nMaxIndex > AL_AREA_ROUTE_INDEX_MAX)
-                {
-                    nMaxIndex = -1;
-                }
-
-                if (nIndex > nMaxIndex)
-                {
-                    nMaxIndex = nIndex;
-                }
-
-                SetLocalInt(oArea, sMaxKey, nMaxIndex);
-                SetLocalInt(oArea, sMaxSetKey, TRUE);
             }
         }
 
@@ -226,26 +220,24 @@ void AL_CacheAreaRoutes(object oArea)
                 if (!GetLocalInt(oArea, sGapLoggedKey))
                 {
                     int nCount = GetLocalInt(oArea, sAreaPrefix + "count");
-                    int nMaxIndex = GetLocalInt(oArea, sAreaPrefix + "max");
-                    if (!GetLocalInt(oArea, sAreaPrefix + "max_set"))
-                    {
-                        nMaxIndex = -1;
-                    }
                     int nDenseCount = 0;
-                    int iIndex = 0;
-                    while (iIndex <= nMaxIndex)
+                    int nSeenCount = GetLocalInt(oArea, sAreaPrefix + "seen_n");
+                    int iSeen = 0;
+                    // Dense index follows waypoint discovery order from the area scan.
+                    while (iSeen < nSeenCount)
                     {
+                        int iIndex = GetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(iSeen));
                         string sIndex = sAreaPrefix + IntToString(iIndex);
                         if (GetLocalInt(oArea, sIndex + "_set"))
                         {
                             SetLocalInt(oArea, sAreaPrefix + "idx_" + IntToString(nDenseCount), iIndex);
                             nDenseCount++;
                         }
-                        iIndex++;
+                        iSeen++;
                     }
                     SetLocalInt(oArea, sAreaPrefix + "n", nDenseCount);
                     SetLocalInt(oArea, sAreaPrefix + "idx_built", TRUE);
-                    if (nCount > 0 && nCount != (nMaxIndex + 1))
+                    if (nCount > 0 && nCount != nDenseCount)
                     {
                         AL_AreaDebugLog(oArea, "AL: route tag " + sTag + " has gaps in al_route_index; using dense list.");
                     }
