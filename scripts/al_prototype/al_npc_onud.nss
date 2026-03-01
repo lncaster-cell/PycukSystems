@@ -33,12 +33,13 @@ int AL_GetRepeatAnimIntervalSeconds()
 
 int AL_IsRepeatAnimCoolingDown(object oNpc)
 {
-    int nNext = GetLocalInt(oNpc, "al_anim_next");
-    if (nNext <= 0)
+    int nNextStored = GetLocalInt(oNpc, "al_anim_next");
+    if (nNextStored == 0)
     {
         return FALSE;
     }
 
+    int nNext = nNextStored - 1;
     int nNow = AL_GetAmbientLifeDaySeconds();
     int nDelta = (nNext - nNow + 86400) % 86400;
     return nDelta > 0 && nDelta < 43200;
@@ -48,7 +49,7 @@ void AL_MarkAnimationApplied(object oNpc, int nIntervalSeconds)
 {
     int nNow = AL_GetAmbientLifeDaySeconds();
     int nNext = (nNow + nIntervalSeconds) % 86400;
-    SetLocalInt(oNpc, "al_anim_next", nNext);
+    SetLocalInt(oNpc, "al_anim_next", nNext + 1);
 }
 
 void AL_DebugLog(object oNpc, string sMessage)
