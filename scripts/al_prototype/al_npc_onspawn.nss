@@ -78,7 +78,27 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea) && bResetCache)
     {
-        SetLocalInt(oArea, "al_training_partner_cached", TRUE);
+        object oAreaNpc1 = GetLocalObject(oArea, "al_training_npc1");
+        object oAreaNpc2 = GetLocalObject(oArea, "al_training_npc2");
+        int bHasRestoredPair = GetIsObjectValid(oAreaNpc1)
+            && GetIsObjectValid(oAreaNpc2)
+            && GetArea(oAreaNpc1) == oArea
+            && GetArea(oAreaNpc2) == oArea;
+
+        SetLocalInt(oArea, "al_training_partner_cached", bHasRestoredPair);
+
+        if (!bHasRestoredPair && GetLocalInt(oArea, "al_debug") == 1)
+        {
+            object oPc = GetFirstPC(FALSE);
+            while (GetIsObjectValid(oPc))
+            {
+                if (GetArea(oPc) == oArea)
+                {
+                    SendMessageToPC(oPc, "AL: training partner cache reset; pair restore failed.");
+                }
+                oPc = GetNextPC(FALSE);
+            }
+        }
     }
 
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
