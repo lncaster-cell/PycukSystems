@@ -11,9 +11,29 @@ void AL_InitTrainingPartner(object oNpc)
         return;
     }
 
-    if (GetIsObjectValid(GetLocalObject(oNpc, "al_training_partner")))
+    object oExistingPartner = GetLocalObject(oNpc, "al_training_partner");
+    if (GetIsObjectValid(oExistingPartner))
     {
-        return;
+        object oAreaSelf = GetArea(oNpc);
+        object oAreaPartner = GetArea(oExistingPartner);
+
+        if (GetIsObjectValid(oAreaSelf) && oAreaPartner == oAreaSelf)
+        {
+            object oPartnerBacklink = GetLocalObject(oExistingPartner, "al_training_partner");
+            if (oPartnerBacklink == oNpc)
+            {
+                // Keep early-return only for a fully valid, symmetric in-area pair.
+                return;
+            }
+
+            // Partner points elsewhere: drop only the stale one-sided link on this NPC.
+            DeleteLocalObject(oNpc, "al_training_partner");
+        }
+        else
+        {
+            // Existing partner is stale (invalid or in another area).
+            DeleteLocalObject(oNpc, "al_training_partner");
+        }
     }
 
     string sTag = GetTag(oNpc);
@@ -105,7 +125,7 @@ void AL_InitTrainingPartner(object oNpc)
     {
         SetLocalObject(oNpc, "al_training_partner", oPartner);
 
-        if (GetIsObjectValid(oPartner) && GetArea(oPartner) == GetArea(oNpc))
+        if (GetArea(oPartner) == GetArea(oNpc))
         {
             SetLocalObject(oPartner, "al_training_partner", oNpc);
         }
