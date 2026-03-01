@@ -114,5 +114,6 @@
 
 Для подробной карты «механизм → где используется в игре» и развёрнутого описания всех подсистем см.:
 
-- `docs/npc_behavior_audit.md`.
+- `docs/npc_behavior_audit.md`;
+- `docs/npc_behavior_setup_faq.md` (практическая настройка и FAQ).
 

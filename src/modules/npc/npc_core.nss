@@ -54,9 +54,9 @@ const float NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC = 60.0;
 const string NPC_BHVR_VAR_AREA_STATE = "npc_area_state";
 const string NPC_BHVR_VAR_AREA_TIMER_RUNNING = "npc_area_timer_running";
 const string NPC_BHVR_VAR_MAINT_TIMER_RUNNING = "npc_area_maint_timer_running";
+const string NPC_BHVR_VAR_MAINT_IN_PROGRESS = "npc_area_maint_in_progress";
 const string NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG = "npc_area_maint_self_heal";
-const string NPC_BHVR_VAR_QUEUE_DEPTH = "npc_queue_depth";
-const string NPC_BHVR_VAR_QUEUE_PENDING_TOTAL = "npc_queue_pending_total";
+const string NPC_BHVR_VAR_QUEUE_PENDING_TOTAL = "npc_queue_pending_total"; // canonical queue total
 const string NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL = "npc_queue_deferred_total";
 const string NPC_BHVR_VAR_QUEUE_CURSOR = "npc_queue_cursor";
 const string NPC_BHVR_VAR_FAIRNESS_STREAK = "npc_fairness_streak";
@@ -93,7 +93,6 @@ const int NPC_BHVR_PENDING_STATUS_DROPPED = 5;
 
 const string NPC_BHVR_VAR_PENDING_PRIORITY = "npc_pending_priority";
 const string NPC_BHVR_VAR_PENDING_REASON_CODE = "npc_pending_reason_code";
-const string NPC_BHVR_VAR_PENDING_REASON = "npc_pending_reason";
 const string NPC_BHVR_VAR_PENDING_STATUS = "npc_pending_status";
 const string NPC_BHVR_VAR_PENDING_UPDATED_AT = "npc_pending_updated_at";
 

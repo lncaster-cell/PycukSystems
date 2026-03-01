@@ -7,6 +7,14 @@
 > далее именуется просто `NPC`.
 
 
+
+## Быстрый старт интеграции
+
+- Архитектурный аудит и риски: `docs/npc_behavior_audit.md`.
+- Пошаговая настройка + FAQ: `docs/npc_behavior_setup_faq.md`.
+- Runtime orchestration: `docs/npc_runtime_orchestration.md`.
+- Authoring-контракт для контент-команд: `docs/npc_toolset_authoring_contract.md`.
+
 ## Готовый модуль: что подключать в toolset
 
 Human-facing toolset authoring contract вынесен в `docs/npc_toolset_authoring_contract.md` (preset-first `npc_cfg_*` facade).
@@ -25,11 +33,22 @@ Runtime/internal справочник вынесен в `docs/npc_runtime_intern
 
 После этих шагов модуль считается готовым к интеграции в модуль NWN2 (при корректной привязке hook-скриптов).
 
+### Канонический human-facing путь (strict)
+
+Для ручной настройки новых NPC используйте только:
+- `npc_cfg_role`
+- `npc_cfg_identity_type` (`named|commoner`)
+- `npc_cfg_slot_dawn_route|npc_cfg_slot_morning_route|npc_cfg_slot_afternoon_route|npc_cfg_slot_evening_route|npc_cfg_slot_night_route`
+- опционально: `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`
+
+`npc_cfg_schedule`, legacy semantic slots (`default|priority|critical`), schedule windows и low-level runtime knobs не являются primary authoring path и относятся к compatibility/runtime-слою.
+`npc_cfg_role` (поведенческий archetype) и `npc_cfg_identity_type` (тип существования в мире) — разные оси и не смешиваются; `npc_cfg_identity_type` на этом этапе не включает respawn runtime и служит authoring-контрактом для будущего respawn только у `commoner`.
+
 ## Статус runtime foundation (Phase A)
 
 - Введено явное runtime-разделение слоёв: `ambient` (slot/activity/waypoint idle-flow) и `reactive` (perception/damage/threat queue-flow).
 - Введён dispatch-контракт области `npc_dispatch_mode` (`AMBIENT_ONLY` / `HYBRID` / `REACTIVE_ONLY`) с override-цепочкой `area var -> area cfg -> module cfg`.
-- Для NPC введён runtime-layer `npc_runtime_layer` (по умолчанию `ambient`, реактивный путь включается через `npc_cfg_layer` или `npc_cfg_reactive=TRUE`).
+- Для NPC введён runtime-layer `npc_runtime_layer` (по умолчанию `ambient`); канонический human-facing reactive override — `npc_cfg_force_reactive=TRUE`, а `npc_cfg_layer` остаётся только как deprecated compatibility knob.
 - `OnPerception` и `OnDamaged` больше не обязательны для мирных NPC: hook-и обрабатываются только для reactive-layer.
 - Добавлены extension-points под следующий этап AL V3: `cluster owner`, `area interest state`, `npc simulation LOD`, `hidden/projected state`.
 
@@ -182,14 +201,12 @@ Legacy migration diagnostics:
 - AL-понятия (`slot-group`, `route-profile`, `activity transition`) обязаны проходить через adapter-helpers include-файла:
   - `NpcBhvrActivityAdapterNormalizeSlot`,
   - `NpcBhvrActivityAdapterNormalizeRoute`,
-  - `NpcBhvrActivityMapRouteHint`,
   - `NpcBhvrActivityResolveRouteProfile`,
   - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty`,
-  - `NpcBhvrActivityAdapterStampTransition`.
+  - `NpcBhvrActivitySetTransitionState`.
 
 - Spawn-инициализация профиля NPC (`NpcBhvrActivityOnSpawn`) обязана выставлять:
-  - `npc_activity_slot` (по умолчанию `default`),
-  - `npc_activity_route` (явно сконфигурированный route-profile на NPC; если пусто — используется fallback-цепочка),
+  - `npc_activity_slot` (time-of-day slot: `dawn|morning|afternoon|evening|night`),
   - `npc_activity_route_effective` (диагностическое зеркало effective route-profile после fallback-резолва),
   - `npc_activity_slot_fallback` (`0|1`, признак fallback в `default` при невалидном slot),
   - `npc_activity_state` (начальное состояние `spawn_ready`),
@@ -202,77 +219,62 @@ Legacy migration diagnostics:
   - `npc_activity_slot_emote` (resolved ambient emote для активного slot, с fallback `NPC-slot -> area-slot -> area-global -> NPC-global`),
   - `npc_activity_action` (resolved action-token для игрового runtime-dispatch: `guard_hold|patrol_move|patrol_scan|patrol_ready|ambient_*`).
 - Резолв route-profile (`NpcBhvrActivityResolveRouteProfile`) выполняется по цепочке fallback без `al_*` keyspace:
-  1) `npc_activity_route` на NPC (если явно задан);
+  1) для `alert`: `npc_route_profile_alert` на NPC;
   2) `npc_route_profile_slot_<slot>` на NPC;
-  3) `npc_route_profile_default` на NPC;
-  4) area-level cache `npc_route_cache_slot_<slot>` (при первом обращении заполняется из area locals);
-  5) area-level cache `npc_route_cache_default`;
-  6) `default_route`.
-- Lifecycle area cache:
-  - `routes_cached` (`0|1`) — признак валидного area-level cache;
-  - `routes_cache_version` — монотонная версия cache (увеличивается на invalidate/warmup-cycle);
-  - `NpcBhvrAreaRouteCacheWarmup` выполняет первичный prewarm при активации area-loop и идемпотентен при повторных вызовах (без полного re-scan);
-  - `NpcBhvrAreaRouteCacheInvalidate` очищает cache и переводит следующий resolve в controlled rescan/warmup.
-- `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (не входящие в `default_route|priority_patrol|critical_safe`), чтобы fallback-цепочка не блокировалась мусорными значениями, и завершает нормализацию через `NpcBhvrActivityAdapterNormalizeRoute` как канонический adapter-step.
+  3) `npc_route_profile_slot_<slot>` на area;
+  4) `npc_route_profile_default` на area;
+  5) `default_route`.
+- `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидные route-id (разрешены любые lowercase/underscore идентификаторы длиной 1..32), чтобы fallback-цепочка не блокировалась мусорными значениями, и завершает нормализацию через `NpcBhvrActivityAdapterNormalizeRoute` как канонический adapter-step.
 - При отбрасывании невалидного route-id инкрементируется `npc_metric_activity_invalid_route_total`.
-- Idle-dispatch (`NpcBhvrActivityOnIdleTick`) работает как адаптерный диспетчер `slot/route`:
-  - CRITICAL-safe ветка (приоритет №1): `slot=critical` **или** route-map -> `critical_safe`;
-  - priority-ветка (приоритет №2): `slot=priority` **или** route-map -> `priority_patrol`;
-  - fallback: `default_route` c состоянием `idle_default`.
-- Mapping-слой (`NpcBhvrActivityMapRouteHint`) выполняет трансляцию route-id -> activity hint, чтобы AL-семантика подключалась через адаптер, а не через прямой `al_*` namespace.
+- Idle-dispatch (`NpcBhvrActivityOnIdleTick`) использует единый канонический путь: `resolve current time slot -> resolve slot route -> resolve waypoint state -> resolve waypoint activity -> apply`.
+- В core-path больше нет отдельной semantic-dispatch ветки для `default|priority|critical`; эти legacy-значения обрабатываются только на normalize/migration-слое.
 - В `npc_activity_inc.nss` перенесён data-layer AmbientLiveV2 активностей (legacy `al_acts_inc.nss`) с полной линейкой activity-id и runtime metadata-резолверами:
   - custom anims, numeric anims, waypoint-tag requirements, training/bar pair flags;
   - route-point activity id читается через `npc_route_activity_<routeId>_<index>` (NPC-local -> area-local) и пробрасывается в locals `npc_activity_id|custom_anims|numeric_anims|waypoint_tag|requires_*`.
-- Примитивы `NpcBhvrActivityApplyCriticalSafeRoute/NpcBhvrActivityApplyPriorityRoute/NpcBhvrActivityApplyDefaultRoute` выполняются через единый helper `NpcBhvrActivityApplyRouteState` и теперь дополнительно обновляют waypoint/runtime locals.
+- Применение route-state централизовано в `NpcBhvrActivityApplyRouteState`, который обновляет transition, cooldown и waypoint/runtime locals.
 - Route-point/waypoint контракт задаётся через `npc_*`-locals (без `al_*` keyspace):
   - `npc_route_count_<routeId>` — количество waypoint-узлов в route (NPC-local приоритетнее area-local);
-  - `npc_route_loop_<routeId>` — loop policy (`>0` loop enabled, `<0` loop disabled, `0` = default enabled);
+  - `npc_route_loop_<routeId>` — loop policy (`-1` = unset/default enabled, `0` = explicit disabled, `>0` = explicit enabled).
   - `npc_route_tag_<routeId>` — route-tag для генерации состояния формата `<base_state>_<tag>_<index>_of_<count>`;
   - `npc_route_pause_ticks_<routeId>` — добавка к cooldown после dispatch для route-point pacing.
 
 ### Контракт входных/выходных состояний activity primitives
 
-- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot|route`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` и `npc_route_profile_default` на NPC/area; `npc_activity_cooldown_until_ts` может быть отрицательным.
+- **Вход для `NpcBhvrActivityOnSpawn`:** валидный `oNpc`; любые/пустые значения `npc_activity_slot`; опциональные route-profile fallback locals `npc_route_profile_slot_<slot>` на NPC и area (`npc_route_profile_slot_<slot>`/`npc_route_profile_default`); `npc_activity_cooldown_until_ts` может быть отрицательным.
 - **Выход `NpcBhvrActivityOnSpawn`:**
-  - `slot` нормализован в поддерживаемые значения (`default|priority|critical`),
-  - `npc_activity_route` сохраняет только явно заданный route (или очищается, если route не задан),
-  - `npc_activity_route_effective` выставляется как effective route-profile (`default_route|priority_patrol|critical_safe`) после fallback-резолва,
+  - `slot` нормализован в daypart-значения (`dawn|morning|afternoon|evening|night`),
+  - `npc_activity_route_effective` выставляется как effective route-profile после slot-based fallback-резолва,
   - `state=spawn_ready`,
   - `last=spawn_ready`,
   - `last_ts` обновлён,
   - `cooldown_until_ts >= 0`,
   - waypoint-runtime locals нормализованы и готовы к первому idle-dispatch.
-- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные `slot/route` (slot нормализуется, невалидный route отбрасывается и заменяется fallback-резолвом).
-- **Допустимые значения `slot`:** только `default|priority|critical`. Любое другое значение (включая пустую строку) считается невалидным и принудительно нормализуется в `default`.
+- **Вход для `NpcBhvrActivityOnIdleTick`:** валидный `oNpc`; допускаются пустые/невалидные route profile locals (slot нормализуется и ведёт к fallback-резолву).
+- **Допустимые значения `slot`:** только `dawn|morning|afternoon|evening|night`. Legacy-значения `default|priority|critical` мигрируются в daypart alias (`afternoon|morning|night`).
 - **Выход `NpcBhvrActivityOnIdleTick`:**
   - при активном cooldown (`npc_activity_cooldown_until_ts > now`) выполняется early-return без записи;
   - при невалидном `slot` выставляется `npc_activity_slot_fallback=1` и инкрементируется метрика `npc_metric_activity_invalid_slot_total`;
-  - при неактивном cooldown выполняется ровно одна ветка диспетчера:
-    1) `critical_safe` -> `state/last=idle_critical_safe`, `cooldown_until_ts=now+1`;
-    2) `priority_patrol` -> `state/last=idle_priority_patrol`, `cooldown_until_ts=now+2`;
-    3) `default` -> `state/last=idle_default`, `cooldown_until_ts=now+1`;
-  - если для route есть `npc_route_count_<routeId> > 0` и `npc_route_tag_<routeId>`, то `state/last` получают waypoint-суффикс (`..._<tag>_<i>_of_<N>`), а `npc_activity_wp_index` продвигается с учётом loop-policy;
-  - после dispatch `last_ts` всегда отражает момент последнего transition;
-  - `npc_activity_action` пересчитывается на каждом dispatch в зависимости от slot/route/waypoint parity и может использоваться внешним runtime для привязки анимаций/поведенческих команд.
+  - при неактивном cooldown выбирается effective route для текущего time-of-day slot и применяется waypoint-dispatch через `NpcBhvrActivityApplyRouteState`;
+  - route-point activity (`npc_route_activity_<routeId>_<index>`) является source of truth и попадает в `npc_activity_id|custom_anims|numeric_anims|waypoint_tag|requires_*`;
+  - после dispatch `last_ts` всегда отражает момент последнего transition.
 
-## Плановое "повседневное" поведение NPC (schedule-aware slot)
+## Плановое "повседневное" поведение NPC (time-of-day slot)
 
-Для подготовки модуля к тестам поведения "NPC живут по расписанию" добавлен schedule-aware выбор slot на `spawn` и `idle tick`:
+Канонический slot-resolver на `spawn` и `idle tick` теперь time-based:
 
-- Флаг включения: `npc_activity_schedule_enabled` на NPC или area (`1` включает планировщик).
-- Окна задаются локалами по слотам:
-  - `npc_schedule_start_critical` / `npc_schedule_end_critical`,
-  - `npc_schedule_start_priority` / `npc_schedule_end_priority`.
-- Правила интерпретации окна:
-  - `start == end` -> специальный «пустой» window (в `NpcBhvrActivityIsHourInWindow` возвращается `FALSE`, т.е. слот по этому окну никогда не активируется);
-  - `start < end` -> обычное дневное окно `[start, end)`;
-  - `start > end` -> ночное окно с переходом через полночь (например, `22 -> 6`).
-- Причина для `start == end`: защита от неявного always-on, когда ключи расписания отсутствуют и `GetLocalInt` даёт `0` для `start/end`.
-- Приоритет резолва slot по расписанию: `critical` -> `priority` -> `default`.
-- Публичная точка резолва для scheduling API: `NpcBhvrActivityResolveScheduledSlotForContext(oNpc, sCurrentSlot, bScheduleEnabled, nResolvedHour)`; вызывающая сторона обязана передать уже вычисленные context-параметры (`bScheduleEnabled`, `nResolvedHour`).
-- Если расписание выключено, сохраняется текущий runtime slot после нормализации.
+- daypart mapping: `05-07 dawn`, `08-11 morning`, `12-16 afternoon`, `17-21 evening`, `22-04 night`;
+- `NpcBhvrActivityResolveScheduledSlotForContext(sCurrentSlot, nResolvedHour)` возвращает daypart slot; schedule-flag не участвует в выборе active-path ветки.
+- `npc_activity_schedule_enabled` сохранён только как legacy-compat flag и не участвует в выборе slot;
+- legacy `default|priority|critical` маппятся в `afternoon|morning|night` только как alias-compatibility.
 
-Smoke-композит теперь включает `scripts/test_npc_activity_schedule_contract.sh` для валидации этих инвариантов.
+### Runtime mode поверх slot-model
+
+Канонические режимы поведения NPC: только `daily` и `alert`.
+
+- `daily` — стандартный путь `slot -> route -> waypoint -> activity`.
+- `alert` — служебный override для тревоги (`guard_hold`) без замены time-of-day slot-модели.
+- Любые другие значения `npc_activity_mode` нормализуются в `daily`.
+- Schedule windows (`*_schedule_*_start/end`) и semantic slots `default|priority|critical` не участвуют в canonical path и поддерживаются только в migration/legacy bridge.
 
 ## Identifier constraints
 
@@ -292,7 +294,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 Примеры:
 
-- Допустимые `routeId`: `default_route`, `priority_patrol`, `critical_safe`.
+- Допустимые `routeId`: любые идентификаторы формата `[a-z0-9_]{1,32}`.
 - Недопустимые `routeId`: `""` (empty), `priority-patrol` (символ `-`), `Priority` (верхний регистр), строка длиннее 32.
 - Допустимые `routeTag`: `market_lane`, `north_gate_2`, `default`.
 - Недопустимые `routeTag`: `""` (empty), `market lane` (пробел), `tag!` (символ `!`), строка длиннее 24.
@@ -392,8 +394,8 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
   - обработка hook-событий,
   - интеграция write-behind flush.
 - `npc_activity_inc.nss` — activity adapter/runtime:
-  - слот/маршрут/состояние NPC,
-  - schedule-aware выбор route,
+  - canonical flow `slot(time-of-day) -> route -> waypoint -> activity`,
+  - slot-bound route resolve,
   - waypoint/activity разрешение.
 - `npc_metrics_inc.nss` — helper API для метрик.
 - Thin hooks:
@@ -507,7 +509,7 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 Короткий принцип движения такой:
 
-1. На idle-тик runtime выбирает **effective route** (например `default_route` / `priority_patrol` / `critical_safe`) через fallback-цепочку.
+1. На idle-тик runtime выбирает **effective route** через fallback-цепочку от текущего time-of-day slot.
 2. Для выбранного route читаются параметры waypoint-маршрута:
    - `npc_route_count_<routeId>` — сколько точек в маршруте;
    - `npc_route_tag_<routeId>` — tag группы waypoint/состояния;
@@ -516,13 +518,13 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 4. После dispatch индекс двигается на следующую точку:
    - при loop=on: после `N` идёт снова `1`;
    - при loop=off: остаётся на последней валидной точке.
-5. В `npc_activity_state`/`npc_activity_last` пишется состояние с суффиксом маршрута, например `..._<routeTag>_<i>_of_<N>`, чтобы было видно, какой waypoint сейчас активен.
+5. В `npc_activity_state` пишется текущее состояние с суффиксом маршрута (`..._<routeTag>_<i>_of_<N>`), а `npc_activity_last` хранит предыдущее состояние до последнего transition.
 
 Важно: если `npc_route_count_<routeId> <= 0` или не задан `npc_route_tag_<routeId>`, runtime не сможет построить waypoint-ветку и уйдёт в безопасный fallback-state без waypoint-суффикса.
 
 Минимум данных, чтобы NPC реально ходил по маршруту:
 
-- валидный `routeId` (`default_route|priority_patrol|critical_safe`),
+- валидный `routeId` (`[a-z0-9_]{1,32}`),
 - `npc_route_count_<routeId> > 0`,
 - `npc_route_tag_<routeId>` (не пустой),
 - корректные waypoint-объекты/теги в вашем контенте под этот route-tag.
@@ -626,10 +628,9 @@ Smoke-композит теперь включает `scripts/test_npc_activity_
 
 NPC runtime учитывает:
 
-- slot (`default/priority/critical`),
-- route profile,
+- slot (`dawn|morning|afternoon|evening|night`),
+- route profile (slot-bound fallback chain),
 - route tag,
-- schedule windows,
 - waypoint loop/count/index.
 
 Некорректные значения нормализуются в допустимые и отмечаются метриками invalid-route/invalid-slot.
@@ -643,8 +644,7 @@ NPC runtime учитывает:
 - `npc_area_state`
 - `npc_area_timer_running`
 - `npc_area_maint_timer_running`
-- `npc_queue_depth`
-- `npc_queue_pending_total`
+- `npc_queue_pending_total` (канонический total очереди)
 - `npc_queue_deferred_total`
 - `npc_tick_max_events`
 - `npc_tick_soft_budget_ms`
@@ -656,7 +656,6 @@ NPC runtime учитывает:
 ## 6.2 NPC locals (activity/pending)
 
 - `npc_activity_slot`
-- `npc_activity_route`
 - `npc_activity_route_effective`
 - `npc_activity_state`
 - `npc_activity_last`
@@ -671,7 +670,6 @@ Pending/queue зеркало:
 
 - `npc_pending_priority`
 - `npc_pending_reason_code`
-- `npc_pending_reason` (legacy string mirror for diagnostics/transition compatibility)
 - `npc_pending_status`
 - `npc_pending_updated_at`
 
@@ -759,7 +757,7 @@ bash scripts/test_npc_activity_route_contract.sh
 Проверьте:
 
 - валидность route id/tag,
-- schedule окна,
+- слот time-of-day и route profile для него,
 - не срабатывает ли fallback (через метрики invalid-route/invalid-slot).
 
 ---

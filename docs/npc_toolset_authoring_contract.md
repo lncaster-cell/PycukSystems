@@ -16,20 +16,34 @@
   - OnDeath: `npc_death`
   - OnDialogue: `npc_dialogue`
 
-## 2) NPC authoring locals (ставятся вручную)
+## 2) NPC authoring locals (канонический путь)
 
 ### Обязательные
 
 - `npc_cfg_role`
-- `npc_cfg_schedule`
-- `npc_cfg_work_route`
-- `npc_cfg_home_route`
+- `npc_cfg_slot_dawn_route`
+- `npc_cfg_slot_morning_route`
+- `npc_cfg_slot_afternoon_route`
+- `npc_cfg_slot_evening_route`
+- `npc_cfg_slot_night_route`
 
 ### Опциональные
 
-- `npc_cfg_leisure_route`
-- `npc_cfg_force_reactive` (`0/1`)
+- `npc_cfg_force_reactive` (`0/1`) — **единственный канонический human-facing override** для reactive-пути
 - `npc_cfg_allow_physical_hide` (`0/1`)
+- `npc_cfg_alert_route` (отдельный route только для режима `alert`)
+- `npc_cfg_identity_type` (`named|commoner`) — world-identity тип NPC (не равен `role`)
+
+### Строгие границы канонического пути (anti-drift)
+
+Для **нового** контента канонический human-facing путь — только `npc_cfg_role + npc_cfg_slot_*_route` (и опциональные `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`).
+
+Следующее **не является** основным рекомендованным путём и не должно использоваться как primary authoring для новых NPC:
+
+- `npc_cfg_schedule` и любые schedule presets;
+- semantic/legacy slot-модель `default|priority|critical`;
+- schedule-window keys (`*_schedule_*_start/end`);
+- low-level runtime knobs (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_npc_sim_lod`, runtime/diagnostics locals).
 
 ### Preset values
 
@@ -243,7 +257,10 @@ NPC:
 
 Минимум route: work + home.
 
-### Стражник (ночной)
+- `npc_cfg_schedule`
+- `npc_cfg_work_route`
+- `npc_cfg_home_route`
+- `npc_cfg_leisure_route`
 
 NPC:
 - `npc_cfg_role=guard`

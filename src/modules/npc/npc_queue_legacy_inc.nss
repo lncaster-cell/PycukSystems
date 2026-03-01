@@ -20,26 +20,6 @@ string NpcBhvrPendingUpdatedAtKey(string sNpcKey)
     return NpcBhvrLocalKey("nb_pu_", sNpcKey);
 }
 
-string NpcBhvrPendingPriorityLegacyKey(string sNpcKey)
-{
-    return "npc_queue_pending_priority_" + sNpcKey;
-}
-
-string NpcBhvrPendingReasonCodeLegacyKey(string sNpcKey)
-{
-    return "npc_queue_pending_reason_" + sNpcKey;
-}
-
-string NpcBhvrPendingStatusLegacyKey(string sNpcKey)
-{
-    return "npc_queue_pending_status_" + sNpcKey;
-}
-
-string NpcBhvrPendingUpdatedAtLegacyKey(string sNpcKey)
-{
-    return "npc_queue_pending_updated_ts_" + sNpcKey;
-}
-
 string NpcBhvrPendingLegacySubjectTag(object oSubject)
 {
     string sTag;
@@ -94,45 +74,44 @@ void NpcBhvrPendingAreaMigrateLegacy(object oArea, object oSubject, string sNpcK
     nValue = GetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey));
     if (nValue == 0)
     {
-        nValue = GetLocalInt(oArea, NpcBhvrPendingPriorityLegacyKey(sLegacyKey));
+        nValue = GetLocalInt(oArea, "npc_queue_pending_priority_" + sLegacyKey);
         if (nValue != 0)
         {
             SetLocalInt(oArea, NpcBhvrPendingPriorityKey(sNpcKey), nValue);
-            DeleteLocalInt(oArea, NpcBhvrPendingPriorityLegacyKey(sLegacyKey));
+            DeleteLocalInt(oArea, "npc_queue_pending_priority_" + sLegacyKey);
         }
     }
 
     nValue = GetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey));
     if (nValue == 0)
     {
-        nValue = GetLocalInt(oArea, NpcBhvrPendingReasonCodeLegacyKey(sLegacyKey));
+        nValue = GetLocalInt(oArea, "npc_queue_pending_reason_" + sLegacyKey);
         if (nValue != 0)
         {
             SetLocalInt(oArea, NpcBhvrPendingReasonCodeKey(sNpcKey), nValue);
-            DeleteLocalInt(oArea, NpcBhvrPendingReasonCodeLegacyKey(sLegacyKey));
+            DeleteLocalInt(oArea, "npc_queue_pending_reason_" + sLegacyKey);
         }
     }
 
     sStatus = GetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey));
     if (sStatus == "")
     {
-        sStatus = GetLocalString(oArea, NpcBhvrPendingStatusLegacyKey(sLegacyKey));
+        sStatus = GetLocalString(oArea, "npc_queue_pending_status_" + sLegacyKey);
         if (sStatus != "")
         {
             SetLocalString(oArea, NpcBhvrPendingStatusKey(sNpcKey), sStatus);
-            DeleteLocalString(oArea, NpcBhvrPendingStatusLegacyKey(sLegacyKey));
+            DeleteLocalString(oArea, "npc_queue_pending_status_" + sLegacyKey);
         }
     }
 
     nValue = GetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey));
     if (nValue == 0)
     {
-        nValue = GetLocalInt(oArea, NpcBhvrPendingUpdatedAtLegacyKey(sLegacyKey));
+        nValue = GetLocalInt(oArea, "npc_queue_pending_updated_ts_" + sLegacyKey);
         if (nValue != 0)
         {
             SetLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey), nValue);
-            DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtLegacyKey(sLegacyKey));
+            DeleteLocalInt(oArea, "npc_queue_pending_updated_ts_" + sLegacyKey);
         }
     }
 }
-

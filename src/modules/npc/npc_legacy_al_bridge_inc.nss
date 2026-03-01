@@ -9,10 +9,6 @@ const string NPC_BHVR_VAR_LEGACY_BRIDGE_AREA_VERSION = "npc_legacy_bridge_area_v
 const string NPC_BHVR_LEGACY_VAR_SLOT = "al_slot";
 const string NPC_BHVR_LEGACY_VAR_ROUTE = "al_route";
 const string NPC_BHVR_LEGACY_VAR_SCHEDULE_ENABLED = "al_schedule_enabled";
-const string NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_START = "al_schedule_critical_start";
-const string NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_END = "al_schedule_critical_end";
-const string NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_START = "al_schedule_priority_start";
-const string NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_END = "al_schedule_priority_end";
 
 const string NPC_BHVR_LEGACY_VAR_AREA_ROUTE_DEFAULT = "al_route_default";
 const string NPC_BHVR_LEGACY_VAR_AREA_ROUTE_PRIORITY = "al_route_priority";
@@ -28,8 +24,6 @@ int NpcBhvrActivityIsSupportedRoute(string sRouteId);
 string NpcBhvrActivityAdapterNormalizeRoute(string sRouteId);
 string NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(string sRouteId, object oMetricScope);
 string NpcBhvrActivityNormalizeRouteTagOrDefault(string sRouteTag, object oMetricScope);
-string NpcBhvrActivityScheduleStartKey(string sSlot);
-string NpcBhvrActivityScheduleEndKey(string sSlot);
 
 void NpcBhvrLegacyBridgeMetric(object oScope, string sMetric, int nDelta)
 {
@@ -45,6 +39,7 @@ void NpcBhvrLegacyBridgeMigrateRouteProfileKey(object oOwner, object oMetricScop
 {
     string sLegacy;
     string sNormalized;
+    string sLegacyRoute;
 
     sLegacy = GetLocalString(oOwner, sLegacyKey);
     if (sLegacy == "")
@@ -130,11 +125,31 @@ void NpcBhvrLegacyBridgeMigrateRouteDataForId(object oNpc, string sRouteId)
     }
 }
 
+void NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(object oNpc, string sRouteIdRaw)
+{
+    string sRoute;
+
+    if (!GetIsObjectValid(oNpc) || sRouteIdRaw == "")
+    {
+        return;
+    }
+
+    sRoute = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(sRouteIdRaw, oNpc);
+    if (sRoute == "")
+    {
+        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LEGACY_UNSUPPORTED_KEYS_TOTAL);
+        return;
+    }
+
+    NpcBhvrLegacyBridgeMigrateRouteDataForId(oNpc, sRoute);
+}
+
 void NpcBhvrLegacyBridgeMigrateNpc(object oNpc)
 {
     object oArea;
     string sLegacy;
     string sNormalized;
+    string sLegacyRoute;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -158,17 +173,16 @@ void NpcBhvrLegacyBridgeMigrateNpc(object oNpc)
         }
     }
 
+    sLegacyRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE);
+
     sLegacy = GetLocalString(oNpc, NPC_BHVR_LEGACY_VAR_ROUTE);
     if (sLegacy != "")
     {
         sNormalized = NpcBhvrActivityNormalizeConfiguredRouteOrEmpty(sLegacy, oNpc);
         if (sNormalized != "")
         {
-            if (GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE) == "")
-            {
-                SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE, sNormalized);
-                NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL);
-            }
+            sLegacyRoute = sNormalized;
+            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL);
         }
         else
         {
@@ -177,31 +191,22 @@ void NpcBhvrLegacyBridgeMigrateNpc(object oNpc)
         }
     }
 
-    if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED) == 0 && GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SCHEDULE_ENABLED) != 0)
-    {
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL);
-    }
+    // Legacy schedule windows are intentionally not migrated into canonical runtime behavior.
+    // The behavior core always resolves slot by time-of-day dayparts.
 
-    if (GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL)) == "" &&
-        GetLocalString(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_START) != "")
-    {
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_START));
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_CRITICAL_END));
-        NpcBhvrMetricAdd(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL, 2);
-    }
-
-    if (GetLocalString(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY)) == "" &&
-        GetLocalString(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_START) != "")
-    {
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_START));
-        SetLocalInt(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), GetLocalInt(oNpc, NPC_BHVR_LEGACY_VAR_SLOT_PRIORITY_END));
-        NpcBhvrMetricAdd(oNpc, NPC_BHVR_METRIC_LEGACY_NORMALIZED_KEYS_TOTAL, 2);
-    }
 
     NpcBhvrLegacyBridgeMigrateRouteDataForId(oNpc, NPC_BHVR_ACTIVITY_ROUTE_DEFAULT);
     NpcBhvrLegacyBridgeMigrateRouteDataForId(oNpc, NPC_BHVR_ACTIVITY_ROUTE_PRIORITY);
     NpcBhvrLegacyBridgeMigrateRouteDataForId(oNpc, NPC_BHVR_ACTIVITY_ROUTE_CRITICAL_SAFE);
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, sLegacyRoute);
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_ALERT));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_DAWN)));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_MORNING)));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_AFTERNOON)));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_EVENING)));
+    NpcBhvrLegacyBridgeMigrateRouteDataIfPresent(oNpc, GetLocalString(oNpc, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_NIGHT)));
 
     SetLocalInt(oNpc, NPC_BHVR_VAR_LEGACY_BRIDGE_NPC_VERSION, NPC_BHVR_LEGACY_BRIDGE_VERSION);
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LEGACY_MIGRATED_NPC_TOTAL);
@@ -225,8 +230,9 @@ void NpcBhvrLegacyBridgeMigrateAreaDefaults(object oArea)
     }
 
     NpcBhvrLegacyBridgeMigrateRouteProfileKey(oArea, oArea, NPC_BHVR_LEGACY_VAR_AREA_ROUTE_DEFAULT, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT);
-    NpcBhvrLegacyBridgeMigrateRouteProfileKey(oArea, oArea, NPC_BHVR_LEGACY_VAR_AREA_ROUTE_PRIORITY, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY));
-    NpcBhvrLegacyBridgeMigrateRouteProfileKey(oArea, oArea, NPC_BHVR_LEGACY_VAR_AREA_ROUTE_CRITICAL, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL));
+    NpcBhvrLegacyBridgeMigrateRouteProfileKey(oArea, oArea, NPC_BHVR_LEGACY_VAR_AREA_ROUTE_PRIORITY, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_MORNING));
+    NpcBhvrLegacyBridgeMigrateRouteProfileKey(oArea, oArea, NPC_BHVR_LEGACY_VAR_AREA_ROUTE_PRIORITY, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_AFTERNOON));
+    NpcBhvrLegacyBridgeMigrateRouteProfileKey(oArea, oArea, NPC_BHVR_LEGACY_VAR_AREA_ROUTE_CRITICAL, NpcBhvrActivitySlotRouteProfileKey(NPC_BHVR_ACTIVITY_SLOT_NIGHT));
 
     SetLocalInt(oArea, NPC_BHVR_VAR_LEGACY_BRIDGE_AREA_VERSION, NPC_BHVR_LEGACY_BRIDGE_VERSION);
     NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_LEGACY_MIGRATED_AREA_TOTAL);

@@ -162,7 +162,7 @@ void NpcBhvrSetTickMaxEvents(object oArea, int nValue)
         nValue = NPC_BHVR_TICK_MAX_EVENTS_HARD_CAP;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nValue);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_MAX_EVENTS, nValue);
 }
 
 int NpcBhvrGetTickSoftBudgetMs(object oArea)
@@ -195,7 +195,7 @@ void NpcBhvrSetTickSoftBudgetMs(object oArea, int nValue)
         nValue = NPC_BHVR_TICK_SOFT_BUDGET_MS_HARD_CAP;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nValue);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_TICK_SOFT_BUDGET_MS, nValue);
 }
 
 void NpcBhvrApplyTickRuntimeConfig(object oArea)
@@ -248,7 +248,7 @@ int NpcBhvrQueueProcessOne(object oArea, int nNow)
         return FALSE;
     }
 
-    nTotalDepth = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
+    nTotalDepth = NpcBhvrQueueGetPendingTotal(oArea);
     if (nTotalDepth <= 0)
     {
         NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
@@ -273,6 +273,8 @@ int NpcBhvrQueueProcessOne(object oArea, int nNow)
 
     if (GetArea(oSubject) != oArea)
     {
+        // Real deferred case only: dequeued subject no longer belongs to this area,
+        // so work cannot be executed in this tick and is explicitly deferred.
         NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_DEFERRED, nNow);
         NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED, nNow);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
@@ -340,7 +342,7 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
         nSpentBudgetMs = nSpentBudgetMs + NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS;
     }
 
-    nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    nPendingAfter = NpcBhvrQueueGetPendingTotal(oArea);
 
     // Invariant at stage boundary: processed/pending snapshot is captured once and
     // reused by downstream stages instead of re-reading queue locals.
@@ -394,8 +396,6 @@ int NpcBhvrTickApplyDegradationAndCarryover(object oArea, int nTickState)
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
         NpcBhvrRecordDegradationEvent(oArea, nDegradationReason);
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
-        NpcBhvrQueueMarkDeferredHead(oArea);
     }
 
     return nCarryoverEvents;
@@ -430,8 +430,8 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
             if (nDeferredOverflow > 0)
             {
                 bQueueMutated = TRUE;
+                nCarryoverEvents = nCarryoverEvents - nDeferredOverflow;
             }
-            nCarryoverEvents = nCarryoverEvents - nDeferredOverflow;
             if (nCarryoverEvents < 0)
             {
                 nCarryoverEvents = 0;
@@ -450,7 +450,7 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
     if (bQueueMutated)
     {
         NpcBhvrQueueSyncTotals(oArea);
-        nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+        nPendingAfter = NpcBhvrQueueGetPendingTotal(oArea);
     }
 
     return NpcBhvrTickPackPendingCarryover(nPendingAfter, nCarryoverEvents);

@@ -1,62 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-is_hour_in_window() {
+resolve_time_slot() {
   local hour="$1"
-  local start="$2"
-  local end="$3"
 
-  if (( start < 0 || start > 23 || end < 0 || end > 23 )); then
-    echo 0
+  if (( hour < 0 || hour > 23 )); then
+    echo "afternoon"
     return 0
   fi
 
-  if (( start == end )); then
-    echo 1
-    return 0
-  fi
-
-  if (( start < end )); then
-    if (( hour >= start && hour < end )); then
-      echo 1
-    else
-      echo 0
-    fi
-    return 0
-  fi
-
-  if (( hour >= start || hour < end )); then
-    echo 1
+  if (( hour >= 5 && hour < 8 )); then
+    echo "dawn"
+  elif (( hour >= 8 && hour < 12 )); then
+    echo "morning"
+  elif (( hour >= 12 && hour < 17 )); then
+    echo "afternoon"
+  elif (( hour >= 17 && hour < 22 )); then
+    echo "evening"
   else
-    echo 0
+    echo "night"
   fi
 }
 
-resolve_scheduled_slot() {
-  local schedule_enabled="$1"
-  local hour="$2"
-  local critical_start="$3"
-  local critical_end="$4"
-  local priority_start="$5"
-  local priority_end="$6"
-  local current_slot="$7"
+normalize_slot() {
+  local slot="$1"
+  case "$slot" in
+    dawn|morning|afternoon|evening|night) echo "$slot" ;;
+    default) echo "afternoon" ;;
+    priority) echo "morning" ;;
+    critical) echo "night" ;;
+    *) echo "afternoon" ;;
+  esac
+}
 
-  if (( schedule_enabled == 0 )); then
-    echo "$current_slot"
-    return 0
+normalize_mode() {
+  local mode="$1"
+  if [[ "$mode" == "alert" ]]; then
+    echo "alert"
+  else
+    echo "daily"
   fi
-
-  if [[ "$(is_hour_in_window "$hour" "$critical_start" "$critical_end")" == "1" ]]; then
-    echo "critical"
-    return 0
-  fi
-
-  if [[ "$(is_hour_in_window "$hour" "$priority_start" "$priority_end")" == "1" ]]; then
-    echo "priority"
-    return 0
-  fi
-
-  echo "default"
 }
 
 assert_eq() {
@@ -69,32 +52,19 @@ assert_eq() {
   fi
 }
 
-assert_case() {
-  local name="$1"
-  local enabled="$2"
-  local hour="$3"
-  local c_start="$4"
-  local c_end="$5"
-  local p_start="$6"
-  local p_end="$7"
-  local current_slot="$8"
-  local expected="$9"
+assert_eq "$(resolve_time_slot 5)" "dawn" "05 -> dawn"
+assert_eq "$(resolve_time_slot 9)" "morning" "09 -> morning"
+assert_eq "$(resolve_time_slot 13)" "afternoon" "13 -> afternoon"
+assert_eq "$(resolve_time_slot 18)" "evening" "18 -> evening"
+assert_eq "$(resolve_time_slot 23)" "night" "23 -> night"
 
-  local actual
-  actual="$(resolve_scheduled_slot "$enabled" "$hour" "$c_start" "$c_end" "$p_start" "$p_end" "$current_slot")"
-  assert_eq "$actual" "$expected" "$name"
-  echo "[OK] $name"
-}
+assert_eq "$(normalize_slot default)" "afternoon" "legacy default alias"
+assert_eq "$(normalize_slot priority)" "morning" "legacy priority alias"
+assert_eq "$(normalize_slot critical)" "night" "legacy critical alias"
 
-# e2e-style schedule transitions and boundaries (hour/day)
-assert_case "schedule disabled keeps runtime slot" 0 12 22 6 8 18 "priority" "priority"
-assert_case "critical window start boundary inclusive" 1 22 22 6 8 18 "default" "critical"
-assert_case "critical window end boundary exclusive" 1 6 22 6 8 18 "default" "default"
-assert_case "priority window start boundary inclusive" 1 8 22 6 8 18 "default" "priority"
-assert_case "priority window end boundary exclusive" 1 18 22 6 8 18 "default" "default"
-assert_case "cross-day critical window at 23" 1 23 22 2 8 18 "default" "critical"
-assert_case "cross-day critical window at 01" 1 1 22 2 8 18 "default" "critical"
-assert_case "outside windows falls back to default" 1 7 22 6 8 18 "critical" "default"
-assert_case "empty schedule fallback to default" 1 15 -1 -1 -1 -1 "critical" "default"
+assert_eq "$(normalize_mode '')" "daily" "empty mode -> daily"
+assert_eq "$(normalize_mode daily)" "daily" "daily mode"
+assert_eq "$(normalize_mode alert)" "alert" "alert mode"
+assert_eq "$(normalize_mode emergency)" "daily" "unknown mode -> daily"
 
 echo "[OK] npc_activity slot contract tests passed"

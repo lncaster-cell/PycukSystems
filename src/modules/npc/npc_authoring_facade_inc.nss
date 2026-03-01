@@ -2,11 +2,21 @@
 // Thin layer: only normalizes npc_cfg_* authoring locals and derives runtime defaults.
 
 const string NPC_BHVR_CFG_ROLE = "npc_cfg_role";
+const string NPC_BHVR_CFG_IDENTITY_TYPE = "npc_cfg_identity_type";
+const string NPC_BHVR_CFG_SLOT_DAWN_ROUTE = "npc_cfg_slot_dawn_route";
+const string NPC_BHVR_CFG_SLOT_MORNING_ROUTE = "npc_cfg_slot_morning_route";
+const string NPC_BHVR_CFG_SLOT_AFTERNOON_ROUTE = "npc_cfg_slot_afternoon_route";
+const string NPC_BHVR_CFG_SLOT_EVENING_ROUTE = "npc_cfg_slot_evening_route";
+const string NPC_BHVR_CFG_SLOT_NIGHT_ROUTE = "npc_cfg_slot_night_route";
+const string NPC_BHVR_CFG_ALERT_ROUTE = "npc_cfg_alert_route";
+
+// Legacy/compat authoring locals (migration-only path).
 const string NPC_BHVR_CFG_SCHEDULE = "npc_cfg_schedule";
 const string NPC_BHVR_CFG_WORK_ROUTE = "npc_cfg_work_route";
 const string NPC_BHVR_CFG_HOME_ROUTE = "npc_cfg_home_route";
 const string NPC_BHVR_CFG_LEISURE_ROUTE = "npc_cfg_leisure_route";
-const string NPC_BHVR_CFG_FORCE_REACTIVE = "npc_cfg_force_reactive";
+
+const string NPC_BHVR_CFG_FORCE_REACTIVE = "npc_cfg_force_reactive"; // canonical reactive override
 const string NPC_BHVR_CFG_ALLOW_PHYSICAL_HIDE = "npc_cfg_allow_physical_hide";
 
 const string NPC_BHVR_CFG_CITY = "npc_cfg_city";
@@ -14,7 +24,8 @@ const string NPC_BHVR_CFG_CLUSTER = "npc_cfg_cluster";
 const string NPC_BHVR_CFG_AREA_PROFILE = "npc_cfg_area_profile";
 
 const string NPC_BHVR_CFG_DERIVED_ROLE = "npc_cfg_derived_role";
-const string NPC_BHVR_CFG_DERIVED_SCHEDULE = "npc_cfg_derived_schedule";
+const string NPC_BHVR_CFG_DERIVED_IDENTITY_TYPE = "npc_cfg_derived_identity_type";
+const string NPC_BHVR_CFG_DERIVED_SCHEDULE = "npc_cfg_derived_schedule"; // legacy-derived marker
 const string NPC_BHVR_CFG_DERIVED_AREA_PROFILE = "npc_cfg_derived_area_profile";
 const string NPC_BHVR_CFG_DERIVED_CLUSTER_OWNER = "npc_cfg_derived_cluster_owner";
 
@@ -29,6 +40,31 @@ string NpcBhvrAuthoringNormalizeTokenOrDefault(string sValue, string sFallback)
     }
 
     return sNormalized;
+}
+
+string NpcBhvrAuthoringResolveIdentityType(object oNpc)
+{
+    string sIdentityType;
+
+    if (!GetIsObjectValid(oNpc))
+    {
+        return "named";
+    }
+
+    sIdentityType = NpcBhvrAuthoringNormalizeTokenOrDefault(GetLocalString(oNpc, NPC_BHVR_CFG_IDENTITY_TYPE), "named");
+    if (sIdentityType != "commoner")
+    {
+        return "named";
+    }
+
+    return "commoner";
+}
+
+int NpcBhvrAuthoringIsFutureRespawnCandidate(object oNpc)
+{
+    // Compatibility shim for authoring contract checks; canonical callers should
+    // use NpcBhvrAuthoringResolveIdentityType(...) directly.
+    return NpcBhvrAuthoringResolveIdentityType(oNpc) == "commoner";
 }
 
 int NpcBhvrAuthoringHasStringLocal(object oTarget, string sKey)
@@ -146,16 +182,17 @@ string NpcBhvrAuthoringResolveSchedulePreset(string sRole, string sSchedule)
 
 void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, string sRouteWork, string sRouteHome, string sRouteLeisure, string sRouteStaticAnchor)
 {
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_PRIORITY, sRouteWork);
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_CRITICAL, sRouteHome);
+    // Canonical route-by-time slot map.
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_DAWN, sRouteHome);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_MORNING, sRouteWork);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_AFTERNOON, sRouteWork);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_EVENING, sRouteLeisure);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_NIGHT, sRouteHome);
 
     if (sSchedule == "always_home")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_CRITICAL);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 0);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_CRITICAL), 23);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_NIGHT);
         return;
     }
 
@@ -182,20 +219,17 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
     if (sSchedule == "tavern_late")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 18);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 2);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_EVENING, sRouteWork);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_AFTERNOON);
         return;
     }
 
     if (sSchedule == "day_shop")
     {
         NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 8);
-        NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 19);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_MORNING, sRouteWork);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + NPC_BHVR_ACTIVITY_SLOT_AFTERNOON, sRouteWork);
+        NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_MORNING);
         return;
     }
 
@@ -209,10 +243,7 @@ void NpcBhvrAuthoringApplyNpcSchedulePreset(object oNpc, string sSchedule, strin
 
     // day_worker default
     NpcBhvrAuthoringSetIntIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SCHEDULE_ENABLED, TRUE);
-    NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleStartKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 8);
-    NpcBhvrAuthoringSetIntIfMissing(oNpc, NpcBhvrActivityScheduleEndKey(NPC_BHVR_ACTIVITY_SLOT_PRIORITY), 18);
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ROUTE_PROFILE_DEFAULT, sRouteHome);
-    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_DEFAULT);
+    NpcBhvrAuthoringSetStringIfMissing(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, NPC_BHVR_ACTIVITY_SLOT_MORNING);
 }
 
 void NpcBhvrAuthoringApplyNpcRolePreset(object oNpc, string sRole)
@@ -236,6 +267,7 @@ void NpcBhvrAuthoringApplyNpcRolePreset(object oNpc, string sRole)
 
 void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
 {
+    string sIdentityType;
     string sRole;
     string sSchedule;
     string sRouteWork;
@@ -282,8 +314,8 @@ void NpcBhvrAuthoringApplyNpcFacade(object oNpc)
 
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_FORCE_REACTIVE) == TRUE)
     {
+        // Canonical human-facing override for reactive behavior.
         SetLocalInt(oNpc, NPC_BHVR_CFG_NPC_LAYER, NPC_BHVR_LAYER_REACTIVE);
-        SetLocalInt(oNpc, NPC_BHVR_CFG_NPC_REACTIVE, TRUE);
     }
 
     if (GetLocalInt(oNpc, NPC_BHVR_CFG_ALLOW_PHYSICAL_HIDE) == TRUE)

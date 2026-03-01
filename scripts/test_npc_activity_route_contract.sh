@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_FILE="$ROOT_DIR/src/modules/npc/npc_activity_inc.nss"
+TARGET_FILE="$ROOT_DIR/src/modules/npc/npc_activity_route_resolution_inc.nss"
 
 if [[ ! -f "$TARGET_FILE" ]]; then
   echo "[FAIL] target file not found: $TARGET_FILE"
@@ -11,7 +11,7 @@ fi
 
 is_valid_route() {
   local route="$1"
-  [[ "$route" == "default_route" || "$route" == "priority_patrol" || "$route" == "critical_safe" ]]
+  [[ "$route" =~ ^[a-z0-9_]{1,32}$ ]]
 }
 
 normalize_configured_route_or_empty() {
@@ -30,27 +30,23 @@ normalize_configured_route_or_empty() {
 }
 
 resolve_route_profile() {
-  local npc_activity_route="$1"
-  local npc_slot_profile="$2"
-  local npc_default_profile="$3"
+  local mode="$1"
+  local npc_alert_profile="$2"
+  local npc_slot_profile="$3"
   local area_slot_profile="$4"
   local area_default_profile="$5"
 
   local route
 
-  route="$(normalize_configured_route_or_empty "$npc_activity_route")"
-  if [[ -n "$route" ]]; then
-    echo "$route"
-    return 0
+  if [[ "$mode" == "alert" ]]; then
+    route="$(normalize_configured_route_or_empty "$npc_alert_profile")"
+    if [[ -n "$route" ]]; then
+      echo "$route"
+      return 0
+    fi
   fi
 
   route="$(normalize_configured_route_or_empty "$npc_slot_profile")"
-  if [[ -n "$route" ]]; then
-    echo "$route"
-    return 0
-  fi
-
-  route="$(normalize_configured_route_or_empty "$npc_default_profile")"
   if [[ -n "$route" ]]; then
     echo "$route"
     return 0
@@ -84,65 +80,25 @@ assert_eq() {
 
 assert_case() {
   local case_name="$1"
-  local npc_activity_route_input="$2"
-  local npc_slot_profile="$3"
-  local npc_default_profile="$4"
+  local mode="$2"
+  local npc_alert_profile="$3"
+  local npc_slot_profile="$4"
   local area_slot_profile="$5"
   local area_default_profile="$6"
-  local expected_stored_route="$7"
-  local expected_effective_route="$8"
+  local expected_effective_route="$7"
 
-  local normalized_activity_route
   local effective_route
 
-  normalized_activity_route="$(normalize_configured_route_or_empty "$npc_activity_route_input")"
-  effective_route="$(resolve_route_profile "$npc_activity_route_input" "$npc_slot_profile" "$npc_default_profile" "$area_slot_profile" "$area_default_profile")"
+  effective_route="$(resolve_route_profile "$mode" "$npc_alert_profile" "$npc_slot_profile" "$area_slot_profile" "$area_default_profile")"
 
-  assert_eq "$normalized_activity_route" "$expected_stored_route" "${case_name}: npc_activity_route invariant"
   assert_eq "$effective_route" "$expected_effective_route" "${case_name}: npc_activity_route_effective invariant"
 
   echo "[OK] $case_name"
 }
 
-# static fixtures / emulated inputs (contract scenarios for npc_activity_inc.nss)
-assert_case \
-  "valid explicit npc_activity_route on NPC" \
-  "priority_patrol" \
-  "critical_safe" \
-  "default_route" \
-  "default_route" \
-  "critical_safe" \
-  "priority_patrol" \
-  "priority_patrol"
-
-assert_case \
-  "empty npc_activity_route on NPC with fallback to npc_route_profile_slot_<slot>" \
-  "" \
-  "critical_safe" \
-  "default_route" \
-  "priority_patrol" \
-  "default_route" \
-  "" \
-  "critical_safe"
-
-assert_case \
-  "invalid npc_activity_route on NPC and valid slot route on area" \
-  "not_supported" \
-  "" \
-  "" \
-  "priority_patrol" \
-  "default_route" \
-  "" \
-  "priority_patrol"
-
-assert_case \
-  "all sources empty-or-invalid uses default_route" \
-  "bad_route" \
-  "" \
-  "wrong_default" \
-  "" \
-  "invalid_area_default" \
-  "" \
-  "default_route"
+assert_case "daily mode uses npc slot route" "daily" "critical_safe" "priority_patrol" "default_route" "critical_safe" "priority_patrol"
+assert_case "alert mode uses alert override first" "alert" "critical_safe" "priority_patrol" "default_route" "priority_patrol" "critical_safe"
+assert_case "fallback to area slot route when npc slot route missing" "daily" "" "" "priority_patrol" "default_route" "priority_patrol"
+assert_case "all sources empty-or-invalid uses default_route" "daily" "bad-route" "wrong-route" "" "invalid-area-default" "default_route"
 
 echo "[OK] npc_activity route contract tests passed"

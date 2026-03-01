@@ -20,7 +20,7 @@ void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal)
         nDeferredTotal = 0;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, nDeferredTotal);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, nDeferredTotal);
 }
 
 // Hot-path-safe linear walk: read head/depth once per priority, then advance
@@ -72,7 +72,7 @@ int NpcBhvrQueueDeferredLooksDesynced(object oArea)
     int nPendingTotal;
 
     nDeferredCount = NpcBhvrQueueGetDeferredTotal(oArea);
-    nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    nPendingTotal = NpcBhvrQueueGetPendingTotal(oArea);
 
     return nDeferredCount < 0 || nDeferredCount > nPendingTotal;
 }
@@ -88,7 +88,7 @@ int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal)
     {
         if (bMarkSelfHeal)
         {
-            SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, TRUE);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, TRUE);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_MAINT_SELF_HEAL_COUNT);
         }
 
@@ -151,7 +151,6 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
             if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
             {
                 oSubject = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nSlot);
-                NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
                 NpcBhvrPendingNpcClear(oSubject);
                 NpcBhvrPendingAreaClear(oArea, oSubject);

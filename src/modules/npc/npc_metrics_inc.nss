@@ -23,7 +23,6 @@ const string NPC_BHVR_METRIC_QUEUE_INDEX_MISS_TOTAL = "npc_metric_queue_index_mi
 const string NPC_BHVR_METRIC_REGISTRY_OVERFLOW_TOTAL = "npc_metric_registry_overflow_total";
 const string NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL = "npc_metric_registry_reject_total";
 const string NPC_BHVR_METRIC_ACTIVITY_INVALID_SLOT_TOTAL = "npc_metric_activity_invalid_slot_total";
-const string NPC_BHVR_METRIC_ACTIVITY_SCHEDULE_WINDOW_INVALID_TOTAL = "npc_metric_activity_schedule_window_invalid_total";
 const string NPC_BHVR_METRIC_ACTIVITY_REFRESH_TOTAL = "activity_refresh_total";
 const string NPC_BHVR_METRIC_ACTIVITY_REFRESH_SKIPPED_TOTAL = "activity_refresh_skipped_total";
 
@@ -42,7 +41,6 @@ const string NPC_BHVR_METRIC_MAINT_SELF_HEAL_COUNT = "npc_metric_maintenance_sel
 const string NPC_BHVR_METRIC_IDLE_PROCESSED_PER_TICK = "npc_metric_idle_processed_per_tick";
 const string NPC_BHVR_METRIC_IDLE_REMAINING = "npc_metric_idle_remaining";
 const string NPC_BHVR_METRIC_IDLE_BUDGET_THROTTLED_TOTAL = "npc_metric_idle_budget_throttled_total";
-const string NPC_BHVR_METRIC_IDLE_SKIPPED_QUEUE_PRESSURE_TOTAL = "npc_metric_idle_skipped_queue_pressure_total";
 const string NPC_BHVR_METRIC_REGISTRY_COMPACTION_REMOVED_TOTAL = "registry_compaction_removed_total";
 const string NPC_BHVR_METRIC_REGISTRY_COMPACTION_RUNS_TOTAL = "registry_compaction_runs_total";
 
@@ -61,17 +59,12 @@ const string NPC_BHVR_METRIC_LOD_REVEAL_RESYNC_TOTAL = "npc_metric_lod_reveal_re
 const string NPC_BHVR_METRIC_LOD_FAST_FORWARD_TOTAL = "npc_metric_lod_fast_forward_total";
 const string NPC_BHVR_METRIC_LOD_REVEAL_SLOT_CHANGE_TOTAL = "npc_metric_lod_reveal_slot_change_total";
 const string NPC_BHVR_METRIC_LOD_REVEAL_SAME_SLOT_TOTAL = "npc_metric_lod_reveal_same_slot_total";
-const string NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL = "npc_metric_lod_hide_suppressed_total";
-const string NPC_BHVR_METRIC_LOD_REVEAL_SUPPRESSED_TOTAL = "npc_metric_lod_reveal_suppressed_total";
 const string NPC_BHVR_METRIC_LOD_HIDE_DEBOUNCE_HIT_TOTAL = "npc_metric_lod_hide_debounce_hit_total";
 const string NPC_BHVR_METRIC_LOD_REVEAL_COOLDOWN_HIT_TOTAL = "npc_metric_lod_reveal_cooldown_hit_total";
 const string NPC_BHVR_METRIC_LOD_REANCHOR_FALLBACK_TOTAL = "npc_metric_lod_reanchor_fallback_total";
 const string NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_APPLIED_TOTAL = "npc_metric_lod_physical_hide_applied_total";
-const string NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_SUPPRESSED_TOTAL = "npc_metric_lod_physical_hide_suppressed_total";
 const string NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_APPLIED_TOTAL = "npc_metric_lod_physical_reveal_applied_total";
-const string NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_SUPPRESSED_TOTAL = "npc_metric_lod_physical_reveal_suppressed_total";
 const string NPC_BHVR_METRIC_LOD_PHYSICAL_COOLDOWN_HIT_TOTAL = "npc_metric_lod_physical_cooldown_hit_total";
-const string NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL = "npc_metric_lod_physical_fallback_logical_only_total";
 
 // Legacy bridge migration diagnostics.
 const string NPC_BHVR_METRIC_LEGACY_MIGRATED_NPC_TOTAL = "npc_metric_legacy_migrated_npc_total";

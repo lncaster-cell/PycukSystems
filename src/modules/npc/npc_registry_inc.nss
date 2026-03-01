@@ -18,6 +18,37 @@ string NpcBhvrRegistryLegacyIndexKey(object oNpc)
     return NPC_BHVR_VAR_REGISTRY_INDEX_PREFIX + NpcBhvrPendingLegacySubjectTag(oNpc);
 }
 
+int NpcBhvrRegistryIsRuntimeNpcCandidate(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc) || GetIsPC(oNpc) || GetObjectType(oNpc) != OBJECT_TYPE_CREATURE)
+    {
+        return FALSE;
+    }
+
+    if (GetLocalString(oNpc, "npc_cfg_role") != "" ||
+        GetLocalString(oNpc, "npc_cfg_identity_type") != "" ||
+        GetLocalString(oNpc, "npc_cfg_schedule") != "" ||
+        GetLocalString(oNpc, "npc_cfg_work_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_home_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_leisure_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_slot_dawn_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_slot_morning_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_slot_afternoon_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_slot_evening_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_slot_night_route") != "" ||
+        GetLocalString(oNpc, "npc_cfg_alert_route") != "" ||
+        GetLocalInt(oNpc, "npc_cfg_force_reactive") == TRUE ||
+        GetLocalInt(oNpc, "npc_cfg_allow_physical_hide") == TRUE)
+    {
+        return TRUE;
+    }
+
+    // Runtime continuity path for already-initialized NPCs.
+    return GetLocalString(oNpc, "npc_cfg_derived_role") != "" ||
+           GetLocalString(oNpc, "npc_activity_route_effective") != "" ||
+           GetLocalString(oNpc, "npc_route_profile_default") != "";
+}
+
 void NpcBhvrRegistryResetIdleCursor(object oArea)
 {
     if (!GetIsObjectValid(oArea))
@@ -75,7 +106,7 @@ int NpcBhvrRegistryInsert(object oArea, object oNpc)
     int nCount;
     int nIndex;
 
-    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc) || GetIsPC(oNpc) || GetObjectType(oNpc) != OBJECT_TYPE_CREATURE)
+    if (!GetIsObjectValid(oArea) || !NpcBhvrRegistryIsRuntimeNpcCandidate(oNpc))
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_REGISTRY_REJECT_TOTAL);
         return FALSE;
@@ -180,7 +211,7 @@ int NpcBhvrRegistryCompactInvalidEntries(object oArea, int nBatchCap)
     while (nIndex <= nCount && nRemoved < nBatchCap)
     {
         oNpc = GetLocalObject(oArea, NpcBhvrRegistrySlotKey(nIndex));
-        if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea)
+        if (!GetIsObjectValid(oNpc) || GetArea(oNpc) != oArea || !NpcBhvrRegistryIsRuntimeNpcCandidate(oNpc))
         {
             if (GetIsObjectValid(oNpc))
             {
@@ -288,4 +319,3 @@ void NpcBhvrRegistryBroadcastIdleTickBudgeted(object oArea, int nMaxNpcPerTick)
         NpcBhvrMetricSet(oArea, NPC_BHVR_METRIC_IDLE_REMAINING, 0);
     }
 }
-

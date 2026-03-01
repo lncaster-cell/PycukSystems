@@ -28,10 +28,6 @@ assert_has 'npc_cfg_lod_min_hidden_sec' "$LOD_FILE"
 assert_has 'npc_cfg_lod_min_visible_sec' "$LOD_FILE"
 assert_has 'npc_cfg_lod_reveal_cooldown_sec' "$LOD_FILE"
 assert_has 'npc_cfg_lod_physical_cooldown_sec' "$LOD_FILE"
-assert_has 'NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL' "$LOD_FILE"
-assert_has 'NPC_BHVR_METRIC_LOD_REVEAL_SUPPRESSED_TOTAL' "$LOD_FILE"
-assert_has 'NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_SUPPRESSED_TOTAL' "$LOD_FILE"
-assert_has 'NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_SUPPRESSED_TOTAL' "$LOD_FILE"
 
 # Cluster door-spam protections remain in place.
 assert_has 'npc_cfg_cluster_transition_rate' "$CLUSTER_FILE"
@@ -41,11 +37,8 @@ assert_has 'npc_cfg_cluster_interior_hard_cap' "$CLUSTER_FILE"
 
 # Metrics presence for perf regression diagnostics.
 assert_has 'npc_metric_lod_physical_hide_applied_total' "$METRICS_FILE"
-assert_has 'npc_metric_lod_physical_hide_suppressed_total' "$METRICS_FILE"
 assert_has 'npc_metric_lod_physical_reveal_applied_total' "$METRICS_FILE"
-assert_has 'npc_metric_lod_physical_reveal_suppressed_total' "$METRICS_FILE"
 assert_has 'npc_metric_lod_physical_cooldown_hit_total' "$METRICS_FILE"
-assert_has 'npc_metric_lod_physical_fallback_logical_only_total' "$METRICS_FILE"
 
 python3 - <<'PY'
 # Lightweight behavioral gates (emulated) for anti-churn invariants.

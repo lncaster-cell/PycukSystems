@@ -37,13 +37,14 @@ assert_has 'int NpcBhvrActivityNormalizeWaypointIndex\(' "$TARGET_ACTIVITY_FILE"
 assert_has 'string NpcBhvrActivityComposeWaypointState\(' "$TARGET_ACTIVITY_FILE"
 assert_has_any 'void NpcBhvrActivityApplyRouteState\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 assert_has 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex\);' "$TARGET_ACTIVITY_FILE"
-assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex\(nWpIndex \+ 1, nWpCount, bLoop\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalInt|NpcBhvrSetLocalIntIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex\(nWpIndex \+ 1, nWpCount, bLoop\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalString|NpcBhvrSetLocalStringIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, sRouteTag\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 assert_has 'const string NPC_BHVR_VAR_ACTIVITY_ACTION = "npc_activity_action";' "$TARGET_ACTIVITY_FILE"
 assert_has_any 'int NpcBhvrActivityResolveRoutePauseTicks\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'string NpcBhvrActivityResolveAction\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'string NpcBhvrActivityResolveAction\(object oNpc, string sMode, string sSlot, int nWpIndex, int nWpCount\)' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalString|NpcBhvrSetLocalStringIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE, sEmote\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalString|NpcBhvrSetLocalStringIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_ACTION, sAction\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any 'sMode = NpcBhvrActivityResolveMode\(oNpc\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 assert_has 'GetLocalString\(oArea, NPC_BHVR_VAR_ACTIVITY_SLOT_EMOTE\);' "$TARGET_ACTIVITY_FILE"
 assert_has_any 'NpcBhvrActivitySetCooldownTicks\(oNpc, nCooldown \+ nPauseTicks, nNow\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 assert_has 'const int NPC_BHVR_ACTIVITY_ID_ACT_ONE = 1;' "$TARGET_ACTIVITY_FILE"
@@ -52,11 +53,11 @@ assert_has_any 'int NpcBhvrActivityResolveRoutePointActivity\(' "$TARGET_ACTIVIT
 assert_has_any 'string NpcBhvrActivityGetCustomAnims\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 assert_has_any 'string NpcBhvrActivityGetNumericAnims\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 assert_has_any 'string NpcBhvrActivityGetWaypointTagRequirement\(' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalString\(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner\(nActivityId\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
-assert_has_any 'SetLocalInt\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair\(nActivityId\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalInt|NpcBhvrSetLocalIntIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_ID, nActivityId\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalString|NpcBhvrSetLocalStringIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_CUSTOM_ANIMS, sCustomAnims\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalString|NpcBhvrSetLocalStringIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_NUMERIC_ANIMS, sNumericAnims\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalInt|NpcBhvrSetLocalIntIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_TRAINING_PARTNER, NpcBhvrActivityRequiresTrainingPartner\(nActivityId\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
+assert_has_any '(SetLocalInt|NpcBhvrSetLocalIntIfChanged)\(oNpc, NPC_BHVR_VAR_ACTIVITY_REQUIRES_BAR_PAIR, NpcBhvrActivityRequiresBarPair\(nActivityId\)\);' "$TARGET_ACTIVITY_FILE" "$TARGET_STATE_FILE"
 
 # Behavioral contract (emulated): index clamp/loop + state suffix composition.
 python3 - <<'PY'
@@ -94,10 +95,10 @@ assert_eq(compose_state("idle_default", "market", 0, 0), "idle_default", "state 
 
 
 
-def resolve_action(slot: str, route: str, idx: int, count: int, emote: str) -> str:
-    if route == "critical_safe" or slot == "critical":
+def resolve_action(mode: str, slot: str, idx: int, count: int, emote: str) -> str:
+    if mode == "alert":
         return "guard_hold"
-    if route == "priority_patrol" or slot == "priority":
+    if slot == "morning":
         if count > 0:
             return "patrol_move" if (idx % 2) == 0 else "patrol_scan"
         return "patrol_ready"
@@ -105,10 +106,10 @@ def resolve_action(slot: str, route: str, idx: int, count: int, emote: str) -> s
         return "ambient_" + emote
     return "ambient_idle"
 
-assert_eq(resolve_action("critical", "default_route", 0, 3, ""), "guard_hold", "critical action")
-assert_eq(resolve_action("priority", "priority_patrol", 1, 4, ""), "patrol_scan", "priority scan action")
-assert_eq(resolve_action("default", "default_route", 0, 0, "smoke"), "ambient_smoke", "ambient emote action")
-assert_eq(resolve_action("default", "default_route", 0, 0, ""), "ambient_idle", "ambient idle action")
+assert_eq(resolve_action("alert", "night", 0, 3, ""), "guard_hold", "alert action")
+assert_eq(resolve_action("daily", "morning", 1, 4, ""), "patrol_scan", "morning patrol scan action")
+assert_eq(resolve_action("daily", "afternoon", 0, 0, "smoke"), "ambient_smoke", "ambient emote action")
+assert_eq(resolve_action("daily", "afternoon", 0, 0, ""), "ambient_idle", "ambient idle action")
 
 
 def custom_anims(activity: int) -> str:

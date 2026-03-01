@@ -1,25 +1,32 @@
 # NPC Activity Contract Checklist
 
 
+## 0) Strict contract boundary (human-facing)
+
+Инварианты документации/контракта:
+- канонический human-facing путь описывается через `npc_cfg_role` + `npc_cfg_slot_*_route` (+ опциональные `npc_cfg_force_reactive`, `npc_cfg_allow_physical_hide`, `npc_cfg_alert_route`);
+- schedule windows и semantic slots `default|priority|critical` не описываются как primary authoring mechanism;
+- low-level runtime knobs (`npc_dispatch_mode`, `npc_runtime_layer`, `npc_npc_sim_lod`, diagnostics/runtime locals) не выдаются за user-facing контракт.
+
+**Что считается fail:** любое возвращение legacy semantic/window модели в основной раздел human-facing контракта.
+
 Чеклист фиксирует проверяемые инварианты activity-layer контракта NPC Bhvr из `src/modules/npc/README.md` и даёт команды для быстрого smoke/regression прогона.
 
 ## 1) Route fallback resolve order
 
 Инвариант (`NpcBhvrActivityResolveRouteProfile`): effective route выбирается строго в таком порядке:
-1. `npc_activity_route` на NPC (если явно задан);
-2. `npc_route_profile_slot_<slot>` на NPC;
-3. `npc_route_profile_default` на NPC;
-4. `npc_route_profile_slot_<slot>` на area;
-5. `npc_route_profile_default` на area;
-6. `default_route`.
+1. Для `alert`: `npc_route_profile_alert` на NPC (если валиден).
+2. `npc_route_profile_slot_<slot>` на NPC.
+3. `npc_route_cache_slot_<slot>` на area.
+4. `npc_route_cache_default` на area.
+5. `default_route`.
 
 **Что считается fail:** любой рефакторинг, который нарушает приоритет источников (например, area override раньше NPC override).
 
-## 2) Разделение configured vs effective route
+## 2) Effective route invariants
 
 Инвариант:
-- `npc_activity_route` хранит только явно сконфигурированный route (или очищается);
-- `npc_activity_route_effective` всегда хранит итог fallback-резолва (`default_route|priority_patrol|critical_safe`).
+- `npc_activity_route_effective` всегда хранит итог fallback-резолва (валидный route-id или `default_route`).
 
 **Что считается fail:** смешение семантик (например, запись fallback-значения в configured поле).
 
@@ -27,21 +34,21 @@
 
 Инварианты:
 - `NpcBhvrActivityNormalizeConfiguredRouteOrEmpty` отбрасывает невалидный route-id и не блокирует fallback-цепочку;
-- `slot` нормализуется в поддерживаемые значения (`default|priority|critical`);
-- в `NpcBhvrActivityOnIdleTick` пустые/невалидные `slot/route` допустимы и приводятся к валидному effective маршруту через fallback.
+- `slot` нормализуется в daypart (`dawn|morning|afternoon|evening|night`), legacy `default|priority|critical` допустимы только как alias;
+- в `NpcBhvrActivityOnIdleTick` пустые/невалидные route profile locals допустимы и приводятся к валидному effective маршруту через fallback.
 
 **Что считается fail:** невалидные route/slot сохраняются и напрямую ломают ветвление idle-dispatch.
 
-## 4) Cooldown/dispatch ветвление (`critical_safe`, `priority_patrol`, `default`)
+## 4) Cooldown/dispatch: canonical flow + mode (`daily|alert`)
 
 Инварианты для `NpcBhvrActivityOnIdleTick`:
 - при `cooldown > 0` — только декремент cooldown на 1 и early-return;
 - при `cooldown == 0` выбирается ровно одна ветка:
-  1. `critical_safe` (приоритет №1: `slot=critical` или route-map -> `critical_safe`) → `idle_critical_safe`, `cooldown=1`;
-  2. `priority_patrol` (приоритет №2: `slot=priority` или route-map -> `priority_patrol`) → `idle_priority_patrol`, `cooldown=2`;
-  3. `default` (fallback) → `idle_default`, `cooldown=1`.
+  1. resolve current time slot (daypart);
+  2. resolve effective route через fallback-цепочку;
+  3. применить единый dispatch `NpcBhvrActivityApplyRouteState(route, "idle_route", cooldown=1)`.
 
-**Что считается fail:** отсутствие приоритета critical над priority, множественный dispatch за один idle tick, либо неверный cooldown после dispatch.
+**Что считается fail:** множественный dispatch за один idle tick, либо обход canonical route-apply path через semantic-ветки как основной путь.
 
 ## 5) Waypoint/route-point runtime semantics
 
@@ -52,17 +59,17 @@
 - loop-policy берётся из `npc_route_loop_<routeId>` (`>0` loop, `<0` stop-at-tail, `0` default loop);
 - `npc_activity_route_tag` участвует в формировании состояния `<base_state>_<tag>_<i>_of_<N>`;
 - `npc_activity_slot_emote` резолвится через slot-aware цепочку `NPC-local(slot) -> area-local(slot) -> area-global -> NPC-global`;
-- `npc_activity_action` вычисляется детерминированно из slot/route/waypoint (`critical => guard_hold`, `priority_patrol => patrol_move/patrol_scan`, `default => ambient_*`), а `npc_route_pause_ticks_<routeId>` добавляется к cooldown.
+- `npc_activity_action` вычисляется детерминированно из mode/slot/waypoint (`alert => guard_hold`, `daily+morning => patrol_*`, иначе `ambient_*`), а `npc_route_pause_ticks_<routeId>` добавляется к cooldown.
 
 **Что считается fail:** waypoint-индекс не обновляется после dispatch, route-tag игнорируется при наличии waypoint-count, или slot-emote не резолвится по slot-aware цепочке.
 
-## 6) E2E schedule-aware semantics (`npc_activity_slot`, `npc_activity_route_effective`, `npc_activity_last_ts`)
+## 6) E2E daypart semantics (`npc_activity_slot`, `npc_activity_route_effective`, `npc_activity_last_ts`)
 
 Инварианты e2e-уровня для расписаний:
-- переходы `npc_activity_slot` по времени детерминированы: `critical` имеет приоритет над `priority`, вне окон — fallback в `default`;
-- после schedule-aware resolve dispatch-ветка выбирается строго по приоритету `critical > priority > default` (через `NpcBhvrActivityApplyCriticalSafeRoute` / `NpcBhvrActivityApplyPriorityRoute` / `NpcBhvrActivityApplyDefaultRoute`), а не по предыдущему runtime-slot;
-- boundary-кейсы проверяются явно: границы часа (`start` включительно, `end` исключительно) и граница суток (`23:59:59 -> 00:00:00`);
-- при пустом расписании (`npc_schedule_start_* / npc_schedule_end_*` не заданы или невалидны) слот не «залипает» в старом состоянии и fallback-ится в `default`;
+- переходы `npc_activity_slot` по времени детерминированы через daypart mapping (`dawn|morning|afternoon|evening|night`);
+- после daypart-resolve dispatch всегда идёт по единому route path (`NpcBhvrActivityApplyRouteState`);
+- boundary-кейсы проверяются явно для daypart mapping и границы суток (`23:59:59 -> 00:00:00`);
+- schedule windows не участвуют в canonical model и не влияют на выбор slot;
 - `npc_activity_route_effective` следует fallback-цепочке независимо от невалидного configured route;
 - `npc_activity_last_ts` формируется как `hour*3600 + minute*60 + second` и корректно сбрасывается при переходе суток.
 
@@ -70,11 +77,11 @@
 
 ---
 
-## 7) Отдельный инвариант `start == end` для schedule-window
+## 7) Legacy note: schedule-window keys
 
 Инвариант (`NpcBhvrActivityIsHourInWindow`):
 - при `start == end` окно трактуется как **пустое** (`FALSE` для любого часа), а не как 24/7;
-- это контрактная защита от ложного always-on, когда schedule-ключи отсутствуют и `GetLocalInt` возвращает `0`.
+- schedule-window ключи считаются legacy-only и не являются частью canonical поведенческого пути.
 
 **Что считается fail:** любая реализация/документация, в которой `start == end` начинает активировать слот круглосуточно.
 
@@ -112,7 +119,7 @@ bash scripts/test_npc_fairness.sh
 - нет финального `[OK] NPC Bhvr fairness analyzer tests passed`.
 
 
-### 3. Activity route/waypoint/schedule e2e contract (одной командой)
+### 3. Activity route/waypoint/daypart e2e contract (одной командой)
 
 ```bash
 bash scripts/test_npc_activity_contract.sh
