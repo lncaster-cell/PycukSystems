@@ -6,33 +6,38 @@
 
 int AL_GetRoutePointActivity(object oNpc, int nSlot, int iIndex);
 
+int AL_GetFallbackActivityForSlot(object oNpc, int nSlot)
+{
+    string sSlotKey = "al_slot_activity_" + IntToString(nSlot);
+    int nFallbackActivity = GetLocalInt(oNpc, sSlotKey);
+    if (nFallbackActivity <= 0)
+    {
+        nFallbackActivity = GetLocalInt(oNpc, "al_default_activity");
+    }
+
+    object oArea = GetArea(oNpc);
+    if (nFallbackActivity <= 0 && GetIsObjectValid(oArea))
+    {
+        nFallbackActivity = GetLocalInt(oArea, sSlotKey);
+        if (nFallbackActivity <= 0)
+        {
+            nFallbackActivity = GetLocalInt(oArea, "al_default_activity");
+        }
+    }
+
+    if (nFallbackActivity <= 0)
+    {
+        nFallbackActivity = AL_ACT_NPC_ACT_ONE;
+    }
+
+    return nFallbackActivity;
+}
+
 int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
 {
     if (AL_GetRouteCount(oNpc, nSlot) <= 0)
     {
-        string sSlotKey = "al_slot_activity_" + IntToString(nSlot);
-        int nFallbackActivity = GetLocalInt(oNpc, sSlotKey);
-        if (nFallbackActivity <= 0)
-        {
-            nFallbackActivity = GetLocalInt(oNpc, "al_default_activity");
-        }
-
-        object oArea = GetArea(oNpc);
-        if (nFallbackActivity <= 0 && GetIsObjectValid(oArea))
-        {
-            nFallbackActivity = GetLocalInt(oArea, sSlotKey);
-            if (nFallbackActivity <= 0)
-            {
-                nFallbackActivity = GetLocalInt(oArea, "al_default_activity");
-            }
-        }
-
-        if (nFallbackActivity <= 0)
-        {
-            nFallbackActivity = AL_ACT_NPC_ACT_ONE;
-        }
-
-        return nFallbackActivity;
+        return AL_GetFallbackActivityForSlot(oNpc, nSlot);
     }
 
     int nIndex = GetLocalInt(oNpc, "r_idx");
@@ -45,7 +50,13 @@ int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
         nIndex = 0;
     }
 
-    return AL_GetRoutePointActivity(oNpc, nSlot, nIndex);
+    int nRouteActivity = AL_GetRoutePointActivity(oNpc, nSlot, nIndex);
+    if (nRouteActivity <= 0)
+    {
+        return AL_GetFallbackActivityForSlot(oNpc, nSlot);
+    }
+
+    return nRouteActivity;
 }
 
 string AL_TrimToken(string sToken)
