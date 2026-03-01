@@ -11,7 +11,8 @@
 - `docs/npc_runtime_orchestration.md` — runtime/lifecycle контракт.
 - `docs/npc_activity_contract_checklist.md` — инварианты activity-layer и проверки.
 - `docs/testing_contracts.md` — контракты и команды тестовых прогонов.
-- `docs/npc_behavior_audit.md` — полный аудит поведения NPC.
+- `docs/npc_behavior_audit.md` — полный аудит поведения NPC (архитектура, риски, рекомендации).
+- `docs/npc_behavior_setup_faq.md` — пошаговая настройка интеграции NPC и FAQ для эксплуатации.
 - `docs/npc_persistence.md` — хранение состояния NPC (SQLite/NWNX).
 - `docs/perf/npc_perf_plan.md` — perf-план и сценарии baseline.
 - `docs/perf/npc_perf_gate.md` — правила perf-gate и формат verdict.

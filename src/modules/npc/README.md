@@ -7,6 +7,14 @@
 > далее именуется просто `NPC`.
 
 
+
+## Быстрый старт интеграции
+
+- Архитектурный аудит и риски: `docs/npc_behavior_audit.md`.
+- Пошаговая настройка + FAQ: `docs/npc_behavior_setup_faq.md`.
+- Runtime orchestration: `docs/npc_runtime_orchestration.md`.
+- Authoring-контракт для контент-команд: `docs/npc_toolset_authoring_contract.md`.
+
 ## Готовый модуль: что подключать в toolset
 
 Human-facing toolset authoring contract вынесен в `docs/npc_toolset_authoring_contract.md` (preset-first `npc_cfg_*` facade).
