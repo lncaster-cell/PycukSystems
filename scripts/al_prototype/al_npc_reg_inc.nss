@@ -56,12 +56,74 @@ int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
     return iCount;
 }
 
+void AL_LogRegistrationSkip(object oNpc, object oArea, string sReason)
+{
+    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
+    }
+
+    string sTag = GetTag(oNpc);
+    if (sTag == "")
+    {
+        sTag = "<no-tag>";
+    }
+
+    object oPc = GetFirstPC(FALSE);
+    while (GetIsObjectValid(oPc))
+    {
+        if (GetArea(oPc) == oArea)
+        {
+            SendMessageToPC(oPc, "AL: registration skipped for '" + sTag + "': " + sReason);
+        }
+        oPc = GetNextPC(FALSE);
+    }
+}
+
+int AL_IsParticipantNPC(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return FALSE;
+    }
+
+    if (GetObjectType(oNpc) != OBJECT_TYPE_CREATURE)
+    {
+        return FALSE;
+    }
+
+    if (GetLocalInt(oNpc, "al_enabled") == 1)
+    {
+        return TRUE;
+    }
+
+    return GetLocalString(oNpc, "alwp0") != "" || GetLocalString(oNpc, "alwp5") != "";
+}
+
 void AL_RegisterNPC(object oNpc)
 {
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
     object oArea = GetArea(oNpc);
+
+    if (GetObjectType(oNpc) != OBJECT_TYPE_CREATURE)
+    {
+        AL_LogRegistrationSkip(oNpc, oArea, "object is not a creature");
+        return;
+    }
+
+    if (!AL_IsParticipantNPC(oNpc))
+    {
+        AL_LogRegistrationSkip(oNpc, oArea, "missing AL marker (set al_enabled=1 or route locals alwp0/alwp5)");
+        return;
+    }
 
     if (!GetIsObjectValid(oArea))
     {
+        AL_LogRegistrationSkip(oNpc, oArea, "invalid area");
         return;
     }
 
