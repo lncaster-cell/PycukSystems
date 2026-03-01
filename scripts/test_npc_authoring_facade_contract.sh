@@ -8,6 +8,10 @@ LIFECYCLE_FILE="$ROOT_DIR/src/modules/npc/npc_lifecycle_inc.nss"
 AUTHORING_DOC="$ROOT_DIR/docs/npc_toolset_authoring_contract.md"
 RUNTIME_DOC="$ROOT_DIR/docs/npc_runtime_internal_contract.md"
 
+ROLE_PRESETS=(citizen worker merchant guard innkeeper static)
+SCHEDULE_PRESETS=(day_worker day_shop night_guard tavern_late always_home always_static custom)
+AREA_PRESETS=(city_exterior shop_interior house_interior tavern guard_post)
+
 assert_has() {
   local pattern="$1"
   local file="$2"
@@ -25,6 +29,17 @@ assert_file() {
   fi
 }
 
+assert_doc_has_preset_bullet() {
+  local preset="$1"
+  local file="$2"
+  local pattern
+  printf -v pattern -- '- `%s`' "$preset"
+  if ! rg -Fq -- "$pattern" "$file"; then
+    echo "[FAIL] missing documented preset '${preset}' in ${file}"
+    exit 1
+  fi
+}
+
 assert_file "$FACADE_FILE"
 assert_file "$AUTHORING_DOC"
 assert_file "$RUNTIME_DOC"
@@ -34,36 +49,25 @@ assert_has '#include "npc_authoring_facade_inc"' "$CORE_FILE"
 assert_has 'NpcBhvrAuthoringApplyNpcFacade\(oNpc\);' "$LIFECYCLE_FILE"
 assert_has 'NpcBhvrAuthoringApplyAreaFacade\(oArea\);' "$LIFECYCLE_FILE"
 
-# role/area_profile presets + slot-route canonical authoring
-assert_has 'citizen' "$FACADE_FILE"
-assert_has 'worker' "$FACADE_FILE"
-assert_has 'merchant' "$FACADE_FILE"
-assert_has 'guard' "$FACADE_FILE"
-assert_has 'innkeeper' "$FACADE_FILE"
-assert_has 'static' "$FACADE_FILE"
+# role/schedule/area_profile presets exist in resolver
+for preset in "${ROLE_PRESETS[@]}"; do
+  assert_has "$preset" "$FACADE_FILE"
+  assert_doc_has_preset_bullet "$preset" "$AUTHORING_DOC"
+done
+for preset in "${SCHEDULE_PRESETS[@]}"; do
+  assert_has "$preset" "$FACADE_FILE"
+  assert_doc_has_preset_bullet "$preset" "$AUTHORING_DOC"
+done
+for preset in "${AREA_PRESETS[@]}"; do
+  assert_has "$preset" "$FACADE_FILE"
+done
 
-assert_has 'npc_cfg_slot_dawn_route' "$FACADE_FILE"
-assert_has 'npc_cfg_slot_morning_route' "$FACADE_FILE"
-assert_has 'npc_cfg_slot_afternoon_route' "$FACADE_FILE"
-assert_has 'npc_cfg_slot_evening_route' "$FACADE_FILE"
-assert_has 'npc_cfg_slot_night_route' "$FACADE_FILE"
-assert_has 'npc_cfg_alert_route' "$FACADE_FILE"
-assert_has 'NPC_BHVR_VAR_ROUTE_PROFILE_ALERT' "$FACADE_FILE"
-
-# legacy schedule presets remain as compatibility-only migration path
-assert_has 'day_worker' "$FACADE_FILE"
-assert_has 'day_shop' "$FACADE_FILE"
-assert_has 'night_guard' "$FACADE_FILE"
-assert_has 'tavern_late' "$FACADE_FILE"
-assert_has 'always_home' "$FACADE_FILE"
-assert_has 'always_static' "$FACADE_FILE"
-assert_has 'custom' "$FACADE_FILE"
-
-assert_has 'city_exterior' "$FACADE_FILE"
-assert_has 'shop_interior' "$FACADE_FILE"
-assert_has 'house_interior' "$FACADE_FILE"
-assert_has 'tavern' "$FACADE_FILE"
-assert_has 'guard_post' "$FACADE_FILE"
+# resolver must actually combine role + schedule + routes
+assert_has 'NpcBhvrAuthoringResolveRoleDefaultSchedule\(' "$FACADE_FILE"
+assert_has 'NpcBhvrAuthoringResolveSchedulePreset\(' "$FACADE_FILE"
+assert_has 'NpcBhvrAuthoringResolveFirstNonEmptyRoute\(' "$FACADE_FILE"
+assert_has 'SetLocalString\(oNpc, NPC_BHVR_CFG_DERIVED_ROLE, sRole\);' "$FACADE_FILE"
+assert_has 'SetLocalString\(oNpc, NPC_BHVR_CFG_DERIVED_SCHEDULE, sSchedule\);' "$FACADE_FILE"
 
 # authoring locals wired
 assert_has 'npc_cfg_role' "$FACADE_FILE"
@@ -98,6 +102,9 @@ assert_has 'npc_cfg_derived_identity_type' "$RUNTIME_DOC"
 assert_has 'Human-facing authoring contract' "$AUTHORING_DOC"
 assert_has 'Runtime/internal contract reference' "$RUNTIME_DOC"
 assert_has 'Three-level local model' "$RUNTIME_DOC"
+assert_has 'Каноническая slot-модель' "$AUTHORING_DOC"
+assert_has 'Role semantics' "$AUTHORING_DOC"
+assert_has 'Schedule semantics' "$AUTHORING_DOC"
 
 # runtime contour compatibility anchors still present
 assert_has 'NpcBhvrLegacyBridgeMigrateNpc\(' "$ROOT_DIR/src/modules/npc/npc_activity_inc.nss"
