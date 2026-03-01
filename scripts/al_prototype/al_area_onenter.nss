@@ -65,6 +65,8 @@ void main()
 
     AL_CacheTrainingPartners(oArea);
     AL_SyncAreaNPCRegistry(oArea);
+    DeleteLocalInt(oArea, "al_routes_cached");
+    AL_CacheAreaRoutes(oArea);
     AL_UnhideAndResyncRegisteredNPCs(oArea);
     DelayCommand(AL_TICK_PERIOD, AreaTick(oArea, iToken));
 }
