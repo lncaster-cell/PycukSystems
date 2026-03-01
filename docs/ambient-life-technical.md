@@ -135,15 +135,16 @@ Domain includes
 ## 5) Ограничения и инварианты
 
 1. **Лимит registry:** `AL_MAX_NPCS = 100`. При переполнении новые NPC не регистрируются (опционально пишется debug-сообщение).
-2. **Инвариант плотного массива registry:** `al_npc_0..al_npc_count-1` без дыр; удаление делается swap-with-last (`AL_PruneRegistrySlot`).
-3. **Смена area через route jump:** `AL_HandleRouteAreaTransition` обязательно делает:
+2. **Лимит точек маршрута NPC:** `AL_ROUTE_MAX_POINTS = 10` (см. `al_constants_inc.nss`). `AL_CacheRouteFromTag` копирует не более этого числа точек из area-cache в NPC locals; при `al_debug=1` на NPC или area выводится сообщение о том, что маршрут по тегу был усечён до лимита.
+3. **Инвариант плотного массива registry:** `al_npc_0..al_npc_count-1` без дыр; удаление делается swap-with-last (`AL_PruneRegistrySlot`).
+4. **Смена area через route jump:** `AL_HandleRouteAreaTransition` обязательно делает:
    - `AL_UnregisterNPC` из старой area,
    - обновление `al_last_area`,
    - `AL_RegisterNPC` в новой area,
    - если в новой area нет игроков — NPC скрывается и route очищается,
    - `AL_EVT_RESYNC` для выравнивания состояния.
-4. **Источник активности:** активность берётся только из `al_activity` текущего waypoint маршрута; если точка/активность некорректна — используется безопасный `AL_ACT_NPC_ACT_ONE`.
-5. **Обработка скрытого состояния:** при `AL_ACT_NPC_HIDDEN` активный route прекращается (clear actions + сброс runtime route locals).
+5. **Источник активности:** активность берётся только из `al_activity` текущего waypoint маршрута; если точка/активность некорректна — используется безопасный `AL_ACT_NPC_ACT_ONE`.
+6. **Обработка скрытого состояния:** при `AL_ACT_NPC_HIDDEN` активный route прекращается (clear actions + сброс runtime route locals).
 
 ---
 

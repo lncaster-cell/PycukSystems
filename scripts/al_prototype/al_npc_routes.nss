@@ -10,7 +10,30 @@
 #include "al_npc_reg_inc"
 #include "al_area_tick_inc"
 
-const int AL_ROUTE_MAX_POINTS = 10;
+void AL_RouteDebugLog(object oNpc, string sMessage)
+{
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (GetLocalInt(oNpc, "al_debug") != 1 && GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
+    }
+
+    object oPc = GetFirstPC();
+    while (GetIsObjectValid(oPc))
+    {
+        if (GetArea(oPc) == oArea)
+        {
+            SendMessageToPC(oPc, sMessage);
+        }
+
+        oPc = GetNextPC();
+    }
+}
 
 string AL_GetRoutePrefix(int nSlot)
 {
@@ -106,8 +129,17 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
     string sPrefix = AL_GetRoutePrefix(nSlot);
     string sAreaPrefix = "al_route_" + sTag + "_";
     int iAreaCount = GetLocalInt(oArea, sAreaPrefix + "n");
+    int iAreaCountOriginal = iAreaCount;
     int iCopied = 0;
     int i = 0;
+
+    if (iAreaCount > AL_ROUTE_MAX_POINTS)
+    {
+        iAreaCount = AL_ROUTE_MAX_POINTS;
+        AL_RouteDebugLog(oNpc, "AL: route tag " + sTag + " truncated to "
+            + IntToString(AL_ROUTE_MAX_POINTS) + " points (was "
+            + IntToString(iAreaCountOriginal) + ").");
+    }
 
     while (i < iAreaCount && iCopied < AL_ROUTE_MAX_POINTS)
     {
