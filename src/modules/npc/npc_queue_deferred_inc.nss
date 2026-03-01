@@ -151,7 +151,6 @@ int NpcBhvrQueueTrimDeferredOverflow(object oArea, int nTrimCount)
             if (GetIsObjectValid(oSubject) && GetLocalInt(oSubject, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
             {
                 oSubject = NpcBhvrQueueRemoveSwapTail(oArea, nPriority, nSlot);
-                NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
                 NpcBhvrPendingAreaTouch(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED);
                 NpcBhvrPendingNpcClear(oSubject);
                 NpcBhvrPendingAreaClear(oArea, oSubject);
