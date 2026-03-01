@@ -184,6 +184,12 @@ void AL_InitBarPair(object oNpc)
             oPartner = oPartnerRef;
             SetLocalObject(oArea, sAreaPartnerKey, oPartner);
         }
+        else
+        {
+            // Reference was replaced/invalidated: keep runtime pair unbound until a valid NPC appears.
+            DeleteLocalObject(oArea, sAreaPartnerKey);
+            oPartner = OBJECT_INVALID;
+        }
     }
 
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
