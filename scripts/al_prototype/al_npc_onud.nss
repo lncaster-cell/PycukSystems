@@ -2,9 +2,6 @@
 
 #include "al_constants_inc"
 #include "al_npc_acts_inc"
-#include "al_npc_routes"
-
-int AL_ActivityUsesRoute(int nSlot);
 
 void AL_ResetRouteIndex(object oNpc)
 {
