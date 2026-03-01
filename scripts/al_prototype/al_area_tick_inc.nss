@@ -264,12 +264,9 @@ void AL_CacheAreaRoutes(object oArea)
 
 int AL_ComputeTimeSlot()
 {
+    // GetTimeHour() is expected to be in the 0..23 range.
     int iSlot = GetTimeHour() / 4;
-    if (iSlot < 0)
-    {
-        iSlot = 0;
-    }
-    else if (iSlot > AL_SLOT_MAX)
+    if (iSlot > AL_SLOT_MAX)
     {
         iSlot = AL_SLOT_MAX;
     }
