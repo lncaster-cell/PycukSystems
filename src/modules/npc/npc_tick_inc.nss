@@ -394,8 +394,6 @@ int NpcBhvrTickApplyDegradationAndCarryover(object oArea, int nTickState)
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_TICK_BUDGET_EXCEEDED_TOTAL);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_DEGRADED_MODE_TOTAL);
         NpcBhvrRecordDegradationEvent(oArea, nDegradationReason);
-        NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);
-        NpcBhvrQueueMarkDeferredHead(oArea);
     }
 
     return nCarryoverEvents;
@@ -430,8 +428,8 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
             if (nDeferredOverflow > 0)
             {
                 bQueueMutated = TRUE;
+                nCarryoverEvents = nCarryoverEvents - nDeferredOverflow;
             }
-            nCarryoverEvents = nCarryoverEvents - nDeferredOverflow;
             if (nCarryoverEvents < 0)
             {
                 nCarryoverEvents = 0;

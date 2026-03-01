@@ -3,7 +3,9 @@
 // Forward declarations for lifecycle-local/public helpers used before definition.
 void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec);
 void NpcBhvrOnAreaMaintenance(object oArea);
+void NpcBhvrOnAreaMaintenanceImpl(object oArea);
 void NpcBhvrBootstrapModuleAreas();
+void NpcBhvrQueuePurgeSubject(object oArea, object oSubject);
 
 int NpcBhvrAreaGetState(object oArea)
 {
@@ -112,7 +114,7 @@ void NpcBhvrAreaActivate(object oArea)
         DelayCommand(NPC_BHVR_AREA_TICK_INTERVAL_RUNNING_SEC, ExecuteScript("npc_area_tick", oArea));
     }
 
-    NpcBhvrOnAreaMaintenance(oArea);
+    NpcBhvrOnAreaMaintenanceImpl(oArea);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
@@ -126,7 +128,7 @@ void NpcBhvrAreaPause(object oArea)
     // Pause only toggles lifecycle state; queue/pending counters remain untouched.
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_PAUSED);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_PAUSED);
-    NpcBhvrOnAreaMaintenance(oArea);
+    NpcBhvrOnAreaMaintenanceImpl(oArea);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
@@ -137,10 +139,11 @@ void NpcBhvrAreaStop(object oArea)
         return;
     }
 
-    NpcBhvrOnAreaMaintenance(oArea);
+    NpcBhvrOnAreaMaintenanceImpl(oArea);
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_STOPPED);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
     NpcBhvrRegistryResetIdleCursor(oArea);
     NpcBhvrQueueClear(oArea);
 }
@@ -183,6 +186,7 @@ void NpcBhvrOnAreaTickImpl(object oArea)
     {
         SetLocalInt(oArea, NPC_BHVR_VAR_AREA_TIMER_RUNNING, FALSE);
         SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+        SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
         return;
     }
 
@@ -327,7 +331,8 @@ void NpcBhvrScheduleAreaMaintenance(object oArea, float fDelaySec)
         return;
     }
 
-    if (GetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING) == TRUE)
+    if (GetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING) == TRUE
+        || GetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS) == TRUE)
     {
         return;
     }
@@ -346,18 +351,25 @@ void NpcBhvrOnAreaMaintenanceImpl(object oArea)
     }
 
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_TIMER_RUNNING, FALSE);
+    if (GetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS) == TRUE)
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, TRUE);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
 
-    nAreaState = NpcBhvrAreaGetState(oArea);
+    NpcBhvrQueueReconcileDeferredTotal(oArea, TRUE);
+    NpcBhvrRegistryCompactInvalidEntries(oArea, NPC_BHVR_REGISTRY_COMPACTION_BATCH_CAP_DEFAULT);
+
     NpcBhvrClusterOrchestrateArea(oArea);
     nAreaState = NpcBhvrAreaGetState(oArea);
+    SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_IN_PROGRESS, FALSE);
     if (nAreaState == NPC_BHVR_AREA_STATE_STOPPED)
     {
         return;
     }
 
-    NpcBhvrQueueReconcileDeferredTotal(oArea, TRUE);
-    NpcBhvrRegistryCompactInvalidEntries(oArea, NPC_BHVR_REGISTRY_COMPACTION_BATCH_CAP_DEFAULT);
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
 }
 
@@ -461,9 +473,6 @@ void NpcBhvrOnDamagedImpl(object oNpc)
 void NpcBhvrOnDeathImpl(object oNpc)
 {
     object oArea;
-    int nFound;
-    int nFoundPriority;
-    int nFoundIndex;
 
     if (!GetIsObjectValid(oNpc))
     {
@@ -480,15 +489,7 @@ void NpcBhvrOnDeathImpl(object oNpc)
     }
 
     NpcBhvrRegistryRemove(oArea, oNpc);
-    nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oNpc);
-    while (nFound != 0)
-    {
-        nFoundPriority = nFound / 1000;
-        nFoundIndex = nFound - nFoundPriority * 1000;
-        NpcBhvrQueueSwapTailSubject(oArea, nFoundPriority, nFoundIndex, TRUE);
-        nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oNpc);
-    }
-
+    NpcBhvrQueuePurgeSubject(oArea, oNpc);
     NpcBhvrPendingNpcClear(oNpc);
     NpcBhvrPendingAreaClear(oArea, oNpc);
 }
@@ -567,6 +568,9 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
         }
 
         NpcBhvrRegistryRemove(oArea, oExiting);
+        NpcBhvrQueuePurgeSubject(oArea, oExiting);
+        NpcBhvrPendingAreaClear(oArea, oExiting);
+        NpcBhvrPendingNpcClear(oExiting);
         return;
     }
 
