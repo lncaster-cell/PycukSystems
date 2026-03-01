@@ -312,10 +312,28 @@ int NpcBhvrLodFastForwardSameSlot(object oNpc, int nNow)
     return TRUE;
 }
 
+void NpcBhvrLodReanchorCurrentRoute(object oNpc)
+{
+    string sRoute;
+    int nWpCount;
+    int bWpLoop;
+
+    sRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
+    nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRoute);
+    bWpLoop = NpcBhvrActivityResolveRouteLoop(oNpc, sRoute);
+
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex(0, nWpCount, bWpLoop));
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bWpLoop);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
+}
+
 void NpcBhvrLodRevealResync(object oNpc, int nNow)
 {
     string sProjectedSlot;
     string sCurrentSlot;
+    string sProjectedRoute;
+    string sCurrentRoute;
     int nRevealCooldown;
     int nLastToggle;
     int bFastForwarded;
@@ -350,14 +368,14 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
 
     sProjectedSlot = GetLocalString(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_SLOT);
     sCurrentSlot = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE);
+    sProjectedRoute = GetLocalString(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_ROUTE);
+    sCurrentRoute = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE);
 
-    if (sProjectedSlot != "" && sProjectedSlot != sCurrentSlot)
+    if ((sProjectedSlot != "" && sProjectedSlot != sCurrentSlot)
+        || (sProjectedRoute != "" && sProjectedRoute != sCurrentRoute))
     {
         // Slot changed while hidden: re-anchor to canonical schedule result.
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, 0);
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, NpcBhvrActivityResolveRouteCount(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, NpcBhvrActivityResolveRouteLoop(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
-        SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
+        NpcBhvrLodReanchorCurrentRoute(oNpc);
         NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_REVEAL_SLOT_CHANGE_TOTAL);
     }
     else
@@ -366,10 +384,7 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
         if (!bFastForwarded)
         {
             // Safe fallback: canonical re-anchor when phase restore is not reliable.
-            SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, 0);
-            SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, NpcBhvrActivityResolveRouteCount(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
-            SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, NpcBhvrActivityResolveRouteLoop(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
-            SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
+            NpcBhvrLodReanchorCurrentRoute(oNpc);
             NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_REANCHOR_FALLBACK_TOTAL);
         }
         NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_REVEAL_SAME_SLOT_TOTAL);
