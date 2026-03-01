@@ -38,5 +38,6 @@ void main()
     }
 
     SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
+    DeleteLocalInt(oArea, "al_routes_cached");
     AL_HideRegisteredNPCs(oArea);
 }
