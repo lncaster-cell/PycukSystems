@@ -6,6 +6,7 @@ void NpcBhvrOnAreaMaintenance(object oArea);
 void NpcBhvrOnAreaMaintenanceImpl(object oArea);
 void NpcBhvrBootstrapModuleAreas();
 void NpcBhvrQueuePurgeSubject(object oArea, object oSubject);
+void NpcBhvrAreaEnsureRegistryCoverageOnActivate(object oArea);
 
 int NpcBhvrAreaGetState(object oArea)
 {
@@ -104,6 +105,9 @@ void NpcBhvrAreaActivate(object oArea)
     // Единый источник применения runtime-budget (area -> module -> defaults + normalisation):
     // только NpcBhvrApplyTickRuntimeConfig.
     NpcBhvrApplyTickRuntimeConfig(oArea);
+    // Activation/resume safety: ensure registry contains currently live NPCs
+    // so idle/LOD/runtime paths do not depend on historical queue state.
+    NpcBhvrAreaEnsureRegistryCoverageOnActivate(oArea);
     NpcBhvrAreaSetStateInternal(oArea, NPC_BHVR_AREA_STATE_RUNNING);
     NpcBhvrActivityOnAreaActivate(oArea);
     NpcBhvrLodApplyAreaState(oArea, NPC_BHVR_AREA_STATE_RUNNING);
@@ -115,6 +119,34 @@ void NpcBhvrAreaActivate(object oArea)
     }
 
     NpcBhvrScheduleAreaMaintenance(oArea, NPC_BHVR_AREA_MAINTENANCE_WATCHDOG_INTERVAL_SEC);
+}
+
+void NpcBhvrAreaEnsureRegistryCoverageOnActivate(object oArea)
+{
+    object oIter;
+    int nRegistryCountBefore;
+
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    // Keep activate-path deterministic: compact stale entries first and only
+    // do a full area scan when registry is empty (cold boot/legacy stop-path).
+    NpcBhvrRegistryCompactInvalidEntries(oArea, NPC_BHVR_REGISTRY_COMPACTION_BATCH_CAP_DEFAULT);
+
+    nRegistryCountBefore = GetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT);
+    if (nRegistryCountBefore > 0)
+    {
+        return;
+    }
+
+    oIter = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oIter))
+    {
+        NpcBhvrRegistryInsert(oArea, oIter);
+        oIter = GetNextObjectInArea(oArea);
+    }
 }
 
 void NpcBhvrAreaPause(object oArea)
