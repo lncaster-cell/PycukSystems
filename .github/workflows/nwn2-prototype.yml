@@ -2,216 +2,54 @@ name: Build AL NPC Prototype
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/al_prototype/**'
+      - 'compilator/nwn2_compiler/**'
+      - '.github/workflows/nwn2-prototype.yml'
+      - '.github/scripts/nwn2_compile.ps1'
+  pull_request:
+    paths:
+      - 'scripts/al_prototype/**'
+      - 'compilator/nwn2_compiler/**'
+      - '.github/workflows/nwn2-prototype.yml'
+      - '.github/scripts/nwn2_compile.ps1'
 
 jobs:
   compile:
     runs-on: windows-latest
 
-    env:
-      COMPILER: compilator/nwn2_compiler/bin/NWNScriptCompiler.exe
-      PROTOTYPE_DIR: scripts/al_prototype
-      STOCK_DIR: compilator/nwn2_compiler/stock_scripts
-      LOG_DIR: out/logs
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Collect prototype sources
-        id: sources
+      - name: Run NWN2 compilation pipeline
         shell: pwsh
         run: |
-          $entryScripts = Get-ChildItem "$env:PROTOTYPE_DIR/al_*.nss" |
-            Where-Object { $_.Name -notmatch '_inc\.nss$' } |
-            Sort-Object Name |
-            ForEach-Object { $_.FullName }
+          & ./.github/scripts/nwn2_compile.ps1
 
-          if (-not $entryScripts) {
-            throw "No AL prototype entry scripts found in $env:PROTOTYPE_DIR"
+      - name: Pack build output (.ncs)
+        if: success()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+          if (-not (Get-ChildItem -Path out/build -Filter *.ncs -File -ErrorAction SilentlyContinue)) {
+            throw 'Build mode succeeded but no .ncs files found in out/build'
           }
-
-          $joined = $entryScripts -join "`n"
-          "entry_scripts<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          $joined | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-
-      - name: Cleanup old outputs and logs
-        shell: pwsh
-        run: |
-          Remove-Item -Path out,artifacts -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Force -Path out,"$env:LOG_DIR" | Out-Null
-
-      - name: Init compile summary
-        shell: pwsh
-        run: |
-          @"
-          ## NWN2 compiler checks
-
-          > В случае ошибки смотрите также артефакт `nwn2-compiler-logs` (полные логи по каждому режиму).
-
-          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
-
-      - name: Define diagnostics helpers
-        shell: pwsh
-        run: |
-          Set-Content -Path out/compiler-diagnostics.ps1 -Encoding utf8 -Value @'
-          function Get-CompilerErrorLines {
-            param(
-              [Parameter(Mandatory = $true)]
-              [string]$LogPath
-            )
-
-            if (-not (Test-Path $LogPath)) {
-              return @()
-            }
-
-            $patterns = @(
-              '(?i)\berror\b',
-              '(?i)\bfatal\b',
-              '(?i)\bexception\b',
-              '(?i)\bundefined\b',
-              '(?i)\bundeclared\b',
-              '(?i)\bcannot\b',
-              '(?i)\bfailed\b'
-            )
-
-            Get-Content -Path $LogPath |
-              Where-Object {
-                $line = $_
-                $patterns | Where-Object { $line -match $_ } | Select-Object -First 1
-              }
-          }
-
-          function Write-DiagnosticsToSummary {
-            param(
-              [Parameter(Mandatory = $true)]
-              [string]$ModeName,
-              [Parameter(Mandatory = $true)]
-              [string]$LogPath
-            )
-
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### ❌ $ModeName failed"
-            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "Лог: `$LogPath`"
-
-            $errLines = Get-CompilerErrorLines -LogPath $LogPath | Select-Object -First 40
-
-            if ($errLines.Count -gt 0) {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Найденные диагностические строки:**"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
-              $errLines | Add-Content -Path $env:GITHUB_STEP_SUMMARY
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
-            }
-            else {
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "**Диагностические строки не обнаружены, последние строки лога:**"
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
-              Get-Content -Path $LogPath -Tail 120 | Add-Content -Path $env:GITHUB_STEP_SUMMARY
-              Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
-            }
-          }
-          '@
-
-      - name: Check mode
-        shell: pwsh
-        run: |
-          . ./out/compiler-diagnostics.ps1
-          New-Item -ItemType Directory -Force -Path out/check | Out-Null
-          $scripts = @"
-          ${{ steps.sources.outputs.entry_scripts }}
-          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
-          $logPath = "$env:LOG_DIR/check.log"
-
-          & "$env:COMPILER" -c -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/check @scripts 2>&1 |
-            Tee-Object -FilePath $logPath
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-DiagnosticsToSummary -ModeName "Check mode" -LogPath $logPath
-            throw "Compiler check mode failed"
-          }
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Check mode passed"
-
-      - name: Bug search mode (analyzer)
-        shell: pwsh
-        run: |
-          . ./out/compiler-diagnostics.ps1
-          New-Item -ItemType Directory -Force -Path out/analyze | Out-Null
-          $scripts = @"
-          ${{ steps.sources.outputs.entry_scripts }}
-          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
-          $logPath = "$env:LOG_DIR/analyze.log"
-
-          & "$env:COMPILER" -c -a -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/analyze @scripts 2>&1 |
-            Tee-Object -FilePath $logPath
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-DiagnosticsToSummary -ModeName "Analyzer mode" -LogPath $logPath
-            throw "Compiler analyzer mode failed"
-          }
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Analyzer mode passed"
-
-      - name: Optimization mode
-        shell: pwsh
-        run: |
-          . ./out/compiler-diagnostics.ps1
-          New-Item -ItemType Directory -Force -Path out/opt | Out-Null
-          $scripts = @"
-          ${{ steps.sources.outputs.entry_scripts }}
-          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
-          $logPath = "$env:LOG_DIR/opt.log"
-
-          & "$env:COMPILER" -c -o -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/opt @scripts 2>&1 |
-            Tee-Object -FilePath $logPath
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-DiagnosticsToSummary -ModeName "Optimization mode" -LogPath $logPath
-            throw "Compiler optimization mode failed"
-          }
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Optimization mode passed"
-
-      - name: Build release NCS
-        shell: pwsh
-        run: |
-          . ./out/compiler-diagnostics.ps1
-          New-Item -ItemType Directory -Force -Path out/build | Out-Null
-          $scripts = @"
-          ${{ steps.sources.outputs.entry_scripts }}
-          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
-          $logPath = "$env:LOG_DIR/build.log"
-
-          & "$env:COMPILER" -c -o -a -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/build @scripts 2>&1 |
-            Tee-Object -FilePath $logPath
-
-          if ($LASTEXITCODE -ne 0) {
-            Write-DiagnosticsToSummary -ModeName "Build mode" -LogPath $logPath
-            throw "Compiler build mode failed"
-          }
-
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Build mode passed"
-
-      - name: Pack compiled scripts
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
           Compress-Archive -Path out/build/*.ncs -DestinationPath artifacts/al_npc_prototype_ncs.zip -Force
 
-      - name: Upload compiled NCS artifact
+      - name: Upload build artifact (.ncs zip)
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: al-npc-prototype-ncs
           path: artifacts/al_npc_prototype_ncs.zip
+          if-no-files-found: error
 
-      - name: Upload compiler logs
+      - name: Upload compilation logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nwn2-compiler-logs
           path: out/logs/*.log
           if-no-files-found: warn
-
-      - name: Cleanup transient logs
-        if: always()
-        shell: pwsh
-        run: |
-          Remove-Item -Path "$env:LOG_DIR" -Recurse -Force -ErrorAction SilentlyContinue
