@@ -148,7 +148,7 @@ void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow)
 
     // NPC-local pending status is authoritative for current NPC event-state and
     // must only be reset by explicit terminal clear-paths.
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS, nStatus);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_PENDING_STATUS, nStatus);
     NpcBhvrPendingNpcTouchAt(oNpc, nNow);
 }
 
@@ -205,7 +205,7 @@ void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus
     if (GetIsObjectValid(oNpc))
     {
         // Backward compatibility transition: keep legacy string mirror until downstream consumers are migrated.
-        SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+        NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
     }
 }
 
@@ -216,8 +216,8 @@ void NpcBhvrPendingSetAtIntReason(object oNpc, int nPriority, int nReasonCode, i
         return;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
     NpcBhvrPendingSetStatusAt(oNpc, nStatus, nNow);
 }
 
@@ -227,7 +227,7 @@ void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string
     if (GetIsObjectValid(oNpc))
     {
         // Backward compatibility transition: keep legacy string mirror until downstream consumers are migrated.
-        SetLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
+        NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_PENDING_REASON, sReason);
     }
 }
 
@@ -238,7 +238,7 @@ void NpcBhvrPendingSetTrackedAtIntReason(object oArea, object oNpc, int nPriorit
         return;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY, nPriority);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE, nReasonCode);
     NpcBhvrPendingSetStatusTrackedAt(oArea, oNpc, nStatus, nNow);
 }

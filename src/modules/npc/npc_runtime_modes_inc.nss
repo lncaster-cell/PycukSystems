@@ -144,7 +144,7 @@ void NpcBhvrAreaSetClusterOwner(object oArea, string sClusterOwner)
         return;
     }
 
-    SetLocalString(oArea, NPC_BHVR_VAR_AREA_CLUSTER_OWNER, sClusterOwner);
+    NpcBhvrSetLocalStringIfChanged(oArea, NPC_BHVR_VAR_AREA_CLUSTER_OWNER, sClusterOwner);
 }
 
 string NpcBhvrAreaGetClusterOwner(object oArea)
@@ -169,7 +169,7 @@ void NpcBhvrAreaSetInterestState(object oArea, int nState)
         nState = NPC_BHVR_AREA_INTEREST_UNKNOWN;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_AREA_INTEREST_STATE, nState);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_AREA_INTEREST_STATE, nState);
 }
 
 int NpcBhvrAreaGetInterestState(object oArea)
@@ -202,7 +202,7 @@ void NpcBhvrSetNpcSimulationLod(object oNpc, int nLod)
         nLod = NPC_BHVR_SIM_LOD_FULL;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_NPC_SIM_LOD, nLod);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_NPC_SIM_LOD, nLod);
 }
 
 int NpcBhvrGetNpcSimulationLod(object oNpc)
@@ -235,7 +235,7 @@ void NpcBhvrSetNpcProjectedState(object oNpc, int nState)
         nState = NPC_BHVR_PROJECTED_VISIBLE;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_NPC_PROJECTED_STATE, nState);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_NPC_PROJECTED_STATE, nState);
 }
 
 int NpcBhvrGetNpcProjectedState(object oNpc)

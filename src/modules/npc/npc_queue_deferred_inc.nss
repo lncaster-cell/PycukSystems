@@ -20,7 +20,7 @@ void NpcBhvrQueueSetDeferredTotal(object oArea, int nDeferredTotal)
         nDeferredTotal = 0;
     }
 
-    SetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, nDeferredTotal);
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEFERRED_TOTAL, nDeferredTotal);
 }
 
 // Hot-path-safe linear walk: read head/depth once per priority, then advance
@@ -88,7 +88,7 @@ int NpcBhvrQueueReconcileDeferredTotal(object oArea, int bMarkSelfHeal)
     {
         if (bMarkSelfHeal)
         {
-            SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, TRUE);
+            NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, TRUE);
             NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_MAINT_SELF_HEAL_COUNT);
         }
 
