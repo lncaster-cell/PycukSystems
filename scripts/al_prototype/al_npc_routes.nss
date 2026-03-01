@@ -240,6 +240,7 @@ void AL_QueueRoute(object oNpc, int nSlot, int bClearActions)
 {
     int iCount = AL_GetRouteCount(oNpc, nSlot);
     int i = 0;
+    int bMoveQueued = FALSE;
     int bTransitionQueued = FALSE;
 
     if (bClearActions)
@@ -267,6 +268,7 @@ void AL_QueueRoute(object oNpc, int nSlot, int bClearActions)
             i++;
             continue;
         }
+        bMoveQueued = TRUE;
         AssignCommand(oNpc, ActionMoveToLocation(lPoint));
         AssignCommand(oNpc, ActionDoCommand(AL_UpdateRouteIndex(oNpc, i)));
         location lJump = GetLocalLocation(oNpc, sIndex + "_jump");
@@ -283,6 +285,12 @@ void AL_QueueRoute(object oNpc, int nSlot, int bClearActions)
 
     if (!bTransitionQueued)
     {
+        if (!bMoveQueued)
+        {
+            AL_ClearActiveRoute(oNpc, FALSE);
+            return;
+        }
+
         float fRepeatDelay = 5.0 + IntToFloat(Random(8));
 
         AssignCommand(oNpc, ActionWait(fRepeatDelay));
