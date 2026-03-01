@@ -6,15 +6,6 @@
 
 int AL_ActivityUsesRoute(object oNpc, int nSlot);
 
-int AL_GetAmbientLifeDaySeconds()
-{
-    int nSeconds = GetTimeSecond();
-    int nMinutes = GetTimeMinute();
-    int nHours = GetTimeHour();
-
-    return nSeconds + (nMinutes * 60) + (nHours * 3600);
-}
-
 void AL_ResetRouteIndex(object oNpc)
 {
     SetLocalInt(oNpc, "r_idx", 0);
