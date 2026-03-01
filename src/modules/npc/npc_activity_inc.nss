@@ -151,20 +151,20 @@ string NpcBhvrActivitySlotRouteProfileKey(string sSlot)
     return NPC_BHVR_VAR_ROUTE_PROFILE_SLOT_PREFIX + sSlot;
 }
 
-string NpcBhvrActivityComposePrecheckL1Stamp(int nResolvedHour, string sAreaTag)
+string NpcBhvrActivityComposePrecheckL1Stamp(int nResolvedHour, string sAreaTag, string sMode)
 {
     string sAreaHash;
     string sStamp;
 
     sAreaHash = NpcBhvrSafeHash(sAreaTag, NPC_BHVR_LOCAL_KEY_HASH_LENGTH);
-    sStamp = IntToString(nResolvedHour) + "|" + sAreaHash;
+    sStamp = IntToString(nResolvedHour) + "|" + sAreaHash + "|" + sMode;
 
     return sStamp;
 }
 
-string NpcBhvrActivityComposePrecheckL2Stamp(string sPrecheckL1Stamp, string sSlotRaw)
+string NpcBhvrActivityComposePrecheckL2Stamp(string sPrecheckL1Stamp, string sSlotRaw, string sMode)
 {
-    return sPrecheckL1Stamp + "|" + NpcBhvrSafeHash(sSlotRaw, NPC_BHVR_LOCAL_KEY_HASH_LENGTH);
+    return sPrecheckL1Stamp + "|" + NpcBhvrSafeHash(sSlotRaw, NPC_BHVR_LOCAL_KEY_HASH_LENGTH) + "|" + sMode;
 }
 
 int NpcBhvrActivityNeedsPrecheckL1Refresh(object oNpc, string sPrecheckL1Stamp)
@@ -926,6 +926,7 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
     string sPrecheckL1Stamp;
     string sPrecheckL2Stamp;
     string sRoute;
+    string sMode;
     string sAreaTag;
     int nResolvedHour;
     int nNow;
@@ -957,16 +958,19 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
         sAreaTag = "";
     }
 
+    sMode = NpcBhvrActivityResolveMode(oNpc);
     sPrecheckL1Stamp = NpcBhvrActivityComposePrecheckL1Stamp(
         nResolvedHour,
-        sAreaTag
+        sAreaTag,
+        sMode
     );
 
     if (NpcBhvrActivityNeedsPrecheckL1Refresh(oNpc, sPrecheckL1Stamp))
     {
         sPrecheckL2Stamp = NpcBhvrActivityComposePrecheckL2Stamp(
             sPrecheckL1Stamp,
-            GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT)
+            GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT),
+            sMode
         );
 
         if (NpcBhvrActivityNeedsHeavyRefreshL2(oNpc, sPrecheckL2Stamp))

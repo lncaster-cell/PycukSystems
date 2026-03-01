@@ -354,7 +354,7 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
     if (sProjectedSlot != "" && sProjectedSlot != sCurrentSlot)
     {
         // Slot changed while hidden: re-anchor to canonical schedule result.
-        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, 1);
+        SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, 0);
         SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, NpcBhvrActivityResolveRouteCount(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
         SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, NpcBhvrActivityResolveRouteLoop(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
         SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
@@ -366,7 +366,7 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
         if (!bFastForwarded)
         {
             // Safe fallback: canonical re-anchor when phase restore is not reliable.
-            SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, 1);
+            SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, 0);
             SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, NpcBhvrActivityResolveRouteCount(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
             SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, NpcBhvrActivityResolveRouteLoop(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));
             SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE)));

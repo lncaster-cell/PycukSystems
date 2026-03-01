@@ -21,6 +21,7 @@ void NpcBhvrPendingNpcClear(object oNpc);
 void NpcBhvrPendingAreaClear(object oArea, object oSubject);
 object NpcBhvrQueuePeekFromPriority(object oArea, int nPriority);
 int NpcBhvrQueueApplyOverflowGuardrail(object oArea, int nIncomingPriority, int nReasonCode);
+void NpcBhvrQueuePurgeSubject(object oArea, object oSubject);
 
 #include "npc_queue_pending_inc"
 #include "npc_queue_index_inc"
@@ -505,6 +506,41 @@ int NpcBhvrQueueFindSubjectSlowPath(object oArea, object oSubject)
     }
 
     return 0;
+}
+
+void NpcBhvrQueuePurgeSubject(object oArea, object oSubject)
+{
+    int nFound;
+    int nFoundPriority;
+    int nFoundIndex;
+
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSubject))
+    {
+        return;
+    }
+
+    nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oSubject);
+    while (nFound == 0)
+    {
+        nFound = NpcBhvrQueueFindSubjectSlowPath(oArea, oSubject);
+        if (nFound == 0)
+        {
+            break;
+        }
+
+        nFoundPriority = nFound / 1000;
+        nFoundIndex = nFound - nFoundPriority * 1000;
+        NpcBhvrQueueSwapTailSubject(oArea, nFoundPriority, nFoundIndex, TRUE);
+        nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oSubject);
+    }
+
+    while (nFound != 0)
+    {
+        nFoundPriority = nFound / 1000;
+        nFoundIndex = nFound - nFoundPriority * 1000;
+        NpcBhvrQueueSwapTailSubject(oArea, nFoundPriority, nFoundIndex, TRUE);
+        nFound = NpcBhvrQueueTryResolveIndexedSubject(oArea, oSubject);
+    }
 }
 
 void NpcBhvrQueuePostUpdateQueuedAt(object oArea, object oSubject, int nPriority, int nReasonCode, int bStatusOnlyIfPending, int nNow)
