@@ -43,6 +43,5 @@ void main()
         return;
     }
 
-    SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
-    AL_HideRegisteredNPCs(oArea);
+    AL_HandleLastPlayerLeaves(oArea);
 }
