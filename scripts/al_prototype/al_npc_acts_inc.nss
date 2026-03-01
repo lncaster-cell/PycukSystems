@@ -137,16 +137,6 @@ int AL_ActivityHasRequiredRoute(object oNpc, int nSlot, int nActivity)
     return AL_GetRouteTag(oNpc, nSlot) == sWaypointTag;
 }
 
-int AL_ActivityHasTrainingPartner(object oNpc)
-{
-    return GetIsObjectValid(GetLocalObject(oNpc, "al_training_partner"));
-}
-
-int AL_ActivityHasBarPair(object oNpc)
-{
-    return GetIsObjectValid(GetLocalObject(oNpc, "al_bar_pair"));
-}
-
 void AL_ApplyActivityForSlot(object oNpc, int nSlot)
 {
     if (nSlot < 0 || nSlot > AL_SLOT_MAX)
@@ -165,8 +155,8 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
     int bNeedsBarPair = AL_ActivityRequiresBarPair(nActivity);
 
     if (!AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity)
-        || (bNeedsTrainingPartner && !AL_ActivityHasTrainingPartner(oNpc))
-        || (bNeedsBarPair && !AL_ActivityHasBarPair(oNpc)))
+        || (bNeedsTrainingPartner && !GetIsObjectValid(GetLocalObject(oNpc, "al_training_partner")))
+        || (bNeedsBarPair && !GetIsObjectValid(GetLocalObject(oNpc, "al_bar_pair"))))
     {
         nActivity = AL_ACT_NPC_ACT_ONE;
     }
