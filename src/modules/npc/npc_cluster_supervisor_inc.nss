@@ -271,26 +271,26 @@ void NpcBhvrClusterMetricTransition(object oArea, string sCluster, int nFromStat
     }
 }
 
-void NpcBhvrClusterApplyTargetState(object oArea, int nTargetState, int nNow)
+int NpcBhvrClusterTryApplyTargetState(object oArea, int nTargetState, int nNow)
 {
     int nState;
     string sCluster;
 
     if (!GetIsObjectValid(oArea))
     {
-        return;
+        return FALSE;
     }
 
     nState = NpcBhvrAreaGetState(oArea);
     if (nState == nTargetState)
     {
-        return;
+        return FALSE;
     }
 
     sCluster = NpcBhvrClusterResolveOwner(oArea);
     if (!NpcBhvrClusterTryConsumeTransitionToken(oArea, sCluster, nNow))
     {
-        return;
+        return FALSE;
     }
 
     if (nTargetState == NPC_BHVR_AREA_STATE_RUNNING)
@@ -308,6 +308,12 @@ void NpcBhvrClusterApplyTargetState(object oArea, int nTargetState, int nNow)
 
     NpcBhvrClusterMetricTransition(oArea, sCluster, nState, nTargetState);
     SetLocalInt(oArea, NPC_BHVR_VAR_CLUSTER_LAST_TRANSITION_AT, nNow);
+    return TRUE;
+}
+
+void NpcBhvrClusterApplyTargetState(object oArea, int nTargetState, int nNow)
+{
+    NpcBhvrClusterTryApplyTargetState(oArea, nTargetState, nNow);
 }
 
 int NpcBhvrClusterDesiredStateForArea(object oArea, int nNow)
@@ -405,13 +411,11 @@ object NpcBhvrClusterPickOldestIdleInterior(string sCluster, object oExclude)
     return oBest;
 }
 
-void NpcBhvrClusterUpdateRunningMetricForOwner(string sCluster)
+void NpcBhvrClusterUpdateRunningMetricForOwner(string sCluster, int nRunning)
 {
     object oModule;
-    int nRunning;
 
     oModule = GetModule();
-    nRunning = NpcBhvrClusterCountRunningInteriorByOwner(sCluster);
     NpcBhvrMetricSet(oModule, NpcBhvrClusterMetricKey("npc_metric_cluster_running_interiors_", sCluster), nRunning);
 }
 
@@ -421,7 +425,11 @@ void NpcBhvrClusterEnforceInteriorCaps(object oArea, int nNow)
     int nSoftCap;
     int nHardCap;
     int nRunning;
+    int nAttempts;
+    int nProgress;
+    int nTransitioned;
     object oVictim;
+    object oLastVictim;
 
     if (!GetIsObjectValid(oArea))
     {
@@ -438,6 +446,9 @@ void NpcBhvrClusterEnforceInteriorCaps(object oArea, int nNow)
 
     nRunning = NpcBhvrClusterCountRunningInteriorByOwner(sCluster);
 
+    nAttempts = 0;
+    nProgress = FALSE;
+    oLastVictim = OBJECT_INVALID;
     while (nRunning > nHardCap)
     {
         oVictim = NpcBhvrClusterPickOldestIdleInterior(sCluster, oArea);
@@ -446,11 +457,31 @@ void NpcBhvrClusterEnforceInteriorCaps(object oArea, int nNow)
             break;
         }
 
+        if (oVictim == oLastVictim)
+        {
+            break;
+        }
+
         NpcBhvrMetricInc(oVictim, NPC_BHVR_METRIC_CLUSTER_HARD_CAP_HIT_TOTAL);
-        NpcBhvrClusterApplyTargetState(oVictim, NPC_BHVR_AREA_STATE_STOPPED, nNow);
-        nRunning = NpcBhvrClusterCountRunningInteriorByOwner(sCluster);
+        nTransitioned = NpcBhvrClusterTryApplyTargetState(oVictim, NPC_BHVR_AREA_STATE_STOPPED, nNow);
+        if (!nTransitioned)
+        {
+            oLastVictim = oVictim;
+            break;
+        }
+
+        nRunning = nRunning - 1;
+        nProgress = TRUE;
+        oLastVictim = OBJECT_INVALID;
+        nAttempts = nAttempts + 1;
+        if (nAttempts > nHardCap + 8)
+        {
+            break;
+        }
     }
 
+    nAttempts = 0;
+    oLastVictim = OBJECT_INVALID;
     while (nRunning > nSoftCap)
     {
         oVictim = NpcBhvrClusterPickOldestIdleInterior(sCluster, oArea);
@@ -459,12 +490,35 @@ void NpcBhvrClusterEnforceInteriorCaps(object oArea, int nNow)
             break;
         }
 
+        if (oVictim == oLastVictim)
+        {
+            break;
+        }
+
         NpcBhvrMetricInc(oVictim, NPC_BHVR_METRIC_CLUSTER_SOFT_CAP_HIT_TOTAL);
-        NpcBhvrClusterApplyTargetState(oVictim, NPC_BHVR_AREA_STATE_PAUSED, nNow);
+        nTransitioned = NpcBhvrClusterTryApplyTargetState(oVictim, NPC_BHVR_AREA_STATE_PAUSED, nNow);
+        if (!nTransitioned)
+        {
+            oLastVictim = oVictim;
+            break;
+        }
+
+        nRunning = nRunning - 1;
+        nProgress = TRUE;
+        oLastVictim = OBJECT_INVALID;
+        nAttempts = nAttempts + 1;
+        if (nAttempts > nSoftCap + 8)
+        {
+            break;
+        }
+    }
+
+    if (!nProgress)
+    {
         nRunning = NpcBhvrClusterCountRunningInteriorByOwner(sCluster);
     }
 
-    NpcBhvrClusterUpdateRunningMetricForOwner(sCluster);
+    NpcBhvrClusterUpdateRunningMetricForOwner(sCluster, nRunning);
 }
 
 void NpcBhvrClusterOnPlayerAreaEnter(object oArea, int nNow)
