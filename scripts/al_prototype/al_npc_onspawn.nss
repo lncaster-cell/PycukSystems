@@ -202,9 +202,30 @@ void main()
     AL_InitTrainingPartner(oNpc);
     AL_InitBarPair(oNpc);
 
-    AL_RegisterNPC(oNpc);
-
     object oArea = GetArea(oNpc);
+    if (AL_IsParticipantNPC(oNpc))
+    {
+        AL_RegisterNPC(oNpc);
+    }
+    else if (GetIsObjectValid(oArea) && GetLocalInt(oArea, "al_debug") == 1)
+    {
+        string sTag = GetTag(oNpc);
+        if (sTag == "")
+        {
+            sTag = "<no-tag>";
+        }
+
+        object oPc = GetFirstPC(FALSE);
+        while (GetIsObjectValid(oPc))
+        {
+            if (GetArea(oPc) == oArea)
+            {
+                SendMessageToPC(oPc, "AL: OnSpawn ignored non-participant NPC '" + sTag + "'.");
+            }
+            oPc = GetNextPC(FALSE);
+        }
+    }
+
     if (GetIsObjectValid(oArea))
     {
         int iSlotCount = GetLocalInt(oArea, "al_player_count");
