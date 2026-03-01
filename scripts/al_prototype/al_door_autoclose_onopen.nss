@@ -18,7 +18,7 @@ void AL_CloseDoorIfTimerIsCurrent(object oDoor, int nToken)
         return;
     }
 
-    SetOpenState(oDoor, FALSE);
+    AssignCommand(oDoor, ActionCloseDoor(oDoor));
 }
 
 void main()
