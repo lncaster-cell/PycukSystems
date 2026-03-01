@@ -26,7 +26,7 @@ jobs:
         run: |
           ./.github/scripts/nwn2_compile.ps1 `
             -ScriptGlob "${{ github.event.inputs.script_glob || 'scripts/al_prototype/al_*.nss' }}" `
-            -FailOnWarnings:${{ github.event.inputs.fail_on_warnings == 'true' }}
+            -FailOnWarnings ${{ inputs.fail_on_warnings }}
 
       - name: Pack compiled .ncs
         if: success()
