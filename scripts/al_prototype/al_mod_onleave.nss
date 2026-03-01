@@ -25,7 +25,12 @@ void main()
 
     if (!GetIsObjectValid(oArea))
     {
-        return;
+        oArea = GetLocalObject(oLeaving, "al_last_area");
+
+        if (!GetIsObjectValid(oArea))
+        {
+            return;
+        }
     }
 
     SetLocalInt(oLeaving, "al_exit_counted", 1);
@@ -40,8 +45,10 @@ void main()
 
     if (iPlayers != 0)
     {
+        DeleteLocalObject(oLeaving, "al_last_area");
         return;
     }
 
     AL_HandleLastPlayerLeaves(oArea);
+    DeleteLocalObject(oLeaving, "al_last_area");
 }

@@ -49,6 +49,7 @@ void main()
     }
 
     DeleteLocalInt(oEntering, "al_exit_counted");
+    SetLocalObject(oEntering, "al_last_area", oArea);
 
     int iPlayers = GetLocalInt(oArea, "al_player_count") + 1;
     SetLocalInt(oArea, "al_player_count", iPlayers);
