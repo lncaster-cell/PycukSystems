@@ -82,6 +82,7 @@ object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
 {
     int nDepth;
     int nTail;
+    int nRemovedStatus;
     object oRemoved;
     object oTail;
 
@@ -120,6 +121,15 @@ object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex)
     }
 
     NpcBhvrQueueApplyTotalsDelta(oArea, -1);
+
+    if (GetIsObjectValid(oRemoved))
+    {
+        nRemovedStatus = GetLocalInt(oRemoved, NPC_BHVR_VAR_PENDING_STATUS);
+        if (nRemovedStatus == NPC_BHVR_PENDING_STATUS_DEFERRED)
+        {
+            NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
+        }
+    }
 
     return oRemoved;
 }
@@ -718,11 +728,6 @@ int NpcBhvrQueueDropTailFromPriorityAt(object oArea, int nPriority, int nNow)
 
     if (GetIsObjectValid(oDropped))
     {
-        if (GetLocalInt(oDropped, NPC_BHVR_VAR_PENDING_STATUS) == NPC_BHVR_PENDING_STATUS_DEFERRED)
-        {
-            NpcBhvrQueueSetDeferredTotal(oArea, NpcBhvrQueueGetDeferredTotal(oArea) - 1);
-        }
-
         NpcBhvrPendingAreaTouchAt(oArea, oDropped, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DROPPED, nNow);
         NpcBhvrPendingNpcClear(oDropped);
         NpcBhvrPendingAreaClear(oArea, oDropped);

@@ -273,6 +273,8 @@ int NpcBhvrQueueProcessOne(object oArea, int nNow)
 
     if (GetArea(oSubject) != oArea)
     {
+        // Real deferred case only: dequeued subject no longer belongs to this area,
+        // so work cannot be executed in this tick and is explicitly deferred.
         NpcBhvrPendingSetStatusTrackedAt(oArea, oSubject, NPC_BHVR_PENDING_STATUS_DEFERRED, nNow);
         NpcBhvrPendingAreaTouchAt(oArea, oSubject, nPriority, NPC_BHVR_REASON_UNSPECIFIED, NPC_BHVR_PENDING_STATUS_DEFERRED, nNow);
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_DEFERRED_COUNT);

@@ -421,6 +421,26 @@ void NpcBhvrOnSpawnImpl(object oNpc)
     }
 }
 
+
+void NpcBhvrCleanupNpcFromAreaState(object oArea, object oNpc, int bRemoveRegistry)
+{
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    if (bRemoveRegistry)
+    {
+        NpcBhvrRegistryRemove(oArea, oNpc);
+    }
+
+    // Canonical queue/pending cleanup path: purge does indexed fast-path with
+    // slow-path fallback when index is stale/missing; area mirror clear is run
+    // unconditionally to remove any ghost pending state.
+    NpcBhvrQueuePurgeSubject(oArea, oNpc);
+    NpcBhvrPendingAreaClear(oArea, oNpc);
+}
+
 void NpcBhvrOnPerceptionImpl(object oNpc)
 {
     object oArea;
@@ -479,16 +499,23 @@ void NpcBhvrOnDeathImpl(object oNpc)
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_DEATH_COUNT);
 
     oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
+    if (GetIsObjectValid(oArea))
     {
+        NpcBhvrCleanupNpcFromAreaState(oArea, oNpc, TRUE);
         NpcBhvrPendingNpcClear(oNpc);
         return;
     }
 
-    NpcBhvrRegistryRemove(oArea, oNpc);
-    NpcBhvrQueuePurgeSubject(oArea, oNpc);
+    // Fallback cleanup for invalid/stale area reference: sweep all areas so
+    // death never leaves queue/pending ghosts behind.
+    oArea = GetFirstArea();
+    while (GetIsObjectValid(oArea))
+    {
+        NpcBhvrCleanupNpcFromAreaState(oArea, oNpc, TRUE);
+        oArea = GetNextArea();
+    }
+
     NpcBhvrPendingNpcClear(oNpc);
-    NpcBhvrPendingAreaClear(oArea, oNpc);
 }
 
 void NpcBhvrOnDialogueImpl(object oNpc)
@@ -564,9 +591,7 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
             return;
         }
 
-        NpcBhvrRegistryRemove(oArea, oExiting);
-        NpcBhvrQueuePurgeSubject(oArea, oExiting);
-        NpcBhvrPendingAreaClear(oArea, oExiting);
+        NpcBhvrCleanupNpcFromAreaState(oArea, oExiting, TRUE);
         NpcBhvrPendingNpcClear(oExiting);
         return;
     }
