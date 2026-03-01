@@ -1,4 +1,0 @@
-tick,lifecycle_state,processed_low,processed_normal,processed_high,processed_critical
-1,RUNNING,1,0,0,0
-2,PAUSED,0,1,0,1
-3,RUNNING,0,1,0,0

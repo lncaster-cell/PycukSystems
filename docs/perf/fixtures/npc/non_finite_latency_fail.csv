@@ -1,3 +1,0 @@
-tick,lifecycle_state,area_tick_latency_ms,queue_depth,deferred_events,overflow_events,budget_overrun
-1,RUNNING,nan,8.0,0,0,0
-2,RUNNING,5.1,8.5,0,0,0
