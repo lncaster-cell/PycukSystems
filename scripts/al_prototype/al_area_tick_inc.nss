@@ -6,6 +6,7 @@
 
 const float AL_TICK_PERIOD = 45.0;
 const int AL_SYNC_TICK_INTERVAL = 4;
+const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
 void AL_AreaDebugLog(object oArea, string sMessage)
 {
@@ -142,6 +143,12 @@ void AL_CacheAreaRoutes(object oArea)
                 if (bRequiresIndex)
                 {
                     nIndex = GetLocalInt(oObj, "al_route_index");
+                    if (nIndex < 0 || nIndex > AL_AREA_ROUTE_INDEX_MAX)
+                    {
+                        AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " has invalid al_route_index " + IntToString(nIndex) + " (allowed 0.." + IntToString(AL_AREA_ROUTE_INDEX_MAX) + "); skipped.");
+                        oObj = GetNextObjectInArea(oArea);
+                        continue;
+                    }
                 }
                 string sIndex = sAreaPrefix + IntToString(nIndex);
                 string sIndexMarker = sIndex + "_set";

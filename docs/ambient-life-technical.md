@@ -108,6 +108,7 @@ Domain includes
 | `al_npc_<idx>` | object | Ссылка на зарегистрированного NPC по индексу 0..`al_npc_count-1`. |
 
 Дополнительно (по контексту маршрутов): `al_routes_cached`, `al_route_*` используются для area-level кэша waypoint/tag данных.
+`al_route_index` на waypoint (если используется) должен быть в диапазоне `0..1023`; значения вне диапазона игнорируются при построении area-cache и логируются в debug.
 
 ### 3.2 NPC locals
 
