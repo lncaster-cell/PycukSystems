@@ -119,15 +119,34 @@ void AL_InitBarPair(object oNpc)
         return;
     }
 
-    if (GetIsObjectValid(GetLocalObject(oNpc, "al_bar_pair")))
-    {
-        return;
-    }
-
     object oArea = GetArea(oNpc);
     if (!GetIsObjectValid(oArea))
     {
         return;
+    }
+
+    object oExistingPair = GetLocalObject(oNpc, "al_bar_pair");
+    if (GetIsObjectValid(oExistingPair))
+    {
+        if (GetArea(oExistingPair) == oArea)
+        {
+            return;
+        }
+
+        DeleteLocalObject(oNpc, "al_bar_pair");
+
+        if (GetLocalInt(oArea, "al_debug") == 1)
+        {
+            object oPc = GetFirstPC(FALSE);
+            while (GetIsObjectValid(oPc))
+            {
+                if (GetArea(oPc) == oArea)
+                {
+                    SendMessageToPC(oPc, "AL: stale bar pair reset for " + GetName(oNpc) + ".");
+                }
+                oPc = GetNextPC(FALSE);
+            }
+        }
     }
 
     object oBartenderRef = GetLocalObject(oArea, "al_bar_bartender_ref");
