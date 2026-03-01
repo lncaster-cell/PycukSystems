@@ -248,7 +248,7 @@ int NpcBhvrQueueProcessOne(object oArea, int nNow)
         return FALSE;
     }
 
-    nTotalDepth = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
+    nTotalDepth = NpcBhvrQueueGetPendingTotal(oArea);
     if (nTotalDepth <= 0)
     {
         NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_FAIRNESS_STREAK, 0);
@@ -342,7 +342,7 @@ int NpcBhvrTickProcessBudgetedWork(object oArea, int nPendingBefore, int nMaxEve
         nSpentBudgetMs = nSpentBudgetMs + NPC_BHVR_TICK_SIMULATED_EVENT_COST_MS;
     }
 
-    nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    nPendingAfter = NpcBhvrQueueGetPendingTotal(oArea);
 
     // Invariant at stage boundary: processed/pending snapshot is captured once and
     // reused by downstream stages instead of re-reading queue locals.
@@ -450,7 +450,7 @@ int NpcBhvrTickReconcileDeferredAndTrim(object oArea, int nTickState, int nCarry
     if (bQueueMutated)
     {
         NpcBhvrQueueSyncTotals(oArea);
-        nPendingAfter = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+        nPendingAfter = NpcBhvrQueueGetPendingTotal(oArea);
     }
 
     return NpcBhvrTickPackPendingCarryover(nPendingAfter, nCarryoverEvents);

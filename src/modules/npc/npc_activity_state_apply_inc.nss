@@ -57,9 +57,19 @@ string NpcBhvrActivityResolveAction(object oNpc, string sMode, string sSlot, int
 
 void NpcBhvrActivitySetTransitionState(object oNpc, string sState)
 {
-    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE, sState);
-    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST, sState);
-    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST_TS, GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond());
+    string sCurrentState;
+
+    sCurrentState = GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE);
+    if (sCurrentState == sState)
+    {
+        return;
+    }
+
+    // Canonical split: activity_state is current state, activity_last stores
+    // previous state observed before transition.
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST, sCurrentState);
+    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE, sState);
+    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_LAST_TS, GetTimeHour() * 3600 + GetTimeMinute() * 60 + GetTimeSecond());
 }
 
 void NpcBhvrActivityApplyRouteState(object oNpc, string sRouteId, string sBaseState, int nCooldown)

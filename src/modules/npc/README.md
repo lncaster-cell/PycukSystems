@@ -510,7 +510,7 @@ Legacy migration diagnostics:
 4. После dispatch индекс двигается на следующую точку:
    - при loop=on: после `N` идёт снова `1`;
    - при loop=off: остаётся на последней валидной точке.
-5. В `npc_activity_state`/`npc_activity_last` пишется состояние с суффиксом маршрута, например `..._<routeTag>_<i>_of_<N>`, чтобы было видно, какой waypoint сейчас активен.
+5. В `npc_activity_state` пишется текущее состояние с суффиксом маршрута (`..._<routeTag>_<i>_of_<N>`), а `npc_activity_last` хранит предыдущее состояние до последнего transition.
 
 Важно: если `npc_route_count_<routeId> <= 0` или не задан `npc_route_tag_<routeId>`, runtime не сможет построить waypoint-ветку и уйдёт в безопасный fallback-state без waypoint-суффикса.
 
@@ -636,8 +636,7 @@ NPC runtime учитывает:
 - `npc_area_state`
 - `npc_area_timer_running`
 - `npc_area_maint_timer_running`
-- `npc_queue_depth`
-- `npc_queue_pending_total`
+- `npc_queue_pending_total` (канонический total очереди; `npc_queue_depth` оставлен только как legacy fallback при чтении старого состояния)
 - `npc_queue_deferred_total`
 - `npc_tick_max_events`
 - `npc_tick_soft_budget_ms`

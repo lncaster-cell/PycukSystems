@@ -42,7 +42,7 @@
   - `npc_activity_mode` (`daily|alert`)
   - `npc_activity_slot`
   - `npc_activity_slot_effective`, `npc_activity_route_effective`
-  - `npc_activity_state`, `npc_activity_last`, `npc_activity_last_ts`
+  - `npc_activity_state` (current), `npc_activity_last` (previous before last transition), `npc_activity_last_ts`
 - Activity runtime-only diagnostics/internal:
   - `npc_activity_resolved_hour`, `npc_activity_area_effective`
   - `npc_activity_slot_fallback`, `npc_activity_invalid_slot_last`
