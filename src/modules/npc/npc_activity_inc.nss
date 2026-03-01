@@ -18,6 +18,7 @@ const string NPC_BHVR_VAR_ACTIVITY_PRECHECK_L1_STAMP = "npc_activity_precheck_l1
 const string NPC_BHVR_VAR_ACTIVITY_PRECHECK_L2_STAMP = "npc_activity_precheck_l2_stamp";
 
 const string NPC_BHVR_VAR_ACTIVITY_MODE = "npc_activity_mode";
+const string NPC_BHVR_VAR_ACTIVITY_MODE_EFFECTIVE = "npc_activity_mode_effective";
 const string NPC_BHVR_ACTIVITY_MODE_DAILY = "daily";
 const string NPC_BHVR_ACTIVITY_MODE_ALERT = "alert";
 
@@ -228,7 +229,7 @@ int NpcBhvrActivityIsCooldownActive(object oNpc, int nNow)
     return FALSE;
 }
 
-void NpcBhvrActivityRunHeavyRefreshForIdle(object oNpc, int nResolvedHour, object oArea, string sAreaTag)
+void NpcBhvrActivityRunHeavyRefreshForIdle(object oNpc, int nResolvedHour, object oArea, string sAreaTag, string sMode)
 {
     string sSlotRaw;
     string sSlot;
@@ -243,7 +244,8 @@ void NpcBhvrActivityRunHeavyRefreshForIdle(object oNpc, int nResolvedHour, objec
     if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR) != nResolvedHour
         || sSlotCached == ""
         || sSlotCached != sSlot
-        || GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE) != sAreaTag)
+        || GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE) != sAreaTag
+        || GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE_EFFECTIVE) != sMode)
     {
         NpcBhvrActivityRefreshProfileState(oNpc);
     }
@@ -307,7 +309,7 @@ string NpcBhvrActivityResolveMode(object oNpc)
     }
 
     sMode = NpcBhvrActivityNormalizeMode(GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE));
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, sMode);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE, sMode);
     return sMode;
 }
 
@@ -807,6 +809,7 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
     string sSlotRaw;
     string sRoute;
     string sAreaTag;
+    string sMode;
     int nSlotFallback;
     int nResolvedHour;
 
@@ -832,11 +835,13 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
         sSlot,
         nResolvedHour
     );
+    sMode = NpcBhvrActivityResolveMode(oNpc);
     sRoute = NpcBhvrActivityResolveRouteProfile(oNpc, sSlot);
 
     if (GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR) == nResolvedHour
         && GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE) == sAreaTag
         && GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE) == sSlot
+        && GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE_EFFECTIVE) == sMode
         && GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE) == sRoute)
     {
         return;
@@ -844,9 +849,10 @@ void NpcBhvrActivityRefreshProfileState(object oNpc)
 
     NpcBhvrActivityPrewarmRouteRuntime(oNpc, sRoute, oNpc);
 
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT, sSlot);
 
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE, sSlot);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_MODE_EFFECTIVE, sMode);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE, sRoute);
     NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_RESOLVED_HOUR, nResolvedHour);
     NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_AREA_EFFECTIVE, sAreaTag);
@@ -976,7 +982,7 @@ void NpcBhvrActivityOnIdleTick(object oNpc)
         if (NpcBhvrActivityNeedsHeavyRefreshL2(oNpc, sPrecheckL2Stamp))
         {
             NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_ACTIVITY_REFRESH_TOTAL);
-            NpcBhvrActivityRunHeavyRefreshForIdle(oNpc, nResolvedHour, oArea, sAreaTag);
+            NpcBhvrActivityRunHeavyRefreshForIdle(oNpc, nResolvedHour, oArea, sAreaTag, sMode);
             SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_PRECHECK_L2_STAMP, sPrecheckL2Stamp);
         }
         else
