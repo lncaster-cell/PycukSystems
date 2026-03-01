@@ -1,10 +1,12 @@
 [CmdletBinding()]
 param(
   [string]$CompilerPath = "compilator/nwn2_compiler/bin/NWNScriptCompiler.exe",
+  [string]$ScriptGlob = "scripts/al_prototype/al_*.nss",
   [string]$SourceDir = "scripts/al_prototype",
   [string]$StockDir = "compilator/nwn2_compiler/stock_scripts",
   [string]$OutRoot = "out",
-  [int]$TopDiagnostics = 50
+  [int]$TopDiagnostics = 50,
+  [switch]$FailOnWarnings
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,13 +26,13 @@ if (-not (Test-Path -LiteralPath $CompilerPath)) {
   throw "Compiler not found: $CompilerPath"
 }
 
-$entryScripts = Get-ChildItem -Path $SourceDir -Filter 'al_*.nss' -File |
+$entryScripts = Get-ChildItem -Path $ScriptGlob -File |
   Where-Object { $_.Name -notmatch '_inc\.nss$' } |
-  Sort-Object Name |
+  Sort-Object FullName |
   ForEach-Object { $_.FullName }
 
 if (-not $entryScripts -or $entryScripts.Count -eq 0) {
-  throw "No entry scripts found in $SourceDir (pattern al_*.nss excluding *_inc.nss)."
+  throw "No entry scripts found for '$ScriptGlob' (excluding *_inc.nss)."
 }
 
 $includePath = "$SourceDir;$StockDir"
@@ -39,8 +41,7 @@ function Escape-AnnotationValue {
   param([string]$Value)
   if ($null -eq $Value) { return '' }
 
-  $escaped = $Value.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
-  return $escaped
+  return $Value.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
 }
 
 function Emit-AnnotationFromLine {
@@ -88,11 +89,29 @@ function Emit-AnnotationFromLine {
   return $true
 }
 
-function Get-Diagnostics {
+function Get-Counts {
   param([string[]]$Lines)
 
-  return $Lines | Where-Object {
-    $_ -match '(?i)\berror\b|\bfatal\b|\bexception\b|\bwarn(?:ing)?\b'
+  $errorCount = 0
+  $warningCount = 0
+  $diagLines = @()
+
+  foreach ($line in $Lines) {
+    $isError = $line -match '(?i)\berror\b|\bfatal\b|\bexception\b'
+    $isWarning = $line -match '(?i)\bwarn(?:ing)?\b'
+
+    if ($isError -or $isWarning) {
+      $diagLines += $line
+    }
+
+    if ($isError) { $errorCount++ }
+    if ($isWarning) { $warningCount++ }
+  }
+
+  return [PSCustomObject]@{
+    ErrorCount = $errorCount
+    WarningCount = $warningCount
+    DiagnosticLines = $diagLines
   }
 }
 
@@ -110,7 +129,7 @@ foreach ($mode in $modeSpecs) {
   $outDir = $mode.OutDir
   $logPath = Join-Path $logDir ("$name.log")
 
-  Write-Host "\n=== Running mode: $name ==="
+  Write-Host "`n=== Running mode: $name ==="
 
   $args = @() + $mode.Args + @('-i', $includePath, '-b', $outDir) + $entryScripts
   $allOutput = @()
@@ -124,8 +143,8 @@ foreach ($mode in $modeSpecs) {
   $exitCode = $LASTEXITCODE
   $allOutput | Out-File -LiteralPath $logPath -Encoding utf8
 
-  $diagnostics = Get-Diagnostics -Lines $allOutput
-  foreach ($diagLine in $diagnostics) {
+  $counts = Get-Counts -Lines $allOutput
+  foreach ($diagLine in $counts.DiagnosticLines) {
     Emit-AnnotationFromLine -Line $diagLine | Out-Null
   }
 
@@ -133,7 +152,9 @@ foreach ($mode in $modeSpecs) {
     Mode = $name
     ExitCode = $exitCode
     LogPath = $logPath
-    Diagnostics = $diagnostics
+    ErrorCount = $counts.ErrorCount
+    WarningCount = $counts.WarningCount
+    Diagnostics = $counts.DiagnosticLines
   }
 
   if ($exitCode -eq 0) {
@@ -144,15 +165,23 @@ foreach ($mode in $modeSpecs) {
   }
 }
 
+$failedModes = $results | Where-Object { $_.ExitCode -ne 0 -or $_.ErrorCount -gt 0 }
+$warningModes = $results | Where-Object { $_.WarningCount -gt 0 }
+$pipelineFailed = ($failedModes.Count -gt 0) -or ($FailOnWarnings -and $warningModes.Count -gt 0)
+
 if ($env:GITHUB_STEP_SUMMARY) {
+  $overall = if ($pipelineFailed) { '❌ Failed' } else { '✅ Success' }
+
   Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "## NWN2 compiler pipeline"
   Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
-  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| Mode | Status | Log |"
-  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| --- | --- | --- |"
+  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "**$overall**"
+  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| Mode | Status | Errors | Warnings | Log |"
+  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| --- | --- | ---: | ---: | --- |"
 
   foreach ($result in $results) {
-    $status = if ($result.ExitCode -eq 0) { '✅ success' } else { "❌ fail ($($result.ExitCode))" }
-    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| $($result.Mode) | $status | `$($result.LogPath)` |"
+    $status = if ($result.ExitCode -eq 0 -and $result.ErrorCount -eq 0) { '✅ success' } else { "❌ fail ($($result.ExitCode))" }
+    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| $($result.Mode) | $status | $($result.ErrorCount) | $($result.WarningCount) | `$($result.LogPath)` |"
   }
 
   $topDiagnosticLines = @()
@@ -181,12 +210,22 @@ if ($env:GITHUB_STEP_SUMMARY) {
   else {
     Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "No warning/error lines found in logs."
   }
+
+  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+  Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Скачай артефакт logs для полного лога."
 }
 
-$failedModes = $results | Where-Object { $_.ExitCode -ne 0 }
-if ($failedModes.Count -gt 0) {
-  $failedNames = ($failedModes | ForEach-Object { $_.Mode }) -join ', '
-  Write-Error "NWN2 compilation pipeline failed in mode(s): $failedNames"
+if ($pipelineFailed) {
+  if ($failedModes.Count -gt 0) {
+    $failedNames = ($failedModes | ForEach-Object { $_.Mode }) -join ', '
+    Write-Host "Pipeline failed in mode(s): $failedNames"
+  }
+
+  if ($FailOnWarnings -and $warningModes.Count -gt 0) {
+    $warningNames = ($warningModes | ForEach-Object { $_.Mode }) -join ', '
+    Write-Host "Pipeline configured to fail on warnings. Warning mode(s): $warningNames"
+  }
+
   exit 1
 }
 

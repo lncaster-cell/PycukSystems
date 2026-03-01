@@ -1,0 +1,60 @@
+name: Build AL NPC Prototype
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_glob:
+        description: "Glob for entry scripts"
+        required: false
+        default: "scripts/al_prototype/al_*.nss"
+      fail_on_warnings:
+        description: "Fail workflow when warnings are found"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  compile:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compile NWN2 scripts
+        shell: pwsh
+        run: |
+          ./.github/scripts/nwn2_compile.ps1 `
+            -ScriptGlob "${{ github.event.inputs.script_glob || 'scripts/al_prototype/al_*.nss' }}" `
+            -FailOnWarnings:${{ github.event.inputs.fail_on_warnings == 'true' }}
+
+      - name: Pack compiled .ncs
+        if: success()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath "out/build")) {
+            throw "Build directory not found: out/build"
+          }
+
+          $ncsFiles = Get-ChildItem -Path "out/build" -Filter "*.ncs" -File
+          if (-not $ncsFiles -or $ncsFiles.Count -eq 0) {
+            throw "No .ncs files found in out/build"
+          }
+
+          Compress-Archive -Path "out/build/*.ncs" -DestinationPath "out/al-ncs.zip" -Force
+
+      - name: Upload compiler logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nwn2-compiler-logs
+          path: out/logs
+          if-no-files-found: warn
+
+      - name: Upload compiled .ncs zip
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: al-npc-prototype-ncs
+          path: out/al-ncs.zip
+          if-no-files-found: error
