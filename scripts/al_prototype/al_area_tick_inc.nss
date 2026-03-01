@@ -1,6 +1,7 @@
 #include "al_constants_inc"
 #include "al_area_constants_inc"
 #include "al_npc_reg_inc"
+#include "al_debug_inc"
 
 // Shared Area tick helper: scheduled every 45s while players are present.
 // NPC registry synchronization is handled here at the area level only.
@@ -14,16 +15,7 @@ void AL_AreaDebugLog(object oArea, string sMessage)
         return;
     }
 
-    object oPc = GetFirstPC();
-    while (GetIsObjectValid(oPc))
-    {
-        if (GetArea(oPc) == oArea)
-        {
-            SendMessageToPC(oPc, sMessage);
-        }
-
-        oPc = GetNextPC();
-    }
+    AL_SendDebugMessageToAreaPCs(oArea, sMessage);
 }
 
 void AL_CacheAreaRoutes(object oArea)

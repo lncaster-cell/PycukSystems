@@ -2,6 +2,7 @@
 
 #include "al_constants_inc"
 #include "al_npc_acts_inc"
+#include "al_debug_inc"
 
 void AL_ResetRouteIndex(object oNpc)
 {
@@ -52,16 +53,7 @@ void AL_DebugLog(object oNpc, string sMessage)
         return;
     }
 
-    object oPc = GetFirstPC();
-    while (GetIsObjectValid(oPc))
-    {
-        if (GetArea(oPc) == oArea)
-        {
-            SendMessageToPC(oPc, sMessage);
-        }
-
-        oPc = GetNextPC();
-    }
+    AL_SendDebugMessageToAreaPCs(oArea, sMessage);
 }
 
 void main()
