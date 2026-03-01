@@ -41,23 +41,26 @@ void AL_CacheAreaRoutes(object oArea)
         return;
     }
 
-    object oResetObj = GetFirstObjectInArea(oArea);
-    int iResetCount = 0;
-    while (GetIsObjectValid(oResetObj))
-    {
-        if (GetObjectType(oResetObj) == OBJECT_TYPE_WAYPOINT)
-        {
-            string sResetTag = GetTag(oResetObj);
-            if (sResetTag != "")
-            {
-                string sResetFlag = "al_route_reset_" + sResetTag;
-                if (!GetLocalInt(oArea, sResetFlag))
-                {
-                    SetLocalInt(oArea, sResetFlag, TRUE);
-                    SetLocalString(oArea, "al_route_reset_tag_" + IntToString(iResetCount), sResetTag);
-                    iResetCount++;
+    object oObj = GetFirstObjectInArea(oArea);
+    int iTagCount = 0;
 
-                    string sResetPrefix = "al_route_" + sResetTag + "_";
+    // Main discovery pass over waypoints.
+    while (GetIsObjectValid(oObj))
+    {
+        if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT)
+        {
+            string sTag = GetTag(oObj);
+            if (sTag != "")
+            {
+                string sTagSeenKey = "al_route_scan_seen_" + sTag;
+                if (!GetLocalInt(oArea, sTagSeenKey))
+                {
+                    SetLocalInt(oArea, sTagSeenKey, TRUE);
+                    SetLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagCount), sTag);
+                    iTagCount++;
+
+                    // Reset previous cache for the tag once before rebuilding.
+                    string sResetPrefix = "al_route_" + sTag + "_";
                     int iExistingCount = GetLocalInt(oArea, sResetPrefix + "n");
                     int iResetIndex = 0;
                     int iSeenCount = GetLocalInt(oArea, sResetPrefix + "seen_n");
@@ -105,35 +108,48 @@ void AL_CacheAreaRoutes(object oArea)
                     DeleteLocalInt(oArea, sResetPrefix + "has_index");
                 }
 
-                if (GetLocalInt(oResetObj, "al_route_index_set"))
+                string sTmpPrefix = "al_route_scan_tmp_" + sTag + "_";
+                int nTmpCount = GetLocalInt(oArea, sTmpPrefix + "n");
+                SetLocalObject(oArea, sTmpPrefix + IntToString(nTmpCount), oObj);
+                SetLocalInt(oArea, sTmpPrefix + "n", nTmpCount + 1);
+
+                if (GetLocalInt(oObj, "al_route_index_set"))
                 {
-                    SetLocalInt(oArea, "al_route_" + sResetTag + "_has_index", TRUE);
+                    SetLocalInt(oArea, "al_route_" + sTag + "_has_index", TRUE);
                 }
             }
         }
 
-        oResetObj = GetNextObjectInArea(oArea);
+        oObj = GetNextObjectInArea(oArea);
     }
 
-    object oObj = GetFirstObjectInArea(oArea);
-
-    while (GetIsObjectValid(oObj))
+    int iTagIndex = 0;
+    while (iTagIndex < iTagCount)
     {
-        if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT)
+        string sTag = GetLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagIndex));
+        if (sTag != "")
         {
-            string sTag = GetTag(oObj);
-            if (sTag != "")
+            string sAreaPrefix = "al_route_" + sTag + "_";
+            string sTmpPrefix = "al_route_scan_tmp_" + sTag + "_";
+            int bRequiresIndex = GetLocalInt(oArea, sAreaPrefix + "has_index");
+            int nCount = 0;
+            int nDenseCount = 0;
+            int nSeenCount = 0;
+
+            int iTmp = 0;
+            int nTmpCount = GetLocalInt(oArea, sTmpPrefix + "n");
+            while (iTmp < nTmpCount)
             {
-                string sAreaPrefix = "al_route_" + sTag + "_";
-                string sCountResetKey = sAreaPrefix + "count_reset";
-                int bRequiresIndex = GetLocalInt(oArea, sAreaPrefix + "has_index");
-                if (!GetLocalInt(oArea, sCountResetKey))
+                object oWp = GetLocalObject(oArea, sTmpPrefix + IntToString(iTmp));
+                DeleteLocalObject(oArea, sTmpPrefix + IntToString(iTmp));
+                iTmp++;
+
+                if (!GetIsObjectValid(oWp))
                 {
-                    SetLocalInt(oArea, sAreaPrefix + "count", 0);
-                    SetLocalInt(oArea, sCountResetKey, TRUE);
+                    continue;
                 }
 
-                if (bRequiresIndex && !GetLocalInt(oObj, "al_route_index_set"))
+                if (bRequiresIndex && !GetLocalInt(oWp, "al_route_index_set"))
                 {
                     string sMissingIndexLoggedKey = sAreaPrefix + "missing_index_logged";
                     if (!GetLocalInt(oArea, sMissingIndexLoggedKey))
@@ -141,38 +157,36 @@ void AL_CacheAreaRoutes(object oArea)
                         AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " missing al_route_index; skipped.");
                         SetLocalInt(oArea, sMissingIndexLoggedKey, TRUE);
                     }
-                    oObj = GetNextObjectInArea(oArea);
                     continue;
                 }
 
-                int nIndex = GetLocalInt(oArea, sAreaPrefix + "count");
+                int nIndex = nCount;
                 if (bRequiresIndex)
                 {
-                    nIndex = GetLocalInt(oObj, "al_route_index");
+                    nIndex = GetLocalInt(oWp, "al_route_index");
                     if (nIndex < 0 || nIndex > AL_AREA_ROUTE_INDEX_MAX)
                     {
                         AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " has invalid al_route_index " + IntToString(nIndex) + " (allowed 0.." + IntToString(AL_AREA_ROUTE_INDEX_MAX) + "); skipped.");
-                        oObj = GetNextObjectInArea(oArea);
                         continue;
                     }
                 }
+
                 string sIndex = sAreaPrefix + IntToString(nIndex);
                 string sIndexMarker = sIndex + "_set";
                 if (GetLocalInt(oArea, sIndexMarker))
                 {
                     AL_AreaDebugLog(oArea, "AL: duplicate route index " + IntToString(nIndex) + " for tag " + sTag + "; skipped.");
-                    oObj = GetNextObjectInArea(oArea);
                     continue;
                 }
+
                 SetLocalInt(oArea, sIndexMarker, TRUE);
-                SetLocalInt(oArea, sAreaPrefix + "count", GetLocalInt(oArea, sAreaPrefix + "count") + 1);
+                nCount++;
 
-                int nSeenCount = GetLocalInt(oArea, sAreaPrefix + "seen_n");
                 SetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(nSeenCount), nIndex);
-                SetLocalInt(oArea, sAreaPrefix + "seen_n", nSeenCount + 1);
+                nSeenCount++;
 
-                SetLocalLocation(oArea, sIndex, GetLocation(oObj));
-                int nActivity = GetLocalInt(oObj, "al_activity");
+                SetLocalLocation(oArea, sIndex, GetLocation(oWp));
+                int nActivity = GetLocalInt(oWp, "al_activity");
                 if (nActivity > 0)
                 {
                     SetLocalInt(oArea, sIndex + "_activity", nActivity);
@@ -187,7 +201,7 @@ void AL_CacheAreaRoutes(object oArea)
                 // - Preferred: set a local location on the waypoint: "al_transition_location".
                 // - Alternative: set a local object area: "al_transition_area" + x/y/z/facing.
                 // Avoid tag lookups in runtime hot paths.
-                location lJump = GetLocalLocation(oObj, "al_transition_location");
+                location lJump = GetLocalLocation(oWp, "al_transition_location");
                 object oJumpArea = GetAreaFromLocation(lJump);
                 if (GetIsObjectValid(oJumpArea))
                 {
@@ -195,77 +209,49 @@ void AL_CacheAreaRoutes(object oArea)
                 }
                 else
                 {
-                    object oTargetArea = GetLocalObject(oObj, "al_transition_area");
+                    object oTargetArea = GetLocalObject(oWp, "al_transition_area");
                     if (GetIsObjectValid(oTargetArea))
                     {
-                        float fX = GetLocalFloat(oObj, "al_transition_x");
-                        float fY = GetLocalFloat(oObj, "al_transition_y");
-                        float fZ = GetLocalFloat(oObj, "al_transition_z");
-                        float fFacing = GetLocalFloat(oObj, "al_transition_facing");
+                        float fX = GetLocalFloat(oWp, "al_transition_x");
+                        float fY = GetLocalFloat(oWp, "al_transition_y");
+                        float fZ = GetLocalFloat(oWp, "al_transition_z");
+                        float fFacing = GetLocalFloat(oWp, "al_transition_facing");
                         location lResolvedJump = Location(oTargetArea, Vector(fX, fY, fZ), fFacing);
                         SetLocalLocation(oArea, sIndex + "_jump", lResolvedJump);
                     }
                 }
-
             }
-        }
+            DeleteLocalInt(oArea, sTmpPrefix + "n");
 
-        oObj = GetNextObjectInArea(oArea);
-    }
-
-    oObj = GetFirstObjectInArea(oArea);
-    while (GetIsObjectValid(oObj))
-    {
-        if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT)
-        {
-            string sTag = GetTag(oObj);
-            if (sTag != "")
+            int iSeen = 0;
+            while (iSeen < nSeenCount)
             {
-                string sAreaPrefix = "al_route_" + sTag + "_";
-                string sGapLoggedKey = sAreaPrefix + "gap_logged";
-                if (!GetLocalInt(oArea, sGapLoggedKey))
+                int iIndex = GetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(iSeen));
+                string sIndex = sAreaPrefix + IntToString(iIndex);
+                if (GetLocalInt(oArea, sIndex + "_set"))
                 {
-                    int nCount = GetLocalInt(oArea, sAreaPrefix + "count");
-                    int nDenseCount = 0;
-                    int nSeenCount = GetLocalInt(oArea, sAreaPrefix + "seen_n");
-                    int iSeen = 0;
-                    // Dense index follows waypoint discovery order from the area scan.
-                    while (iSeen < nSeenCount)
-                    {
-                        int iIndex = GetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(iSeen));
-                        string sIndex = sAreaPrefix + IntToString(iIndex);
-                        if (GetLocalInt(oArea, sIndex + "_set"))
-                        {
-                            SetLocalInt(oArea, sAreaPrefix + "idx_" + IntToString(nDenseCount), iIndex);
-                            nDenseCount++;
-                        }
-                        iSeen++;
-                    }
-                    SetLocalInt(oArea, sAreaPrefix + "n", nDenseCount);
-                    SetLocalInt(oArea, sAreaPrefix + "idx_built", TRUE);
-                    if (nCount > 0 && nCount != nDenseCount)
-                    {
-                        AL_AreaDebugLog(oArea, "AL: route tag " + sTag + " has gaps in al_route_index; using dense list.");
-                    }
-                    SetLocalInt(oArea, sGapLoggedKey, TRUE);
+                    SetLocalInt(oArea, sAreaPrefix + "idx_" + IntToString(nDenseCount), iIndex);
+                    nDenseCount++;
                 }
-                DeleteLocalInt(oArea, sAreaPrefix + "count_reset");
+                iSeen++;
             }
+
+            SetLocalInt(oArea, sAreaPrefix + "count", nCount);
+            SetLocalInt(oArea, sAreaPrefix + "seen_n", nSeenCount);
+            SetLocalInt(oArea, sAreaPrefix + "n", nDenseCount);
+            SetLocalInt(oArea, sAreaPrefix + "idx_built", TRUE);
+            SetLocalInt(oArea, sAreaPrefix + "gap_logged", TRUE);
+            if (nCount > 0 && nCount != nDenseCount)
+            {
+                AL_AreaDebugLog(oArea, "AL: route tag " + sTag + " has gaps in al_route_index; using dense list.");
+            }
+
+            DeleteLocalInt(oArea, sAreaPrefix + "count_reset");
         }
 
-        oObj = GetNextObjectInArea(oArea);
-    }
-
-    int iResetCleanupIndex = 0;
-    while (iResetCleanupIndex < iResetCount)
-    {
-        string sCleanupTag = GetLocalString(oArea, "al_route_reset_tag_" + IntToString(iResetCleanupIndex));
-        if (sCleanupTag != "")
-        {
-            DeleteLocalInt(oArea, "al_route_reset_" + sCleanupTag);
-        }
-        DeleteLocalString(oArea, "al_route_reset_tag_" + IntToString(iResetCleanupIndex));
-        iResetCleanupIndex++;
+        DeleteLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagIndex));
+        DeleteLocalInt(oArea, "al_route_scan_seen_" + sTag);
+        iTagIndex++;
     }
 
     SetLocalInt(oArea, "al_routes_cached", TRUE);
