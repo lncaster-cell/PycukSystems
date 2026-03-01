@@ -49,6 +49,6 @@ void main()
         return;
     }
 
-    AL_HandleLastPlayerLeaves(oArea);
+    AL_HandleAreaBecameEmpty(oArea);
     DeleteLocalObject(oLeaving, "al_last_area");
 }

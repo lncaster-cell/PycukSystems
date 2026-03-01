@@ -37,5 +37,5 @@ void main()
         return;
     }
 
-    AL_HandleLastPlayerLeaves(oArea);
+    AL_HandleAreaBecameEmpty(oArea);
 }
