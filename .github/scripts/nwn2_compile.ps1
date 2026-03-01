@@ -6,7 +6,7 @@ param(
   [string]$StockDir = "compilator/nwn2_compiler/stock_scripts",
   [string]$OutRoot = "out",
   [int]$TopDiagnostics = 50,
-  [switch]$FailOnWarnings
+  [bool]$FailOnWarnings = $false
 )
 
 $ErrorActionPreference = 'Stop'
