@@ -636,7 +636,7 @@ NPC runtime учитывает:
 - `npc_area_state`
 - `npc_area_timer_running`
 - `npc_area_maint_timer_running`
-- `npc_queue_pending_total` (канонический total очереди; `npc_queue_depth` оставлен только как legacy fallback при чтении старого состояния)
+- `npc_queue_pending_total` (канонический total очереди)
 - `npc_queue_deferred_total`
 - `npc_tick_max_events`
 - `npc_tick_soft_budget_ms`
@@ -662,7 +662,6 @@ Pending/queue зеркало:
 
 - `npc_pending_priority`
 - `npc_pending_reason_code`
-- `npc_pending_reason` (legacy string mirror for diagnostics/transition compatibility)
 - `npc_pending_status`
 - `npc_pending_updated_at`
 

@@ -6,8 +6,6 @@ void NpcBhvrAreaActivate(object oArea);
 void NpcBhvrPendingNpcTouchAt(object oNpc, int nNow);
 void NpcBhvrPendingSetStatusAt(object oNpc, int nStatus, int nNow);
 void NpcBhvrPendingSetStatusTrackedAt(object oArea, object oNpc, int nStatus, int nNow);
-void NpcBhvrPendingSetAt(object oNpc, int nPriority, string sReason, int nStatus, int nNow);
-void NpcBhvrPendingSetTrackedAt(object oArea, object oNpc, int nPriority, string sReason, int nStatus, int nNow);
 void NpcBhvrPendingSetTrackedAtIntReason(object oArea, object oNpc, int nPriority, int nReasonCode, int nStatus, int nNow);
 void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta);
 int NpcBhvrQueueGetDeferredTotal(object oArea);
@@ -75,7 +73,6 @@ void NpcBhvrPendingNpcClear(object oNpc)
     // must clear both area-local and NPC-local pending state.
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_PRIORITY);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_REASON_CODE);
-    DeleteLocalString(oNpc, NPC_BHVR_VAR_PENDING_REASON);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_STATUS);
     DeleteLocalInt(oNpc, NPC_BHVR_VAR_PENDING_UPDATED_AT);
 }
@@ -338,20 +335,11 @@ int NpcBhvrQueueGetPendingTotal(object oArea)
     int nPendingTotal;
 
     nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
-    if (nPendingTotal > 0)
-    {
-        return nPendingTotal;
-    }
-
-    // Legacy compatibility fallback: historic builds used npc_queue_depth as a
-    // mirror for pending-total. Read once and normalize into canonical key.
-    nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
     if (nPendingTotal < 0)
     {
         nPendingTotal = 0;
     }
 
-    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nPendingTotal);
     return nPendingTotal;
 }
 
@@ -417,7 +405,6 @@ void NpcBhvrQueueClear(object oArea)
     NpcBhvrRegistryResetIdleCursor(oArea);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
     NpcBhvrQueueSetPendingTotal(oArea, 0);
-    DeleteLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
 }
 
 
