@@ -181,7 +181,7 @@ if ($env:GITHUB_STEP_SUMMARY) {
 
   foreach ($result in $results) {
     $status = if ($result.ExitCode -eq 0 -and $result.ErrorCount -eq 0) { '✅ success' } else { "❌ fail ($($result.ExitCode))" }
-    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| $($result.Mode) | $status | $($result.ErrorCount) | $($result.WarningCount) | `$($result.LogPath)` |"
+    Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "| $($result.Mode) | $status | $($result.ErrorCount) | $($result.WarningCount) | ``$($result.LogPath)`` |"
   }
 
   $topDiagnosticLines = @()
