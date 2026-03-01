@@ -13,7 +13,10 @@ Area events
 │  └─ запускает DelayCommand(... AreaTick(area, token))
 ├─ al_area_onexit.nss
 │  ├─ декрементирует al_player_count (с защитой от <0)
-│  └─ при выходе последнего игрока: al_tick_token++, hide всех зарегистрированных NPC
+│  └─ при al_player_count==0 вызывает единый helper `AL_HandleAreaBecameEmpty`
+├─ al_mod_onleave.nss
+│  ├─ fallback для дисконнекта клиента: декрементирует al_player_count
+│  └─ при al_player_count==0 вызывает тот же `AL_HandleAreaBecameEmpty`
 └─ al_area_tick_inc.nss
    ├─ AL_ComputeTimeSlot() -> hour/4 (0..5)
    ├─ AreaTick(area, token)
@@ -45,6 +48,7 @@ Domain includes
 │  ├─ registry на area locals: al_npc_count + al_npc_<idx>
 │  ├─ AL_RegisterNPC / AL_UnregisterNPC / AL_SyncAreaNPCRegistry
 │  ├─ AL_HideRegisteredNPCs / AL_UnhideAndResyncRegisteredNPCs
+│  ├─ AL_HandleAreaBecameEmpty(area) — единая обработка empty-area
 │  └─ AL_BroadcastUserEvent(area, event)
 ├─ al_npc_routes.nss
 │  ├─ route cache на NPC locals: r<slot>_n, r<slot>_<idx>, ...
@@ -86,12 +90,14 @@ Domain includes
    - area отправляет `AL_EVT_SLOT_0 + slot` всем NPC из registry,
    - цикл тика продолжается.
 
-### 2.3 Выход последнего игрока -> hide NPC + invalidation token
-1. `al_area_onexit.nss` обрабатывает только PC и защищается от двойного учёта выхода через `al_exit_counted`.
-2. Уменьшает `al_player_count` (не ниже 0).
-3. Если ушёл **последний** игрок (`al_player_count == 0`):
-   - инкрементирует `al_tick_token` (инвалидация ранее запланированных `AreaTick`),
-   - вызывает `AL_HideRegisteredNPCs` (скрытие NPC, очистка action queue при включённом флаге).
+### 2.3 Выход последнего игрока / дисконнект -> единый empty-area handler
+1. `al_area_onexit.nss` (обычный выход из area) и `al_mod_onleave.nss` (дисконнект/leave клиента) обрабатывают только PC и защищаются от двойного учёта через `al_exit_counted`.
+2. Оба скрипта уменьшают `al_player_count` (не ниже 0).
+3. Если после декремента игроков не осталось (`al_player_count == 0`), оба события вызывают единый helper `AL_HandleAreaBecameEmpty(oArea)`.
+4. `AL_HandleAreaBecameEmpty` централизованно выполняет:
+   - инкремент `al_tick_token` (инвалидация ранее запланированных `AreaTick`),
+   - `DeleteLocalInt(oArea, "al_routes_cached")` (форс полной пересборки route-cache при следующем запуске),
+   - `AL_HideRegisteredNPCs` (скрытие NPC, и очистка action queue при включённом флаге).
 
 ---
 
