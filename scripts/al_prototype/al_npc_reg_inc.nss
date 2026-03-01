@@ -16,12 +16,13 @@ int AL_GetAmbientLifeDaySeconds()
 
 int AL_IsRegistryFullMessageCoolingDown(object oArea)
 {
-    int nNext = GetLocalInt(oArea, "al_npc_full_msg_next");
-    if (nNext <= 0)
+    int nNextStored = GetLocalInt(oArea, "al_npc_full_msg_next");
+    if (nNextStored == 0)
     {
         return FALSE;
     }
 
+    int nNext = nNextStored - 1;
     int nNow = AL_GetAmbientLifeDaySeconds();
     int nDelta = (nNext - nNow + 86400) % 86400;
     return nDelta > 0 && nDelta < 43200;
@@ -31,7 +32,7 @@ void AL_MarkRegistryFullMessageSent(object oArea)
 {
     int nNow = AL_GetAmbientLifeDaySeconds();
     int nNext = (nNow + AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS) % 86400;
-    SetLocalInt(oArea, "al_npc_full_msg_next", nNext);
+    SetLocalInt(oArea, "al_npc_full_msg_next", nNext + 1);
 }
 
 int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
