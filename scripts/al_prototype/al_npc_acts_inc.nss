@@ -6,38 +6,11 @@
 
 int AL_GetRoutePointActivity(object oNpc, int nSlot, int iIndex);
 
-int AL_GetFallbackActivityForSlot(object oNpc, int nSlot)
-{
-    string sSlotKey = "al_slot_activity_" + IntToString(nSlot);
-    int nFallbackActivity = GetLocalInt(oNpc, sSlotKey);
-    if (nFallbackActivity <= 0)
-    {
-        nFallbackActivity = GetLocalInt(oNpc, "al_default_activity");
-    }
-
-    object oArea = GetArea(oNpc);
-    if (nFallbackActivity <= 0 && GetIsObjectValid(oArea))
-    {
-        nFallbackActivity = GetLocalInt(oArea, sSlotKey);
-        if (nFallbackActivity <= 0)
-        {
-            nFallbackActivity = GetLocalInt(oArea, "al_default_activity");
-        }
-    }
-
-    if (nFallbackActivity <= 0)
-    {
-        nFallbackActivity = AL_ACT_NPC_ACT_ONE;
-    }
-
-    return nFallbackActivity;
-}
-
 int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
 {
     if (AL_GetRouteCount(oNpc, nSlot) <= 0)
     {
-        return AL_GetFallbackActivityForSlot(oNpc, nSlot);
+        return AL_ACT_NPC_ACT_ONE;
     }
 
     int nIndex = GetLocalInt(oNpc, "r_idx");
@@ -53,7 +26,7 @@ int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
     int nRouteActivity = AL_GetRoutePointActivity(oNpc, nSlot, nIndex);
     if (nRouteActivity <= 0)
     {
-        return AL_GetFallbackActivityForSlot(oNpc, nSlot);
+        return AL_ACT_NPC_ACT_ONE;
     }
 
     return nRouteActivity;
@@ -164,30 +137,6 @@ int AL_ActivityHasRequiredRoute(object oNpc, int nSlot, int nActivity)
     }
 
     return AL_GetRouteTag(oNpc, nSlot) == sWaypointTag;
-}
-
-void AL_RefreshRouteForSlot(object oNpc, int nSlot)
-{
-    if (nSlot < 0 || nSlot > AL_SLOT_MAX)
-    {
-        return;
-    }
-
-    string sDesiredTag = AL_GetDesiredRouteTag(oNpc, nSlot);
-    string sCurrentTag = AL_GetRouteTag(oNpc, nSlot);
-
-    if (AL_GetRouteCount(oNpc, nSlot) > 0
-        && sCurrentTag == sDesiredTag)
-    {
-        return;
-    }
-
-    if (sCurrentTag != "" && sCurrentTag != sDesiredTag)
-    {
-        AL_ClearRoute(oNpc, nSlot);
-    }
-
-    AL_CacheRouteFromTag(oNpc, nSlot, sDesiredTag);
 }
 
 int AL_ActivityHasTrainingPartner(object oNpc)
