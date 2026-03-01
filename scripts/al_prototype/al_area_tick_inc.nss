@@ -1,11 +1,10 @@
 #include "al_constants_inc"
+#include "al_area_constants_inc"
 #include "al_npc_reg_inc"
 
 // Shared Area tick helper: scheduled every 45s while players are present.
 // NPC registry synchronization is handled here at the area level only.
 
-const float AL_TICK_PERIOD = 45.0;
-const int AL_SYNC_TICK_INTERVAL = 4;
 const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
 void AL_AreaDebugLog(object oArea, string sMessage)
