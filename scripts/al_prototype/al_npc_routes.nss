@@ -27,15 +27,9 @@ string AL_GetRouteTag(object oNpc, int nSlot)
     return GetLocalString(oNpc, AL_GetRouteTagKey(nSlot));
 }
 
-string AL_GetDesiredRouteKey(int nSlot)
-{
-    return "alwp" + IntToString(nSlot);
-}
-
 string AL_GetDesiredRouteTag(object oNpc, int nSlot)
 {
-    string sKey = AL_GetDesiredRouteKey(nSlot);
-    return GetLocalString(oNpc, sKey);
+    return GetLocalString(oNpc, "alwp" + IntToString(nSlot));
 }
 
 int AL_GetRouteCount(object oNpc, int nSlot)
