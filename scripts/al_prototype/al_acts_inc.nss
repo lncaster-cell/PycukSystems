@@ -44,6 +44,15 @@ const int AL_ACT_NPC_KNEEL_TALK = 39;
 const int AL_ACT_NPC_BARMAID = 41;
 const int AL_ACT_NPC_BARTENDER = 42;
 const int AL_ACT_NPC_GUARD = 43;
+const int AL_ACT_LOCATE_LOOK = 91;
+const int AL_ACT_LOCATE_IDLE = 92;
+const int AL_ACT_LOCATE_SIT = 93;
+const int AL_ACT_LOCATE_KNEEL = 94;
+const int AL_ACT_LOCATE_TALK = 95;
+const int AL_ACT_LOCATE_CRAFT = 96;
+const int AL_ACT_LOCATE_MEDITATE = 97;
+const int AL_ACT_LOCATE_STEALTH = 98;
+// MIN/MAX define the wrapper activity range; named constants define exact IDs.
 const int AL_ACT_LOCATE_WRAPPER_MIN = 91;
 const int AL_ACT_LOCATE_WRAPPER_MAX = 98;
 
@@ -56,14 +65,14 @@ string AL_GetLocateWrapperCustomAnims(int nActivity)
 {
     switch (nActivity)
     {
-        case 91: return "lookleft, lookright, shrug";
-        case 92: return "bored, scratchhead, yawn";
-        case 93: return "sitfidget, sitidle, sittalk, sittalk01, sittalk02";
-        case 94: return "kneelidle, kneeltalk";
-        case 95: return "chuckle, nodno, nodyes, talk01, talk02, talklaugh";
-        case 96: return "craft01, dustoff, forge01, openlock";
-        case 97: return "meditate";
-        case 98: return "disableground, sleightofhand, sneak";
+        case AL_ACT_LOCATE_LOOK: return "lookleft, lookright, shrug";
+        case AL_ACT_LOCATE_IDLE: return "bored, scratchhead, yawn";
+        case AL_ACT_LOCATE_SIT: return "sitfidget, sitidle, sittalk, sittalk01, sittalk02";
+        case AL_ACT_LOCATE_KNEEL: return "kneelidle, kneeltalk";
+        case AL_ACT_LOCATE_TALK: return "chuckle, nodno, nodyes, talk01, talk02, talklaugh";
+        case AL_ACT_LOCATE_CRAFT: return "craft01, dustoff, forge01, openlock";
+        case AL_ACT_LOCATE_MEDITATE: return "meditate";
+        case AL_ACT_LOCATE_STEALTH: return "disableground, sleightofhand, sneak";
     }
 
     return "";
