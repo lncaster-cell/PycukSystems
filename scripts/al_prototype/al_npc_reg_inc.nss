@@ -205,6 +205,13 @@ void AL_HideRegisteredNPCs(object oArea)
     }
 }
 
+void AL_HandleLastPlayerLeaves(object oArea)
+{
+    SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
+    DeleteLocalInt(oArea, "al_routes_cached");
+    AL_HideRegisteredNPCs(oArea);
+}
+
 void AL_UnhideAndResyncRegisteredNPCs(object oArea)
 {
     int iCount = GetLocalInt(oArea, "al_npc_count");
