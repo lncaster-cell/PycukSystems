@@ -151,6 +151,7 @@ Domain includes
    - `AL_EVT_RESYNC` для выравнивания состояния.
 5. **Источник активности:** активность берётся только из `al_activity` текущего waypoint маршрута; если точка/активность некорректна — используется безопасный `AL_ACT_NPC_ACT_ONE`.
 6. **Обработка скрытого состояния:** при `AL_ACT_NPC_HIDDEN` активный route прекращается (clear actions + сброс runtime route locals).
+7. **Симметрия bar-пары:** активности `AL_ACT_NPC_BARMAID` и `AL_ACT_NPC_BARTENDER` обе требуют валидный local `al_bar_pair`; при потере партнёра обе роли одинаково деградируют в `AL_ACT_NPC_ACT_ONE`.
 
 ---
 

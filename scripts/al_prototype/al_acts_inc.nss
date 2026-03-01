@@ -168,8 +168,9 @@ int AL_ActivityRequiresTrainingPartner(int nActivity)
     return FALSE;
 }
 
-// Barmaid requires Bartender to run in parallel.
+// Bar activities are pair-bound: both roles require a valid partner.
+// This keeps fallback behavior symmetric (both degrade to ACT_ONE if pair is lost).
 int AL_ActivityRequiresBarPair(int nActivity)
 {
-    return nActivity == AL_ACT_NPC_BARMAID;
+    return nActivity == AL_ACT_NPC_BARMAID || nActivity == AL_ACT_NPC_BARTENDER;
 }

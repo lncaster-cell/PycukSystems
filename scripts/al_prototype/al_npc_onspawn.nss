@@ -138,6 +138,7 @@ void AL_InitBarPair(object oNpc)
 
     if (oNpc == oBartenderRef)
     {
+        // Symmetric role mapping: bartender looks up barmaid and vice versa.
         sAreaSelfKey = "al_bar_bartender";
         sAreaPartnerKey = "al_bar_barmaid";
         oPartnerRef = oBarmaidRef;
@@ -188,6 +189,7 @@ void AL_InitBarPair(object oNpc)
 
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
     {
+        // Always set the link on both ends so requirement checks behave identically.
         SetLocalObject(oNpc, "al_bar_pair", oPartner);
         SetLocalObject(oPartner, "al_bar_pair", oNpc);
     }
