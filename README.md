@@ -36,6 +36,10 @@
 - `al_transition_location` (предпочтительный способ задания перехода);
 - fallback-поля перехода: `al_transition_area`, `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing`.
 
+
+### Аудит
+- Подробный аудит поведения NPC и рисков модуля см. в `docs/ambient-life-technical.md`, раздел **"7) Полный аудит модуля поведения (AL)"**.
+
 ### Troubleshooting
 - **NPC не двигается** — проверьте, что у NPC заданы `alwp0`/`alwp5` и что по этим тегам есть waypoint в area.
 - **NPC не активируется** — проверьте `al_activity` на waypoint текущего маршрута, наличие игроков в area и скрытое состояние NPC.
