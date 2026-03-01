@@ -77,7 +77,7 @@ void AL_UpdateRouteIndex(object oNpc, int iIndex)
 
 void AL_OnRouteStep(object oNpc, int nIdx, location lPoint)
 {
-    const float REACHED_THRESHOLD = 1.8;
+    float REACHED_THRESHOLD = 1.8;
 
     object oNpcArea = GetArea(oNpc);
     object oPointArea = GetAreaFromLocation(lPoint);
