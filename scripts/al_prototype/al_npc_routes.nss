@@ -152,7 +152,7 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
         string sAreaIndex = sAreaPrefix + IntToString(iSourceIndex);
         location lPoint = GetLocalLocation(oArea, sAreaIndex);
         object oPointArea = GetAreaFromLocation(lPoint);
-        if (GetIsObjectValid(oPointArea))
+        if (GetIsObjectValid(oPointArea) && oPointArea == oArea)
         {
             string sNpcIndex = sPrefix + IntToString(iCopied);
             SetLocalLocation(oNpc, sNpcIndex, lPoint);
@@ -176,6 +176,11 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
             }
 
             iCopied++;
+        }
+        else if (GetIsObjectValid(oPointArea) && oPointArea != oArea)
+        {
+            AL_RouteDebugLog(oNpc, "AL: route tag " + sTag + " skipped point "
+                + IntToString(iSourceIndex) + " due to area mismatch.");
         }
 
         i++;
