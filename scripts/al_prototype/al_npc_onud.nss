@@ -4,7 +4,6 @@
 #include "al_npc_acts_inc"
 #include "al_npc_routes"
 
-void AL_ResetRouteIndex(object oNpc);
 int AL_ActivityUsesRoute(object oNpc, int nSlot);
 
 int AL_GetAmbientLifeDaySeconds()
