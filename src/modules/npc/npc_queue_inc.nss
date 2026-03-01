@@ -16,6 +16,8 @@ int NpcBhvrQueueGetDepthForPriority(object oArea, int nPriority);
 void NpcBhvrQueueSetDepthForPriority(object oArea, int nPriority, int nDepth);
 string NpcBhvrQueueSubjectKey(int nPriority, int nIndex);
 object NpcBhvrQueueRemoveSwapTail(object oArea, int nPriority, int nIndex);
+int NpcBhvrQueueGetPendingTotal(object oArea);
+void NpcBhvrQueueSetPendingTotal(object oArea, int nTotal);
 void NpcBhvrPendingAreaTouch(object oArea, object oSubject, int nPriority, int nReasonCode, int nStatus);
 void NpcBhvrPendingNpcClear(object oNpc);
 void NpcBhvrPendingAreaClear(object oArea, object oSubject);
@@ -142,7 +144,7 @@ int NpcBhvrQueueEnqueueRaw(object oArea, object oSubject, int nPriority)
     int nTail;
     int nTotal;
 
-    nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
+    nTotal = NpcBhvrQueueGetPendingTotal(oArea);
     if (nTotal >= NPC_BHVR_QUEUE_MAX)
     {
         NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_QUEUE_OVERFLOW_COUNT);
@@ -310,14 +312,13 @@ void NpcBhvrQueueApplyTotalsDelta(object oArea, int nDelta)
     int nTotal;
 
     // Hot-path optimization for enqueue/dequeue: avoid redundant local writes.
-    nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH) + nDelta;
+    nTotal = NpcBhvrQueueGetPendingTotal(oArea) + nDelta;
     if (nTotal < 0)
     {
         nTotal = 0;
     }
 
-    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
-    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
+    NpcBhvrQueueSetPendingTotal(oArea, nTotal);
 }
 
 void NpcBhvrQueueSyncTotals(object oArea)
@@ -329,7 +330,38 @@ void NpcBhvrQueueSyncTotals(object oArea)
         + NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_NORMAL)
         + NpcBhvrQueueGetDepthForPriority(oArea, NPC_BHVR_PRIORITY_LOW);
 
-    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, nTotal);
+    NpcBhvrQueueSetPendingTotal(oArea, nTotal);
+}
+
+int NpcBhvrQueueGetPendingTotal(object oArea)
+{
+    int nPendingTotal;
+
+    nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    if (nPendingTotal > 0)
+    {
+        return nPendingTotal;
+    }
+
+    // Legacy compatibility fallback: historic builds used npc_queue_depth as a
+    // mirror for pending-total. Read once and normalize into canonical key.
+    nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
+    if (nPendingTotal < 0)
+    {
+        nPendingTotal = 0;
+    }
+
+    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nPendingTotal);
+    return nPendingTotal;
+}
+
+void NpcBhvrQueueSetPendingTotal(object oArea, int nTotal)
+{
+    if (nTotal < 0)
+    {
+        nTotal = 0;
+    }
+
     NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, nTotal);
 }
 
@@ -384,8 +416,8 @@ void NpcBhvrQueueClear(object oArea)
     SetLocalInt(oArea, NPC_BHVR_VAR_REGISTRY_COUNT, 0);
     NpcBhvrRegistryResetIdleCursor(oArea);
     SetLocalInt(oArea, NPC_BHVR_VAR_MAINT_SELF_HEAL_FLAG, FALSE);
-    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_DEPTH, 0);
-    NpcBhvrSetLocalIntIfChanged(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL, 0);
+    NpcBhvrQueueSetPendingTotal(oArea, 0);
+    DeleteLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
 }
 
 
@@ -640,7 +672,7 @@ int NpcBhvrQueueEnqueue(object oArea, object oSubject, int nPriority, int nReaso
         return NpcBhvrQueueCoalesceSubjectAt(oArea, oSubject, nFoundPriority, nFoundIndex, nPriority, nReasonCode, bWasPendingActive, nNow);
     }
 
-    nTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_DEPTH);
+    nTotal = NpcBhvrQueueGetPendingTotal(oArea);
     if (nTotal >= NPC_BHVR_QUEUE_MAX)
     {
         if (!NpcBhvrQueueApplyOverflowGuardrail(oArea, nPriority, nReasonCode))

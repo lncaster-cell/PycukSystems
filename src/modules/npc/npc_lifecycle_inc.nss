@@ -194,7 +194,7 @@ void NpcBhvrOnAreaTickImpl(object oArea)
         // 2) degradation/carryover policy,
         // 3) deferred trim/reconcile.
         // Это удерживает OnAreaTick тонким и выносит тяжёлую логику в малые функции.
-        nPendingBefore = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+        nPendingBefore = NpcBhvrQueueGetPendingTotal(oArea);
 
         // Ambient dispatch is first-class and independent from reactive queue processing.
         if (NpcBhvrAreaAllowsAmbientDispatch(oArea))
@@ -546,7 +546,6 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
     }
 
     NpcBhvrAuthoringApplyAreaFacade(oArea);
-    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
     if (!GetIsPC(oEntering))
     {
         nEnteringType = GetObjectType(oEntering);
@@ -564,6 +563,7 @@ void NpcBhvrOnAreaEnterImpl(object oArea, object oEntering)
         return;
     }
 
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_ENTER_COUNT);
     nPlayers = NpcBhvrGetCachedPlayerCountInternal(oArea) + 1;
     SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT, nPlayers);
     SetLocalInt(oArea, NPC_BHVR_VAR_PLAYER_COUNT_INITIALIZED, TRUE);
@@ -580,8 +580,6 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
     {
         return;
     }
-
-    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_EXIT_COUNT);
 
     if (!GetIsPC(oExiting))
     {
@@ -601,6 +599,7 @@ void NpcBhvrOnAreaExitImpl(object oArea, object oExiting)
         return;
     }
 
+    NpcBhvrMetricInc(oArea, NPC_BHVR_METRIC_AREA_EXIT_COUNT);
     nPlayers = NpcBhvrGetCachedPlayerCountInternal(oArea) - 1;
     if (nPlayers < 0)
     {

@@ -72,7 +72,7 @@ int NpcBhvrQueueDeferredLooksDesynced(object oArea)
     int nPendingTotal;
 
     nDeferredCount = NpcBhvrQueueGetDeferredTotal(oArea);
-    nPendingTotal = GetLocalInt(oArea, NPC_BHVR_VAR_QUEUE_PENDING_TOTAL);
+    nPendingTotal = NpcBhvrQueueGetPendingTotal(oArea);
 
     return nDeferredCount < 0 || nDeferredCount > nPendingTotal;
 }
