@@ -143,7 +143,6 @@ void NpcBhvrLodTryApplyPhysicalHide(object oNpc, int nNow)
     bHidden = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN) == TRUE;
     if (bHidden)
     {
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_SUPPRESSED_TOTAL);
         return;
     }
 
@@ -153,13 +152,12 @@ void NpcBhvrLodTryApplyPhysicalHide(object oNpc, int nNow)
     if (nLastToggle > 0 && ((nNow - nLastToggle) < nMinVisible || (nNow - nLastToggle) < nCooldown))
     {
         NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_COOLDOWN_HIT_TOTAL);
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_FALLBACK_LOGICAL_ONLY_TOTAL);
         return;
     }
 
     SetScriptHidden(oNpc, TRUE);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN, TRUE);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT, nNow);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN, TRUE);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT, nNow);
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_HIDE_APPLIED_TOTAL);
 }
 
@@ -184,7 +182,6 @@ void NpcBhvrLodTryApplyPhysicalReveal(object oNpc, int nNow)
     bHidden = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN) == TRUE;
     if (!bHidden)
     {
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_SUPPRESSED_TOTAL);
         return;
     }
 
@@ -197,8 +194,8 @@ void NpcBhvrLodTryApplyPhysicalReveal(object oNpc, int nNow)
     }
 
     SetScriptHidden(oNpc, FALSE);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN, FALSE);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT, nNow);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_PHYSICAL_HIDDEN, FALSE);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_LAST_PHYSICAL_TOGGLE_AT, nNow);
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_PHYSICAL_REVEAL_APPLIED_TOTAL);
 }
 
@@ -209,14 +206,14 @@ void NpcBhvrLodCaptureProjectionState(object oNpc, int nNow)
         return;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_HIDDEN_AT, nNow);
-    SetLocalString(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_SLOT, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE));
-    SetLocalString(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_ROUTE, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE));
-    SetLocalString(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_ROUTE_TAG, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG));
-    SetLocalString(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_STATE, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_INDEX, GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_COUNT, GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_LOOP, GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_HIDDEN_AT, nNow);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_SLOT, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_SLOT_EFFECTIVE));
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_ROUTE, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_EFFECTIVE));
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_ROUTE_TAG, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG));
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_STATE, GetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_STATE));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_INDEX, GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_COUNT, GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_LOOP, GetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP));
 }
 
 void NpcBhvrLodHideNpc(object oNpc, int nLod, int nNow)
@@ -233,14 +230,12 @@ void NpcBhvrLodHideNpc(object oNpc, int nLod, int nNow)
     {
         if (nCurrent == nLod)
         {
-            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL);
             NpcBhvrLodTryApplyPhysicalHide(oNpc, nNow);
             return;
         }
 
         // Already hidden: avoid repeated snapshot/clear-actions churn.
         NpcBhvrSetNpcSimulationLod(oNpc, nLod);
-        NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_HIDE_SUPPRESSED_TOTAL);
         NpcBhvrLodTryApplyPhysicalHide(oNpc, nNow);
         return;
     }
@@ -248,7 +243,7 @@ void NpcBhvrLodHideNpc(object oNpc, int nLod, int nNow)
     NpcBhvrLodCaptureProjectionState(oNpc, nNow);
     NpcBhvrSetNpcProjectedState(oNpc, NPC_BHVR_PROJECTED_HIDDEN);
     NpcBhvrSetNpcSimulationLod(oNpc, nLod);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT, nNow);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT, nNow);
 
     ClearAllActions(TRUE);
     NpcBhvrLodTryApplyPhysicalHide(oNpc, nNow);
@@ -304,10 +299,10 @@ int NpcBhvrLodFastForwardSameSlot(object oNpc, int nNow)
     nWpIndex = GetLocalInt(oNpc, NPC_BHVR_VAR_LOD_PROJECTED_WP_INDEX);
     nWpIndex = NpcBhvrActivityNormalizeWaypointIndex(nWpIndex + nSteps, nWpCount, bWpLoop);
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bWpLoop);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bWpLoop);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, nWpIndex);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_FAST_FORWARD_TOTAL);
     return TRUE;
 }
@@ -322,10 +317,10 @@ void NpcBhvrLodReanchorCurrentRoute(object oNpc)
     nWpCount = NpcBhvrActivityResolveRouteCount(oNpc, sRoute);
     bWpLoop = NpcBhvrActivityResolveRouteLoop(oNpc, sRoute);
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex(0, nWpCount, bWpLoop));
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bWpLoop);
-    SetLocalString(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_INDEX, NpcBhvrActivityNormalizeWaypointIndex(0, nWpCount, bWpLoop));
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_COUNT, nWpCount);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_WP_LOOP, bWpLoop);
+    NpcBhvrSetLocalStringIfChanged(oNpc, NPC_BHVR_VAR_ACTIVITY_ROUTE_TAG, NpcBhvrActivityResolveRouteTag(oNpc, sRoute));
 }
 
 void NpcBhvrLodRevealResync(object oNpc, int nNow)
@@ -348,10 +343,6 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
         if (NpcBhvrGetNpcSimulationLod(oNpc) != NPC_BHVR_SIM_LOD_FULL)
         {
             NpcBhvrSetNpcSimulationLod(oNpc, NPC_BHVR_SIM_LOD_FULL);
-        }
-        else
-        {
-            NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_REVEAL_SUPPRESSED_TOTAL);
         }
         return;
     }
@@ -392,8 +383,8 @@ void NpcBhvrLodRevealResync(object oNpc, int nNow)
 
     NpcBhvrSetNpcProjectedState(oNpc, NPC_BHVR_PROJECTED_VISIBLE);
     NpcBhvrSetNpcSimulationLod(oNpc, NPC_BHVR_SIM_LOD_FULL);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT, nNow);
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_REVEAL_AT, nNow);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_LAST_TOGGLE_AT, nNow);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_LAST_REVEAL_AT, nNow);
     NpcBhvrLodTryApplyPhysicalReveal(oNpc, nNow);
     NpcBhvrMetricInc(oNpc, NPC_BHVR_METRIC_LOD_REVEAL_RESYNC_TOTAL);
 }
@@ -511,7 +502,7 @@ int NpcBhvrLodShouldHideInRunningArea(object oNpc, object oArea, int nNow)
         return FALSE;
     }
 
-    SetLocalInt(oNpc, NPC_BHVR_VAR_LOD_LAST_DISTANCE_CHECK_AT, nNow);
+    NpcBhvrSetLocalIntIfChanged(oNpc, NPC_BHVR_VAR_LOD_LAST_DISTANCE_CHECK_AT, nNow);
     return nNearest > nHideDistance;
 }
 
