@@ -4,8 +4,6 @@
 #include "al_constants_inc"
 #include "al_npc_routes"
 
-int AL_GetRoutePointActivity(object oNpc, int nSlot, int iIndex);
-
 int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
 {
     if (AL_GetRouteCount(oNpc, nSlot) <= 0)
