@@ -4,7 +4,7 @@
 #include "al_npc_acts_inc"
 #include "al_npc_routes"
 
-int AL_ActivityUsesRoute(object oNpc, int nSlot);
+int AL_ActivityUsesRoute(int nSlot);
 
 int AL_GetAmbientLifeDaySeconds()
 {
@@ -20,9 +20,9 @@ void AL_ResetRouteIndex(object oNpc)
     SetLocalInt(oNpc, "r_idx", 0);
 }
 
-int AL_ActivityUsesRoute(object oNpc, int nSlot)
+int AL_ActivityUsesRoute(int nSlot)
 {
-    return AL_GetRouteCount(oNpc, nSlot) > 0;
+    return AL_GetRouteCount(OBJECT_SELF, nSlot) > 0;
 }
 
 int AL_GetRepeatAnimIntervalSeconds()
@@ -155,7 +155,7 @@ void main()
 
     SetLocalInt(oNpc, "al_last_slot", nSlot);
     int nActivity = AL_GetWaypointActivityForSlot(oNpc, nSlot);
-    int bUsesRoute = AL_ActivityUsesRoute(oNpc, nSlot);
+    int bUsesRoute = AL_ActivityUsesRoute(nSlot);
     int bRequiresRouteTag = AL_GetActivityWaypointTag(nActivity) != "";
     int bHasRequiredRoute = AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity);
     int bCanUseRoute = bUsesRoute && bHasRequiredRoute;
