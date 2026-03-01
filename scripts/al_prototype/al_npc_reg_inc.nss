@@ -3,6 +3,37 @@
 
 #include "al_constants_inc"
 
+const int AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS = 60;
+
+int AL_GetAmbientLifeDaySeconds()
+{
+    int nSeconds = GetTimeSecond();
+    int nMinutes = GetTimeMinute();
+    int nHours = GetTimeHour();
+
+    return nSeconds + (nMinutes * 60) + (nHours * 3600);
+}
+
+int AL_IsRegistryFullMessageCoolingDown(object oArea)
+{
+    int nNext = GetLocalInt(oArea, "al_npc_full_msg_next");
+    if (nNext <= 0)
+    {
+        return FALSE;
+    }
+
+    int nNow = AL_GetAmbientLifeDaySeconds();
+    int nDelta = (nNext - nNow + 86400) % 86400;
+    return nDelta > 0 && nDelta < 43200;
+}
+
+void AL_MarkRegistryFullMessageSent(object oArea)
+{
+    int nNow = AL_GetAmbientLifeDaySeconds();
+    int nNext = (nNow + AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS) % 86400;
+    SetLocalInt(oArea, "al_npc_full_msg_next", nNext);
+}
+
 int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
 {
     int iLastIndex = iCount - 1;
@@ -58,13 +89,20 @@ void AL_RegisterNPC(object oNpc)
 
     if (iCount >= AL_MAX_NPCS)
     {
-        if (GetLocalInt(oArea, "al_debug") == 1)
+        if (GetLocalInt(oArea, "al_debug") == 1 && !AL_IsRegistryFullMessageCoolingDown(oArea))
         {
             object oPc = GetFirstPC();
-            if (GetIsObjectValid(oPc))
+            while (GetIsObjectValid(oPc))
             {
-                SendMessageToPC(oPc, "AL: NPC registry full for area; registration skipped.");
+                if (GetArea(oPc) == oArea)
+                {
+                    SendMessageToPC(oPc, "AL: NPC registry full for area; registration skipped.");
+                }
+
+                oPc = GetNextPC();
             }
+
+            AL_MarkRegistryFullMessageSent(oArea);
         }
         return;
     }
