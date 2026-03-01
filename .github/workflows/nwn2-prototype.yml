@@ -1,0 +1,91 @@
+name: Build AL NPC Prototype
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: windows-latest
+
+    env:
+      COMPILER: third_party/nwn2_compiler/bin/NWNScriptCompiler.exe
+      PROTOTYPE_DIR: scripts/al_prototype
+      STOCK_DIR: third_party/nwn2_compiler/stock_scripts
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Collect prototype sources
+        id: sources
+        shell: pwsh
+        run: |
+          $entryScripts = Get-ChildItem "$env:PROTOTYPE_DIR/al_*.nss" |
+            Where-Object { $_.Name -notmatch '_inc\.nss$' } |
+            Sort-Object Name |
+            ForEach-Object { $_.FullName }
+
+          if (-not $entryScripts) {
+            throw "No AL prototype entry scripts found in $env:PROTOTYPE_DIR"
+          }
+
+          $joined = $entryScripts -join "`n"
+          "entry_scripts<<EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          $joined | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Check mode
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out/check | Out-Null
+          $scripts = @"
+          ${{ steps.sources.outputs.entry_scripts }}
+          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+
+          & "$env:COMPILER" -c -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/check @scripts
+
+      - name: Bug search mode (analyzer)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out/analyze | Out-Null
+          $scripts = @"
+          ${{ steps.sources.outputs.entry_scripts }}
+          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+
+          & "$env:COMPILER" -c -a -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/analyze @scripts
+
+      - name: Optimization mode
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out/opt | Out-Null
+          $scripts = @"
+          ${{ steps.sources.outputs.entry_scripts }}
+          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+
+          & "$env:COMPILER" -c -o -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/opt @scripts
+
+      - name: Build release NCS
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path out/build | Out-Null
+          $scripts = @"
+          ${{ steps.sources.outputs.entry_scripts }}
+          "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+
+          & "$env:COMPILER" -c -o -a -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/build @scripts
+
+      - name: Pack compiled scripts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path out/build/*.ncs -DestinationPath artifacts/al_npc_prototype_ncs.zip -Force
+
+      - name: Upload compiled NCS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: al-npc-prototype-ncs
+          path: artifacts/al_npc_prototype_ncs.zip
