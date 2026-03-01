@@ -75,6 +75,56 @@ void AL_UpdateRouteIndex(object oNpc, int iIndex)
     SetLocalInt(oNpc, "r_idx", iIndex);
 }
 
+void AL_OnRouteStep(object oNpc, int nIdx, location lPoint)
+{
+    const float REACHED_THRESHOLD = 1.8;
+
+    object oNpcArea = GetArea(oNpc);
+    object oPointArea = GetAreaFromLocation(lPoint);
+
+    if (!GetIsObjectValid(oNpcArea) || !GetIsObjectValid(oPointArea) || oNpcArea != oPointArea)
+    {
+        if (GetIsObjectValid(oNpcArea))
+        {
+            int nTickToken = GetLocalInt(oNpcArea, "al_tick_token");
+            if (nTickToken == GetLocalInt(oNpc, "al_last_route_recover_tick"))
+            {
+                return;
+            }
+
+            SetLocalInt(oNpc, "al_last_route_recover_tick", nTickToken);
+        }
+
+        AssignCommand(oNpc, ClearAllActions());
+        SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC));
+        return;
+    }
+
+    float fDist = GetDistanceBetweenLocations(GetLocation(oNpc), lPoint);
+    if (fDist <= REACHED_THRESHOLD)
+    {
+        AL_UpdateRouteIndex(oNpc, nIdx);
+        return;
+    }
+
+    int nTickToken = GetLocalInt(oNpcArea, "al_tick_token");
+    if (nTickToken == GetLocalInt(oNpc, "al_last_route_recover_tick"))
+    {
+        return;
+    }
+
+    SetLocalInt(oNpc, "al_last_route_recover_tick", nTickToken);
+
+    if (GetLocalInt(oNpc, "al_debug") == 1 || GetLocalInt(oNpcArea, "al_debug") == 1)
+    {
+        AL_RouteDebugLog(oNpc, "AL: route step failed, idx=" + IntToString(nIdx)
+            + ", dist=" + FloatToString(fDist) + ", resync.");
+    }
+
+    AssignCommand(oNpc, ClearAllActions());
+    SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC));
+}
+
 void AL_ClearActiveRoute(object oNpc, int bClearActions)
 {
     if (bClearActions)
@@ -275,7 +325,7 @@ void AL_QueueRoute(object oNpc, int nSlot, int bClearActions)
         }
         bMoveQueued = TRUE;
         AssignCommand(oNpc, ActionMoveToLocation(lPoint));
-        AssignCommand(oNpc, ActionDoCommand(AL_UpdateRouteIndex(oNpc, i)));
+        AssignCommand(oNpc, ActionDoCommand(AL_OnRouteStep(oNpc, i, lPoint)));
         location lJump = GetLocalLocation(oNpc, sIndex + "_jump");
         object oJumpArea = GetAreaFromLocation(lJump);
         if (GetIsObjectValid(oJumpArea))
