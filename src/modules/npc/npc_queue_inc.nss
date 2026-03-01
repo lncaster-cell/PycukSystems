@@ -229,10 +229,10 @@ void NpcBhvrPendingAreaClear(object oArea, object oSubject)
     DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtKey(sNpcKey));
 
     sNpcKey = NpcBhvrPendingLegacySubjectTag(oSubject);
-    DeleteLocalInt(oArea, NpcBhvrPendingPriorityLegacyKey(sNpcKey));
-    DeleteLocalInt(oArea, NpcBhvrPendingReasonCodeLegacyKey(sNpcKey));
-    DeleteLocalString(oArea, NpcBhvrPendingStatusLegacyKey(sNpcKey));
-    DeleteLocalInt(oArea, NpcBhvrPendingUpdatedAtLegacyKey(sNpcKey));
+    DeleteLocalInt(oArea, "npc_queue_pending_priority_" + sNpcKey);
+    DeleteLocalInt(oArea, "npc_queue_pending_reason_" + sNpcKey);
+    DeleteLocalString(oArea, "npc_queue_pending_status_" + sNpcKey);
+    DeleteLocalInt(oArea, "npc_queue_pending_updated_ts_" + sNpcKey);
 }
 
 int NpcBhvrPriorityEscalate(int nCurrentPriority, int nIncomingPriority, int nReasonCode)
