@@ -11,6 +11,7 @@ jobs:
       COMPILER: compilator/nwn2_compiler/bin/NWNScriptCompiler.exe
       PROTOTYPE_DIR: scripts/al_prototype
       STOCK_DIR: compilator/nwn2_compiler/stock_scripts
+      LOG_DIR: out/logs
 
     steps:
       - name: Checkout
@@ -34,6 +35,20 @@ jobs:
           $joined | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "EOF" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
+      - name: Cleanup old outputs and logs
+        shell: pwsh
+        run: |
+          Remove-Item -Path out,artifacts -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path out,"$env:LOG_DIR" | Out-Null
+
+      - name: Init compile summary
+        shell: pwsh
+        run: |
+          @"
+          ## NWN2 compiler checks
+
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
       - name: Check mode
         shell: pwsh
         run: |
@@ -41,8 +56,20 @@ jobs:
           $scripts = @"
           ${{ steps.sources.outputs.entry_scripts }}
           "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+          $logPath = "$env:LOG_DIR/check.log"
 
-          & "$env:COMPILER" -c -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/check @scripts
+          & "$env:COMPILER" -c -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/check @scripts 2>&1 |
+            Tee-Object -FilePath $logPath
+
+          if ($LASTEXITCODE -ne 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### ❌ Check mode failed"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            Get-Content -Path $logPath -Tail 40 | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            throw "Compiler check mode failed"
+          }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Check mode passed"
 
       - name: Bug search mode (analyzer)
         shell: pwsh
@@ -51,8 +78,20 @@ jobs:
           $scripts = @"
           ${{ steps.sources.outputs.entry_scripts }}
           "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+          $logPath = "$env:LOG_DIR/analyze.log"
 
-          & "$env:COMPILER" -c -a -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/analyze @scripts
+          & "$env:COMPILER" -c -a -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/analyze @scripts 2>&1 |
+            Tee-Object -FilePath $logPath
+
+          if ($LASTEXITCODE -ne 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### ❌ Analyzer mode failed"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            Get-Content -Path $logPath -Tail 40 | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            throw "Compiler analyzer mode failed"
+          }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Analyzer mode passed"
 
       - name: Optimization mode
         shell: pwsh
@@ -61,8 +100,20 @@ jobs:
           $scripts = @"
           ${{ steps.sources.outputs.entry_scripts }}
           "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+          $logPath = "$env:LOG_DIR/opt.log"
 
-          & "$env:COMPILER" -c -o -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/opt @scripts
+          & "$env:COMPILER" -c -o -g -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/opt @scripts 2>&1 |
+            Tee-Object -FilePath $logPath
+
+          if ($LASTEXITCODE -ne 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### ❌ Optimization mode failed"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            Get-Content -Path $logPath -Tail 40 | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            throw "Compiler optimization mode failed"
+          }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Optimization mode passed"
 
       - name: Build release NCS
         shell: pwsh
@@ -71,8 +122,20 @@ jobs:
           $scripts = @"
           ${{ steps.sources.outputs.entry_scripts }}
           "@ -split "`n" | Where-Object { $_ -and $_.Trim() -ne '' }
+          $logPath = "$env:LOG_DIR/build.log"
 
-          & "$env:COMPILER" -c -o -a -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/build @scripts
+          & "$env:COMPILER" -c -o -a -i "$env:PROTOTYPE_DIR;$env:STOCK_DIR" -b out/build @scripts 2>&1 |
+            Tee-Object -FilePath $logPath
+
+          if ($LASTEXITCODE -ne 0) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### ❌ Build mode failed"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            Get-Content -Path $logPath -Tail 40 | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "```"
+            throw "Compiler build mode failed"
+          }
+
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- ✅ Build mode passed"
 
       - name: Pack compiled scripts
         shell: pwsh
@@ -85,3 +148,9 @@ jobs:
         with:
           name: al-npc-prototype-ncs
           path: artifacts/al_npc_prototype_ncs.zip
+
+      - name: Cleanup transient logs
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -Path "$env:LOG_DIR" -Recurse -Force -ErrorAction SilentlyContinue
