@@ -1,6 +1,8 @@
 // Area OnEnter: attach to the Area OnEnter event in the toolset.
 
 #include "al_area_tick_inc"
+#include "al_npc_reg_inc"
+#include "al_player_count_inc"
 
 void AL_CacheTrainingPartners(object oArea)
 {
@@ -47,7 +49,7 @@ void main()
         return;
     }
 
-    if (!GetIsPC(oEntering))
+    if (!AL_IsCountedPlayer(oEntering))
     {
         return;
     }
