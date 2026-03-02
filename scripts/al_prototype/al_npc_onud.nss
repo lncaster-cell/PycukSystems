@@ -32,9 +32,9 @@ int AL_ResolveSlot(object oNpc, int nEvent)
         return -1;
     }
 
-    if (nEvent >= AL_EVT_SLOT_0 && nEvent <= AL_EVT_SLOT_5)
+    if (nEvent >= AL_EVT_SLOT_BASE && nEvent <= AL_EVT_SLOT_5)
     {
-        return nEvent - AL_EVT_SLOT_0;
+        return nEvent - AL_EVT_SLOT_BASE;
     }
 
     if (nEvent == AL_EVT_ROUTE_REPEAT)
