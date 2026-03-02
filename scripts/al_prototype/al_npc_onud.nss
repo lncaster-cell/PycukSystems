@@ -19,6 +19,54 @@ int AL_GetRepeatAnimIntervalSeconds()
     return 15 + Random(16);
 }
 
+int AL_ResolveSlot(object oNpc, int nEvent)
+{
+    if (nEvent == AL_EVT_RESYNC)
+    {
+        object oArea = GetArea(oNpc);
+        if (GetIsObjectValid(oArea))
+        {
+            return GetLocalInt(oArea, "al_slot");
+        }
+
+        return -1;
+    }
+
+    if (nEvent >= AL_EVT_SLOT_0 && nEvent <= AL_EVT_SLOT_5)
+    {
+        return nEvent - AL_EVT_SLOT_0;
+    }
+
+    if (nEvent == AL_EVT_ROUTE_REPEAT)
+    {
+        return GetLocalInt(oNpc, "r_slot");
+    }
+
+    return -1;
+}
+
+void AL_SyncRouteForSlot(object oNpc, int nSlot)
+{
+    string sDesiredTag = AL_GetDesiredRouteTag(oNpc, nSlot);
+    string sCurrentTag = AL_GetRouteTag(oNpc, nSlot);
+
+    if (sDesiredTag == "")
+    {
+        AL_ClearRoute(oNpc, nSlot);
+    }
+    else
+    {
+        if (sCurrentTag != "" && sCurrentTag != sDesiredTag)
+        {
+            AL_ClearRoute(oNpc, nSlot);
+        }
+
+        AL_CacheRouteFromTag(oNpc, nSlot, sDesiredTag);
+    }
+
+    AL_ResetRouteIndex(oNpc);
+}
+
 int AL_IsRepeatAnimCoolingDown(object oNpc)
 {
     int nNextStored = GetLocalInt(oNpc, "al_anim_next");
@@ -60,29 +108,7 @@ void main()
 {
     object oNpc = OBJECT_SELF;
     int nEvent = GetUserDefinedEventNumber();
-    int nSlot = -1;
-
-    if (nEvent == AL_EVT_RESYNC)
-    {
-        object oArea = GetArea(oNpc);
-        if (GetIsObjectValid(oArea))
-        {
-            nSlot = GetLocalInt(oArea, "al_slot");
-        }
-
-    }
-    else if (nEvent >= AL_EVT_SLOT_0 && nEvent <= AL_EVT_SLOT_5)
-    {
-        nSlot = nEvent - AL_EVT_SLOT_0;
-    }
-    else if (nEvent == AL_EVT_ROUTE_REPEAT)
-    {
-        nSlot = GetLocalInt(oNpc, "r_slot");
-    }
-    else
-    {
-        return;
-    }
+    int nSlot = AL_ResolveSlot(oNpc, nEvent);
 
     if (nSlot < 0 || nSlot > AL_SLOT_MAX)
     {
@@ -114,23 +140,7 @@ void main()
 
     if (nEvent != AL_EVT_ROUTE_REPEAT)
     {
-        string sDesiredTag = AL_GetDesiredRouteTag(oNpc, nSlot);
-        string sCurrentTag = AL_GetRouteTag(oNpc, nSlot);
-
-        if (sDesiredTag == "")
-        {
-            AL_ClearRoute(oNpc, nSlot);
-        }
-        else
-        {
-            if (sCurrentTag != "" && sCurrentTag != sDesiredTag)
-            {
-                AL_ClearRoute(oNpc, nSlot);
-            }
-            AL_CacheRouteFromTag(oNpc, nSlot, sDesiredTag);
-        }
-
-        AL_ResetRouteIndex(oNpc);
+        AL_SyncRouteForSlot(oNpc, nSlot);
     }
 
     SetLocalInt(oNpc, "al_last_slot", nSlot);
@@ -198,11 +208,7 @@ void main()
         }
     }
 
-    int bShouldPlay = bAllowAnimation;
-    if (bCanUseRoute && nEvent != AL_EVT_ROUTE_REPEAT)
-    {
-        bShouldPlay = FALSE;
-    }
+    int bShouldPlay = bAllowAnimation && !(bCanUseRoute && nEvent != AL_EVT_ROUTE_REPEAT);
 
     if (bShouldPlay)
     {
