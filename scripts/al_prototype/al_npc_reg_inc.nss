@@ -2,6 +2,7 @@
 // Registry synchronization runs only at the area level (see AreaTick).
 
 #include "al_constants_inc"
+#include "al_debug_inc"
 
 const int AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS = 60;
 
@@ -69,15 +70,7 @@ void AL_LogRegistrationSkip(object oNpc, object oArea, string sReason)
         sTag = "<no-tag>";
     }
 
-    object oPc = GetFirstPC(FALSE);
-    while (GetIsObjectValid(oPc))
-    {
-        if (GetArea(oPc) == oArea)
-        {
-            SendMessageToPC(oPc, "AL: registration skipped for '" + sTag + "': " + sReason);
-        }
-        oPc = GetNextPC(FALSE);
-    }
+    AL_SendDebugMessageToAreaPCs(oArea, "AL: registration skipped for '" + sTag + "': " + sReason);
 }
 
 int AL_IsParticipantNPC(object oNpc)
@@ -154,16 +147,7 @@ void AL_RegisterNPC(object oNpc)
     {
         if (GetLocalInt(oArea, "al_debug") == 1 && !AL_IsRegistryFullMessageCoolingDown(oArea))
         {
-            object oPc = GetFirstPC();
-            while (GetIsObjectValid(oPc))
-            {
-                if (GetArea(oPc) == oArea)
-                {
-                    SendMessageToPC(oPc, "AL: NPC registry full for area; registration skipped.");
-                }
-
-                oPc = GetNextPC();
-            }
+            AL_SendDebugMessageToAreaPCs(oArea, "AL: NPC registry full for area; registration skipped.");
 
             AL_MarkRegistryFullMessageSent(oArea);
         }
