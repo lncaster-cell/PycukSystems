@@ -150,21 +150,40 @@ void AL_InitBarPair(object oNpc)
     {
         if (GetArea(oExistingPair) == oArea)
         {
-            return;
-        }
-
-        DeleteLocalObject(oNpc, "al_bar_pair");
-
-        if (GetLocalInt(oArea, "al_debug") == 1)
-        {
-            object oPc = GetFirstPC(FALSE);
-            while (GetIsObjectValid(oPc))
+            object oBack = GetLocalObject(oExistingPair, "al_bar_pair");
+            if (oBack == oNpc)
             {
-                if (GetArea(oPc) == oArea)
+                return;
+            }
+
+            if (GetLocalInt(oArea, "al_debug") == 1)
+            {
+                object oPc = GetFirstPC(FALSE);
+                while (GetIsObjectValid(oPc))
                 {
-                    SendMessageToPC(oPc, "AL: stale bar pair reset for " + GetName(oNpc) + ".");
+                    if (GetArea(oPc) == oArea)
+                    {
+                        SendMessageToPC(oPc, "AL: asymmetric bar pair repaired for " + GetName(oNpc) + ".");
+                    }
+                    oPc = GetNextPC(FALSE);
                 }
-                oPc = GetNextPC(FALSE);
+            }
+        }
+        else
+        {
+            DeleteLocalObject(oNpc, "al_bar_pair");
+
+            if (GetLocalInt(oArea, "al_debug") == 1)
+            {
+                object oPc = GetFirstPC(FALSE);
+                while (GetIsObjectValid(oPc))
+                {
+                    if (GetArea(oPc) == oArea)
+                    {
+                        SendMessageToPC(oPc, "AL: stale bar pair reset for " + GetName(oNpc) + ".");
+                    }
+                    oPc = GetNextPC(FALSE);
+                }
             }
         }
     }
