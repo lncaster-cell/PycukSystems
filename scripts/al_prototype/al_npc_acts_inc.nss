@@ -144,10 +144,17 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
 
     int bNeedsTrainingPartner = AL_ActivityRequiresTrainingPartner(nActivity);
     int bNeedsBarPair = AL_ActivityRequiresBarPair(nActivity);
+    object oTrainingPartner = GetLocalObject(oNpc, "al_training_partner");
+    object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    // Cross-area references are not considered valid for paired placements.
+    int bTrainingPartnerValid = GetIsObjectValid(oTrainingPartner)
+        && GetArea(oTrainingPartner) == GetArea(oNpc);
+    int bBarPairValid = GetIsObjectValid(oBarPair)
+        && GetArea(oBarPair) == GetArea(oNpc);
 
     if (!AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity)
-        || (bNeedsTrainingPartner && !GetIsObjectValid(GetLocalObject(oNpc, "al_training_partner")))
-        || (bNeedsBarPair && !GetIsObjectValid(GetLocalObject(oNpc, "al_bar_pair"))))
+        || (bNeedsTrainingPartner && !bTrainingPartnerValid)
+        || (bNeedsBarPair && !bBarPairValid))
     {
         nActivity = AL_ACT_NPC_ACT_ONE;
     }
