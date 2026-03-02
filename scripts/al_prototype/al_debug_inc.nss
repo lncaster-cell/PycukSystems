@@ -7,14 +7,17 @@ void AL_SendDebugMessageToAreaPCs(object oArea, string sMessage)
         return;
     }
 
-    object oObj = GetFirstObjectInArea(oArea);
+    // Standard debug traversal: GetFirstPC(FALSE)/GetNextPC(FALSE).
+    // FALSE keeps recipients consistent across modules (players and DMs),
+    // while the area filter below limits delivery to local observers only.
+    object oObj = GetFirstPC(FALSE);
     while (GetIsObjectValid(oObj))
     {
-        if (GetIsPC(oObj))
+        if (GetArea(oObj) == oArea)
         {
             SendMessageToPC(oObj, sMessage);
         }
 
-        oObj = GetNextObjectInArea(oArea);
+        oObj = GetNextPC(FALSE);
     }
 }
