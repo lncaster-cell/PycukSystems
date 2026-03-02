@@ -19,25 +19,43 @@ void main()
     }
     DeleteLocalObject(oNpc, "al_bar_pair");
 
-    string sTag = GetTag(oNpc);
-    if (sTag == "FACTION_NPC1" || sTag == "FACTION_NPC2")
+    object oArea = GetArea(oNpc);
+    if (GetIsObjectValid(oArea))
     {
-        object oArea = GetArea(oNpc);
-        if (GetIsObjectValid(oArea))
+        object oNpc1Ref = GetLocalObject(oArea, "al_training_npc1_ref");
+        object oNpc2Ref = GetLocalObject(oArea, "al_training_npc2_ref");
+        int bResetTrainingCache = FALSE;
+
+        if (oNpc == oNpc1Ref)
         {
-            if (sTag == "FACTION_NPC1")
-            {
-                DeleteLocalObject(oArea, "al_training_npc1");
-            }
-            else
-            {
-                DeleteLocalObject(oArea, "al_training_npc2");
-            }
+            DeleteLocalObject(oArea, "al_training_npc1");
+            bResetTrainingCache = TRUE;
+        }
+        else if (oNpc == oNpc2Ref)
+        {
+            DeleteLocalObject(oArea, "al_training_npc2");
+            bResetTrainingCache = TRUE;
+        }
+
+        if (bResetTrainingCache)
+        {
             SetLocalInt(oArea, "al_training_partner_cached", FALSE);
+
+            if (GetLocalInt(oArea, "al_debug") == 1)
+            {
+                object oPc = GetFirstPC(FALSE);
+                while (GetIsObjectValid(oPc))
+                {
+                    if (GetArea(oPc) == oArea)
+                    {
+                        SendMessageToPC(oPc, "AL: training partner cache reset on death of " + GetName(oNpc) + ".");
+                    }
+                    oPc = GetNextPC(FALSE);
+                }
+            }
         }
     }
 
-    object oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
         if (GetLocalObject(oArea, "al_bar_bartender") == oNpc)
