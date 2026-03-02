@@ -2,11 +2,7 @@
 // Tries to open a nearby closed door when movement is blocked.
 
 #include "al_constants_inc"
-
-int AL_GetSecondsOfDay()
-{
-    return GetTimeSecond() + GetTimeMinute() * 60 + GetTimeHour() * 3600;
-}
+#include "al_npc_reg_inc"
 
 int AL_IsDebugEnabled(object oNpc)
 {
@@ -21,7 +17,7 @@ int AL_IsDebugEnabled(object oNpc)
 
 void AL_TryOpenNearestDoor(object oNpc)
 {
-    int nNow = AL_GetSecondsOfDay();
+    int nNow = AL_GetAmbientLifeDaySeconds();
     int nLastBlockedTs = GetLocalInt(oNpc, "al_last_blocked_ts");
     int nElapsed = nNow - nLastBlockedTs;
     if (nElapsed < 0)
