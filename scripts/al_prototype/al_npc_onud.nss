@@ -153,16 +153,23 @@ void main()
         + " activity=" + IntToString(nActivity));
     if (nActivity == AL_ACT_NPC_HIDDEN)
     {
+        AL_StopSleepAtBed(oNpc);
         AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
         return;
     }
     if (nEvent == AL_EVT_ROUTE_REPEAT && !bCanUseRoute)
     {
+        AL_StopSleepAtBed(oNpc);
         AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
         return;
     }
 
     int bSleepActivity = AL_ShouldLoopCustomAnimation(nActivity);
+    if (!bSleepActivity)
+    {
+        AL_StopSleepAtBed(oNpc);
+    }
+
     if (!bCanUseRoute)
     {
         AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
@@ -212,7 +219,18 @@ void main()
     if (bShouldPlay)
     {
         int nIntervalSeconds = AL_GetRepeatAnimIntervalSeconds();
-        AL_ApplyActivityForSlot(oNpc, nSlot);
+        if (bSleepActivity)
+        {
+            object oSleepWp = AL_FindSleepWaypointForSlot(oNpc, nSlot);
+            if (!AL_StartSleepAtBed(oNpc, oSleepWp))
+            {
+                AL_ApplyActivityForSlot(oNpc, nSlot);
+            }
+        }
+        else
+        {
+            AL_ApplyActivityForSlot(oNpc, nSlot);
+        }
         AL_MarkAnimationApplied(oNpc, nIntervalSeconds);
     }
 }

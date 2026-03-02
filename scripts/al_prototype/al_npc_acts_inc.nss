@@ -2,7 +2,189 @@
 
 #include "al_acts_inc"
 #include "al_constants_inc"
+#include "al_debug_inc"
 #include "al_npc_routes"
+
+void AL_SleepDebugLog(object oNpc, string sMessage)
+{
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (GetLocalInt(oNpc, "al_debug") != 1 && GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
+    }
+
+    AL_SendDebugMessageToAreaPCs(oArea, sMessage);
+}
+
+object AL_FindWaypointByTagInArea(object oArea, string sTag)
+{
+    if (!GetIsObjectValid(oArea) || sTag == "")
+    {
+        return OBJECT_INVALID;
+    }
+
+    object oObj = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObj))
+    {
+        if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT && GetTag(oObj) == sTag)
+        {
+            return oObj;
+        }
+
+        oObj = GetNextObjectInArea(oArea);
+    }
+
+    return OBJECT_INVALID;
+}
+
+void AL_QueueSleepAnimationLoop(object oNpc)
+{
+    AssignCommand(oNpc, ActionDoCommand(PlayCustomAnimation(oNpc, "laydownB", FALSE, 1.0)));
+    AssignCommand(oNpc, ActionWait(0.1));
+    AssignCommand(oNpc, ActionDoCommand(PlayCustomAnimation(oNpc, "proneB", TRUE, 1.0)));
+}
+
+int AL_StartSleepAtBed(object oNpc, object oSleepWp)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return FALSE;
+    }
+
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSleepWp))
+    {
+        AL_QueueSleepAnimationLoop(oNpc);
+        AL_SleepDebugLog(oNpc, "Sleep fallback to floor");
+        DeleteLocalInt(oNpc, "al_sleep_docked");
+        DeleteLocalString(oNpc, "al_sleep_approach_tag");
+        return FALSE;
+    }
+
+    string sBedTag = GetLocalString(oSleepWp, "al_bed_tag");
+    object oApproachWp = OBJECT_INVALID;
+    object oPoseWp = OBJECT_INVALID;
+
+    if (sBedTag != "")
+    {
+        oApproachWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_approach");
+        oPoseWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_pose");
+    }
+
+    if (!GetIsObjectValid(oApproachWp))
+    {
+        string sApproachTag = GetLocalString(oSleepWp, "al_bed_approach_wp");
+        oApproachWp = AL_FindWaypointByTagInArea(oArea, sApproachTag);
+    }
+
+    if (!GetIsObjectValid(oPoseWp))
+    {
+        string sPoseTag = GetLocalString(oSleepWp, "al_bed_pose_wp");
+        oPoseWp = AL_FindWaypointByTagInArea(oArea, sPoseTag);
+    }
+
+    if (!GetIsObjectValid(oApproachWp))
+    {
+        AL_QueueSleepAnimationLoop(oNpc);
+        AL_SleepDebugLog(oNpc, "Sleep fallback to floor");
+        DeleteLocalInt(oNpc, "al_sleep_docked");
+        DeleteLocalString(oNpc, "al_sleep_approach_tag");
+        return FALSE;
+    }
+
+    location lApproach = GetLocation(oApproachWp);
+    AssignCommand(oNpc, ClearAllActions());
+    AssignCommand(oNpc, ActionMoveToLocation(lApproach));
+    AssignCommand(oNpc, ActionWait(0.1));
+
+    if (GetIsObjectValid(oPoseWp))
+    {
+        location lPose = GetLocation(oPoseWp);
+        AssignCommand(oNpc, ActionDoCommand(SetCollision(oNpc, FALSE)));
+        AssignCommand(oNpc, ActionJumpToLocation(lPose));
+        AssignCommand(oNpc, ActionWait(0.1));
+    }
+
+    AL_QueueSleepAnimationLoop(oNpc);
+
+    SetLocalInt(oNpc, "al_sleep_docked", TRUE);
+    SetLocalString(oNpc, "al_sleep_approach_tag", GetTag(oApproachWp));
+    AL_SleepDebugLog(oNpc, "Sleep docking success");
+    return TRUE;
+}
+
+void AL_StopSleepAtBed(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc) || !GetLocalInt(oNpc, "al_sleep_docked"))
+    {
+        return;
+    }
+
+    object oArea = GetArea(oNpc);
+    string sApproachTag = GetLocalString(oNpc, "al_sleep_approach_tag");
+    object oApproachWp = AL_FindWaypointByTagInArea(oArea, sApproachTag);
+
+    AssignCommand(oNpc, ClearAllActions());
+    if (GetIsObjectValid(oApproachWp))
+    {
+        AssignCommand(oNpc, ActionJumpToLocation(GetLocation(oApproachWp)));
+        AssignCommand(oNpc, ActionWait(0.1));
+    }
+    AssignCommand(oNpc, ActionDoCommand(SetCollision(oNpc, TRUE)));
+
+    DeleteLocalInt(oNpc, "al_sleep_docked");
+    DeleteLocalString(oNpc, "al_sleep_approach_tag");
+}
+
+object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
+{
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea))
+    {
+        return OBJECT_INVALID;
+    }
+
+    string sRouteTag = AL_GetRouteTag(oNpc, nSlot);
+    if (sRouteTag == "")
+    {
+        return OBJECT_INVALID;
+    }
+
+    int nIndex = GetLocalInt(oNpc, "r_idx");
+    if (nIndex < 0)
+    {
+        nIndex = 0;
+    }
+
+    location lRoutePoint = AL_GetRoutePoint(oNpc, nSlot, nIndex);
+    object oBest = OBJECT_INVALID;
+    float fBestDist = 999999.0;
+
+    object oObj = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObj))
+    {
+        if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT
+            && GetTag(oObj) == sRouteTag
+            && (GetLocalString(oObj, "al_bed_approach_wp") != "" || GetLocalString(oObj, "al_bed_pose_wp") != ""))
+        {
+            float fDist = GetDistanceBetweenLocations(GetLocation(oObj), lRoutePoint);
+            if (!GetIsObjectValid(oBest) || fDist < fBestDist)
+            {
+                oBest = oObj;
+                fBestDist = fDist;
+            }
+        }
+
+        oObj = GetNextObjectInArea(oArea);
+    }
+
+    return oBest;
+}
 
 int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
 {
