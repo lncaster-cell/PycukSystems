@@ -199,7 +199,6 @@ Domain includes
    - при успешном docking ставятся локалы `al_sleep_docked=1`, `al_sleep_approach_tag=<tag>`;
    - при выходе из сна NPC прыгает обратно в `approach`, затем возвращает `SetCollision(TRUE)`;
    - если `approach` не найден, включается fallback: сон без docking (анимация на месте/«на полу»).
-4. Для отладки включите `al_debug=1` на NPC или area: появятся сообщения `Sleep docking success` / `Sleep fallback to floor`.
 
 ## 7) Полный аудит модуля поведения (AL) — 2026-03-01
 

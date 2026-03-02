@@ -1,7 +1,6 @@
 // NPC OnUserDefined: attach to NPC OnUserDefined in the toolset.
 
 #include "al_npc_acts_inc"
-#include "al_debug_inc"
 
 void AL_ResetRouteIndex(object oNpc)
 {
@@ -87,22 +86,6 @@ void AL_MarkAnimationApplied(object oNpc, int nIntervalSeconds)
     SetLocalInt(oNpc, "al_anim_next", nNext + 1);
 }
 
-void AL_DebugLog(object oNpc, string sMessage)
-{
-    object oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    if (GetLocalInt(oNpc, "al_debug") != 1 && GetLocalInt(oArea, "al_debug") != 1)
-    {
-        return;
-    }
-
-    AL_SendDebugMessageToAreaPCs(oArea, sMessage);
-}
-
 void main()
 {
     object oNpc = OBJECT_SELF;
@@ -148,9 +131,6 @@ void main()
     int bRequiresRouteTag = AL_GetActivityWaypointTag(nActivity) != "";
     int bHasRequiredRoute = AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity);
     int bCanUseRoute = bUsesRoute && bHasRequiredRoute;
-    AL_DebugLog(oNpc, "AL_EVT " + IntToString(nEvent)
-        + " slot=" + IntToString(nSlot)
-        + " activity=" + IntToString(nActivity));
     if (nActivity == AL_ACT_NPC_HIDDEN)
     {
         AL_StopSleepAtBed(oNpc);
@@ -174,11 +154,6 @@ void main()
     {
         AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
     }
-    AL_DebugLog(oNpc, "routeCount=" + IntToString(AL_GetRouteCount(oNpc, nSlot))
-        + " requiresRoute=" + IntToString(bRequiresRouteTag)
-        + " usesRoute=" + IntToString(bUsesRoute)
-        + " hasRequiredRoute=" + IntToString(bHasRequiredRoute)
-        + " sleep=" + IntToString(bSleepActivity));
 
     int bSkipMoveRepeat = FALSE;
     if (bCanUseRoute && nEvent == AL_EVT_ROUTE_REPEAT && AL_GetRouteCount(oNpc, nSlot) == 1)

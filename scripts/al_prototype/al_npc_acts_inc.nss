@@ -2,26 +2,9 @@
 
 #include "al_acts_inc"
 #include "al_constants_inc"
-#include "al_debug_inc"
 #include "al_npc_routes"
 
 void AL_PlayCustomAnimation(object oNpc, string sAnimation, int bLooping);
-
-void AL_SleepDebugLog(object oNpc, string sMessage)
-{
-    object oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea))
-    {
-        return;
-    }
-
-    if (GetLocalInt(oNpc, "al_debug") != 1 && GetLocalInt(oArea, "al_debug") != 1)
-    {
-        return;
-    }
-
-    AL_SendDebugMessageToAreaPCs(oArea, sMessage);
-}
 
 object AL_FindWaypointByTagInArea(object oArea, string sTag)
 {
@@ -62,7 +45,6 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSleepWp))
     {
         AL_QueueSleepAnimationLoop(oNpc);
-        AL_SleepDebugLog(oNpc, "Sleep fallback to floor");
         DeleteLocalInt(oNpc, "al_sleep_docked");
         DeleteLocalString(oNpc, "al_sleep_approach_tag");
         return FALSE;
@@ -93,7 +75,6 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     if (!GetIsObjectValid(oApproachWp))
     {
         AL_QueueSleepAnimationLoop(oNpc);
-        AL_SleepDebugLog(oNpc, "Sleep fallback to floor");
         DeleteLocalInt(oNpc, "al_sleep_docked");
         DeleteLocalString(oNpc, "al_sleep_approach_tag");
         return FALSE;
@@ -116,7 +97,6 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
 
     SetLocalInt(oNpc, "al_sleep_docked", TRUE);
     SetLocalString(oNpc, "al_sleep_approach_tag", GetTag(oApproachWp));
-    AL_SleepDebugLog(oNpc, "Sleep docking success");
     return TRUE;
 }
 
