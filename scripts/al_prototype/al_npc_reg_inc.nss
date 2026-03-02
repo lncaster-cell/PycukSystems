@@ -264,11 +264,7 @@ void AL_HideRegisteredNPCs(object oArea)
             continue;
         }
 
-        if (AL_CLEAR_ACTIONS_ON_DEACTIVATE)
-        {
-            AssignCommand(oNpc, ClearAllActions());
-        }
-
+        AssignCommand(oNpc, ClearAllActions());
         SetScriptHidden(oNpc, TRUE, TRUE);
         i++;
     }
