@@ -44,9 +44,9 @@ object AL_FindWaypointByTagInArea(object oArea, string sTag)
 
 void AL_QueueSleepAnimationLoop(object oNpc)
 {
-    AssignCommand(oNpc, PlayCustomAnimation(oNpc, "laydownB", FALSE, 1.0));
+    AssignCommand(oNpc, ActionDoCommand(PlayCustomAnimation(oNpc, "laydownB", FALSE, 1.0)));
     AssignCommand(oNpc, ActionWait(0.1));
-    AssignCommand(oNpc, PlayCustomAnimation(oNpc, "proneB", TRUE, 1.0));
+    AssignCommand(oNpc, ActionDoCommand(PlayCustomAnimation(oNpc, "proneB", TRUE, 1.0)));
 }
 
 int AL_StartSleepAtBed(object oNpc, object oSleepWp)
