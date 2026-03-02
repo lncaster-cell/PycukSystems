@@ -25,6 +25,11 @@ void AL_ClearAreaRouteCacheByTag(object oArea, string sTag)
         return;
     }
 
+    // Runtime route-cache locals per tag:
+    // - points:   al_route_<tag>_<idx>, _activity, _jump
+    // - dense map: al_route_<tag>_idx_<dense> + idx_built
+    // - counters:  n (dense points), seen_n + seen_* (for exact cleanup)
+    // - integrity: has_index, missing_index_logged
     string sResetPrefix = "al_route_" + sTag + "_";
     int iExistingCount = GetLocalInt(oArea, sResetPrefix + "n");
     int iResetIndex = 0;
@@ -65,9 +70,6 @@ void AL_ClearAreaRouteCacheByTag(object oArea, string sTag)
     }
     DeleteLocalInt(oArea, sResetPrefix + "n");
     DeleteLocalInt(oArea, sResetPrefix + "seen_n");
-    DeleteLocalInt(oArea, sResetPrefix + "count");
-    DeleteLocalInt(oArea, sResetPrefix + "count_reset");
-    DeleteLocalInt(oArea, sResetPrefix + "gap_logged");
     DeleteLocalInt(oArea, sResetPrefix + "missing_index_logged");
     DeleteLocalInt(oArea, sResetPrefix + "idx_built");
     DeleteLocalInt(oArea, sResetPrefix + "has_index");
@@ -239,17 +241,17 @@ void AL_CacheAreaRoutes(object oArea)
                 iSeen++;
             }
 
-            SetLocalInt(oArea, sAreaPrefix + "count", nCount);
+            // Keep only runtime keys:
+            // - n/seen_n describe stored points and cleanup domain
+            // - idx_* + idx_built provide dense traversal for NPC route copy
+            // - missing_index_logged throttles integrity warnings
             SetLocalInt(oArea, sAreaPrefix + "seen_n", nSeenCount);
             SetLocalInt(oArea, sAreaPrefix + "n", nDenseCount);
             SetLocalInt(oArea, sAreaPrefix + "idx_built", TRUE);
-            SetLocalInt(oArea, sAreaPrefix + "gap_logged", TRUE);
             if (nCount > 0 && nCount != nDenseCount)
             {
                 AL_AreaDebugLog(oArea, "AL: route tag " + sTag + " has gaps in al_route_index; using dense list.");
             }
-
-            DeleteLocalInt(oArea, sAreaPrefix + "count_reset");
         }
 
         DeleteLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagIndex));
