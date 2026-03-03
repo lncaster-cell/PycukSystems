@@ -161,13 +161,9 @@ void main()
         bSkipMoveRepeat = TRUE;
     }
 
-    if (bCanUseRoute)
+    if (bCanUseRoute && !bSleepActivity)
     {
-        if (bSleepActivity && nEvent == AL_EVT_ROUTE_REPEAT)
-        {
-            AL_ClearActiveRoute(oNpc, /*bClearActions=*/ FALSE);
-        }
-        else if (bSkipMoveRepeat)
+        if (bSkipMoveRepeat)
         {
             float fRepeatDelay = 5.0 + IntToFloat(Random(8));
 
@@ -179,6 +175,12 @@ void main()
             AL_QueueRoute(oNpc, nSlot, nEvent != AL_EVT_ROUTE_REPEAT);
         }
     }
+    else if (bSleepActivity)
+    {
+        // Sleep does not need movement repeat loops: keep NPC docked and avoid
+        // extra AL_EVT_ROUTE_REPEAT scheduling/load while sleeping.
+        AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+    }
 
     int bAllowAnimation = TRUE;
     if (nEvent == AL_EVT_ROUTE_REPEAT)
@@ -189,7 +191,7 @@ void main()
         }
     }
 
-    int bShouldPlay = bAllowAnimation && !(bCanUseRoute && nEvent != AL_EVT_ROUTE_REPEAT);
+    int bShouldPlay = bAllowAnimation && (bSleepActivity || !(bCanUseRoute && nEvent != AL_EVT_ROUTE_REPEAT));
 
     if (bShouldPlay)
     {

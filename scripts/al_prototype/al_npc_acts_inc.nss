@@ -80,6 +80,14 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
         return FALSE;
     }
 
+    string sApproachTag = GetTag(oApproachWp);
+    if (GetLocalInt(oNpc, "al_sleep_docked")
+        && GetLocalString(oNpc, "al_sleep_approach_tag") == sApproachTag)
+    {
+        // Already docked to this bed approach point: keep sleeping in place.
+        return TRUE;
+    }
+
     location lApproach = GetLocation(oApproachWp);
     AssignCommand(oNpc, ClearAllActions());
     AssignCommand(oNpc, ActionMoveToLocation(lApproach));
@@ -96,7 +104,7 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     AL_QueueSleepAnimationLoop(oNpc);
 
     SetLocalInt(oNpc, "al_sleep_docked", TRUE);
-    SetLocalString(oNpc, "al_sleep_approach_tag", GetTag(oApproachWp));
+    SetLocalString(oNpc, "al_sleep_approach_tag", sApproachTag);
     return TRUE;
 }
 
