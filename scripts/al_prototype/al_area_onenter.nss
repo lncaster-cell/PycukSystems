@@ -75,5 +75,5 @@ void main()
     DeleteLocalInt(oArea, "al_routes_cached");
     AL_CacheAreaRoutes(oArea);
     AL_UnhideAndResyncRegisteredNPCs(oArea);
-    DelayCommand(AL_TICK_PERIOD, AreaTick(oArea, iToken));
+    AL_ScheduleNextAreaTick(oArea, iToken);
 }
