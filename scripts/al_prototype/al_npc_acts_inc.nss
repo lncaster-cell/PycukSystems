@@ -131,6 +131,10 @@ void AL_StopSleepAtBed(object oNpc)
     DeleteLocalString(oNpc, "al_sleep_approach_tag");
 }
 
+// Finds nearest sleep route waypoint that has bed config via one of:
+// - al_bed_tag (resolved by AL_StartSleepAtBed into <tag>_approach/<tag>_pose)
+// - al_bed_approach_wp
+// - al_bed_pose_wp
 object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
 {
     object oArea = GetArea(oNpc);
@@ -160,7 +164,9 @@ object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
     {
         if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT
             && GetTag(oObj) == sRouteTag
-            && (GetLocalString(oObj, "al_bed_approach_wp") != "" || GetLocalString(oObj, "al_bed_pose_wp") != ""))
+            && (GetLocalString(oObj, "al_bed_tag") != ""
+                || GetLocalString(oObj, "al_bed_approach_wp") != ""
+                || GetLocalString(oObj, "al_bed_pose_wp") != ""))
         {
             float fDist = GetDistanceBetweenLocations(GetLocation(oObj), lRoutePoint);
             if (!GetIsObjectValid(oBest) || fDist < fBestDist)
