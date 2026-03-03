@@ -43,7 +43,25 @@ string AL_GetRouteTag(object oNpc, int nSlot)
 
 string AL_GetDesiredRouteTag(object oNpc, int nSlot)
 {
-    return GetLocalString(oNpc, "alwp" + IntToString(nSlot));
+    string sTag = GetLocalString(oNpc, "alwp" + IntToString(nSlot));
+    if (sTag != "")
+    {
+        return sTag;
+    }
+
+    // Sleep spans 00:00..08:00 (slots 0 and 1). Allow content to define
+    // only one sleep route tag and reuse it for the neighbouring slot.
+    if (nSlot == 0)
+    {
+        return GetLocalString(oNpc, "alwp1");
+    }
+
+    if (nSlot == 1)
+    {
+        return GetLocalString(oNpc, "alwp0");
+    }
+
+    return "";
 }
 
 int AL_GetRouteCount(object oNpc, int nSlot)
