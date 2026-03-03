@@ -257,6 +257,7 @@ void AL_HideRegisteredNPCs(object oArea)
 void AL_HandleAreaBecameEmpty(object oArea)
 {
     SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
+    DeleteLocalInt(oArea, "al_tick_scheduled_token");
     DeleteLocalInt(oArea, "al_routes_cached");
     AL_HideRegisteredNPCs(oArea);
 }

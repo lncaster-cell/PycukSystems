@@ -17,6 +17,17 @@ int AL_ComputeTimeSlot()
     return iSlot;
 }
 
+void AL_ScheduleNextAreaTick(object oArea, int nToken)
+{
+    if (GetLocalInt(oArea, "al_tick_scheduled_token") == nToken)
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, "al_tick_scheduled_token", nToken);
+    DelayCommand(AL_TICK_PERIOD, AreaTick(oArea, nToken));
+}
+
 void AreaTick(object oArea, int nToken)
 {
     if (GetLocalInt(oArea, "al_player_count") <= 0)
@@ -28,6 +39,8 @@ void AreaTick(object oArea, int nToken)
     {
         return;
     }
+
+    DeleteLocalInt(oArea, "al_tick_scheduled_token");
 
     int iSyncTick = GetLocalInt(oArea, "al_sync_tick") + 1;
     int bSynced = FALSE;
@@ -43,7 +56,7 @@ void AreaTick(object oArea, int nToken)
 
     if (iSlot == GetLocalInt(oArea, "al_slot"))
     {
-        DelayCommand(AL_TICK_PERIOD, AreaTick(oArea, nToken));
+        AL_ScheduleNextAreaTick(oArea, nToken);
         return;
     }
 
@@ -53,5 +66,5 @@ void AreaTick(object oArea, int nToken)
     }
     SetLocalInt(oArea, "al_slot", iSlot);
     AL_BroadcastUserEvent(oArea, AL_EVT_SLOT_0 + iSlot);
-    DelayCommand(AL_TICK_PERIOD, AreaTick(oArea, nToken));
+    AL_ScheduleNextAreaTick(oArea, nToken);
 }
