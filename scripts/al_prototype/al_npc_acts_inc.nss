@@ -34,6 +34,18 @@ void AL_QueueSleepAnimationLoop(object oNpc)
     AssignCommand(oNpc, AL_PlayCustomAnimation(oNpc, "proneB", TRUE));
 }
 
+void AL_ResetSleepDockState(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    AssignCommand(oNpc, ActionDoCommand(SetCollision(oNpc, TRUE)));
+    DeleteLocalInt(oNpc, "al_sleep_docked");
+    DeleteLocalString(oNpc, "al_sleep_approach_tag");
+}
+
 int AL_StartSleepAtBed(object oNpc, object oSleepWp)
 {
     // Contract: this helper only performs bed docking + sleep loop when docking
@@ -47,8 +59,7 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     object oArea = GetArea(oNpc);
     if (!GetIsObjectValid(oArea) || !GetIsObjectValid(oSleepWp))
     {
-        DeleteLocalInt(oNpc, "al_sleep_docked");
-        DeleteLocalString(oNpc, "al_sleep_approach_tag");
+        AL_ResetSleepDockState(oNpc);
         return FALSE;
     }
 
@@ -76,8 +87,7 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
 
     if (!GetIsObjectValid(oApproachWp))
     {
-        DeleteLocalInt(oNpc, "al_sleep_docked");
-        DeleteLocalString(oNpc, "al_sleep_approach_tag");
+        AL_ResetSleepDockState(oNpc);
         return FALSE;
     }
 
@@ -126,10 +136,7 @@ void AL_StopSleepAtBed(object oNpc)
         AssignCommand(oNpc, ActionJumpToLocation(GetLocation(oApproachWp)));
         AssignCommand(oNpc, ActionWait(0.1));
     }
-    AssignCommand(oNpc, ActionDoCommand(SetCollision(oNpc, TRUE)));
-
-    DeleteLocalInt(oNpc, "al_sleep_docked");
-    DeleteLocalString(oNpc, "al_sleep_approach_tag");
+    AL_ResetSleepDockState(oNpc);
 }
 
 // Finds nearest sleep route waypoint that has bed config via one of:
