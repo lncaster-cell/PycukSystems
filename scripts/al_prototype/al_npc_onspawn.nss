@@ -146,6 +146,10 @@ void AL_InitBarPair(object oNpc)
                 return;
             }
 
+            // Existing pair is asymmetric in the same area, so this local link
+            // is stale and must not be reused for requirement checks.
+            DeleteLocalObject(oNpc, "al_bar_pair");
+
             if (GetLocalInt(oArea, "al_debug") == 1)
             {
                 AL_SendDebugMessageToAreaPCs(oArea, "AL: asymmetric bar pair repaired for " + GetName(oNpc) + ".");
@@ -230,7 +234,11 @@ void AL_InitBarPair(object oNpc)
         // Always set the link on both ends so requirement checks behave identically.
         SetLocalObject(oNpc, "al_bar_pair", oPartner);
         SetLocalObject(oPartner, "al_bar_pair", oNpc);
+        return;
     }
+
+    // Keep unbound state explicit when no valid partner exists.
+    DeleteLocalObject(oNpc, "al_bar_pair");
 }
 
 void main()
