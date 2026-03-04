@@ -162,6 +162,10 @@ object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
     object oObj = GetFirstObjectInArea(oArea);
     while (GetIsObjectValid(oObj))
     {
+        // Sleep waypoint is valid if configured via one of 3 options:
+        // 1) al_bed_tag (resolved to <tag>_approach/<tag>_pose)
+        // 2) al_bed_approach_wp
+        // 3) al_bed_pose_wp
         if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT
             && GetTag(oObj) == sRouteTag
             && (GetLocalString(oObj, "al_bed_tag") != ""
