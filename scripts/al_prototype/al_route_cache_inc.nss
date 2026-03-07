@@ -11,11 +11,9 @@ const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
 int AL_HasRouteIndex(object oWp)
 {
-    // Explicit presence markers are required to distinguish "not set"
-    // from a valid index value 0.
-    // - Legacy content: al_route_index_set
-    // - Current content: al_route_index_present
-    return GetLocalInt(oWp, "al_route_index_set") || GetLocalInt(oWp, "al_route_index_present");
+    // Contract: index presence is explicit via al_route_index_set.
+    // This allows al_route_index == 0 to be treated as a valid, set value.
+    return GetLocalInt(oWp, "al_route_index_set");
 }
 
 int AL_HasValidRouteIndex(object oWp)
