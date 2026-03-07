@@ -6,6 +6,8 @@
 
 const int AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS = 60;
 
+void AL_ResetNPCFreezeState(object oNpc);
+
 int AL_GetAmbientLifeDaySeconds()
 {
     int nSeconds = GetTimeSecond();
@@ -248,10 +250,32 @@ void AL_HideRegisteredNPCs(object oArea)
             continue;
         }
 
+        AL_ResetNPCFreezeState(oNpc);
         AssignCommand(oNpc, ClearAllActions());
         SetScriptHidden(oNpc, TRUE, TRUE);
         i++;
     }
+}
+
+
+
+void AL_ResetNPCFreezeState(object oNpc)
+{
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    // Freeze/post-wake contract:
+    // 1) force collision on (safe with/without AL_StopSleepAtBed),
+    // 2) clear bed-docking state,
+    // 3) clear runtime route-loop locals so wake always starts from RESYNC.
+    SetCollision(oNpc, TRUE);
+    DeleteLocalInt(oNpc, "al_sleep_docked");
+    DeleteLocalString(oNpc, "al_sleep_approach_tag");
+    DeleteLocalInt(oNpc, "r_active");
+    DeleteLocalInt(oNpc, "r_slot");
+    DeleteLocalInt(oNpc, "r_idx");
 }
 
 void AL_HandleAreaBecameEmpty(object oArea)
@@ -278,6 +302,8 @@ void AL_UnhideAndResyncRegisteredNPCs(object oArea)
             continue;
         }
 
+        // Post-wake sanity check: stale sleep/route runtime state must not survive freeze.
+        AL_ResetNPCFreezeState(oNpc);
         SetScriptHidden(oNpc, FALSE, FALSE);
         SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC));
         i++;

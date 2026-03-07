@@ -199,6 +199,14 @@ Domain includes
    - при успешном docking ставятся локалы `al_sleep_docked=1`, `al_sleep_approach_tag=<tag>`;
    - при выходе из сна NPC прыгает обратно в `approach`, затем возвращает `SetCollision(TRUE)`;
    - если `approach` не найден, включается fallback: сон без docking (анимация на месте/«на полу»).
+4. Freeze/post-wake reset-поля (обязательный sanity check):
+   - `al_sleep_docked` (delete);
+   - `al_sleep_approach_tag` (delete);
+   - `r_active`, `r_slot`, `r_idx` (delete);
+   - collision NPC принудительно возвращается в `TRUE`.
+5. Совместимость:
+   - reset не конфликтует с `AL_StopSleepAtBed`: helper вызывается только когда `al_sleep_docked=1`; после freeze-пути локал очищен и повторный вызов безопасно no-op;
+   - очистка `r_active/r_slot/r_idx` гарантирует, что после wake запускается полный `AL_EVT_RESYNC`, а не «грязное» продолжение старого repeat-цикла.
 
 ## 7) Полный аудит модуля поведения (AL) — 2026-03-01
 
@@ -244,7 +252,8 @@ Domain includes
    - route truncation;
    - area-mismatch route points;
    - переполнение registry.
-2. После правок waypoint обязательно прогонять smoke-сценарий:
-   - `onenter (1-й игрок)` -> `slot switch` -> `route repeat` -> `empty area` -> `resync`.
+2. После правок waypoint обязательно прогонять smoke-сценарии:
+   - базовый: `onenter (1-й игрок)` -> `slot switch` -> `route repeat` -> `empty area` -> `resync`;
+   - QA на freeze/wake: `sleep/pair activity active` -> `freeze (area empty)` -> `wake (player enter)` -> проверка корректного `AL_EVT_RESYNC` без reuse старых `r_active/r_slot/r_idx`.
 3. Для парных ролей (training/bar) добавить в контент-процесс обязательный шаг ревизии `*_ref`-локалов после замены blueprint/респауна ключевых NPC.
 4. Для особо загруженных area держать маршруты короткими и валидными по индексации, чтобы уменьшить шум `AL_EVT_ROUTE_REPEAT` и лишние clear/requeue.
