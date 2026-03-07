@@ -248,3 +248,37 @@ Domain includes
    - `onenter (1-й игрок)` -> `slot switch` -> `route repeat` -> `empty area` -> `resync`.
 3. Для парных ролей (training/bar) добавить в контент-процесс обязательный шаг ревизии `*_ref`-локалов после замены blueprint/респауна ключевых NPC.
 4. Для особо загруженных area держать маршруты короткими и валидными по индексации, чтобы уменьшить шум `AL_EVT_ROUTE_REPEAT` и лишние clear/requeue.
+
+## 8) Area mode contract
+
+Контракт зафиксирован отдельным include `al_area_mode_contract_inc.nss` и не меняет текущее runtime-ядро/планировщик тиков.
+
+### 8.1 Enum-словарь режимов
+
+Режимы area задаются int-кодами (constants в `al_area_constants_inc.nss`):
+
+- `AL_AREA_MODE_HOT = 1`
+- `AL_AREA_MODE_WARM = 2`
+- `AL_AREA_MODE_COLD = 3`
+- `AL_AREA_MODE_OFF = 4`
+
+Единый local-ключ для явного режима:
+
+- `AL_AREA_MODE_LOCAL_KEY = "al_area_mode"`
+
+### 8.2 API-обёртки чтения/проверки
+
+`al_area_mode_contract_inc.nss` предоставляет только API чтения/валидации режима:
+
+- `AL_GetAreaModeLegacyDefault(area)` — вычисляет legacy-режим по текущему поведению area;
+- `AL_GetAreaModeOrLegacy(area)` — возвращает explicit mode, а при отсутствии/невалидном значении — legacy fallback;
+- `AL_IsAreaModeHot/Warm/Cold/Off(area)` — проверочные предикаты.
+
+### 8.3 Legacy-совместимость (обязательное правило)
+
+Если local `al_area_mode` отсутствует (или содержит невалидное значение), режим интерпретируется как:
+
+- `HOT`, если в area есть игроки (`al_player_count > 0`);
+- `COLD`, если area пуста (`al_player_count == 0`).
+
+Таким образом, существующее поведение для area без explicit mode сохраняется без изменений.
