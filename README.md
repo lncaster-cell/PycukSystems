@@ -109,8 +109,7 @@
 Новый поток сна работает не по одной точке, а по паре waypoint рядом с кроватью:
 
 1. На route-waypoint сна (с нужным `al_activity`) задайте:
-   - либо `al_bed_tag=<BED_ID>` и создайте waypoint с тегами `<BED_ID>_approach` и `<BED_ID>_pose`;
-   - либо явные локалы `al_bed_approach_wp=<tag>` и `al_bed_pose_wp=<tag>`.
+   - `al_bed_tag=<BED_ID>` и создайте waypoint с тегами `<BED_ID>_approach` и `<BED_ID>_pose`.
 2. `approach`-точка должна стоять на валидном walkmesh (достижимая `ActionMoveToLocation`).
 3. `pose`-точка может быть на/внутри кровати: до `ActionJumpToLocation` скрипт временно отключает collision у NPC.
 4. При выходе из сна NPC возвращается к `approach`-точке и collision включается обратно.
@@ -127,4 +126,4 @@
 - **NPC не активируется** — проверьте `al_activity` на waypoint текущего маршрута, наличие игроков в area и скрытое состояние NPC.
 - **Парные активности не запускаются** — проверьте локальные ссылки `*_ref` (например, пары `al_training_npc1_ref`/`al_training_npc2_ref`, `al_bar_bartender_ref`/`al_bar_barmaid_ref`).
 - **После замены ключевых NPC** обязательно обновляйте `*_ref`-локалы на area (для training/bar пар), иначе система оставит пару в безопасном unbound-состоянии до появления валидной ссылки.
-- **Сон не докуется к кровати** — проверьте, что route-waypoint содержит `al_bed_tag` или `al_bed_approach_wp`, и что `approach`-точка находится на walkmesh; `pose`-точка может быть вне walkmesh, если нужна точная укладка на кровать.
+- **Сон не докуется к кровати** — проверьте, что route-waypoint содержит `al_bed_tag`, а `approach`-точка находится на walkmesh; `pose`-точка может быть вне walkmesh, если нужна точная укладка на кровать.
