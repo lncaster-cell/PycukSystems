@@ -11,10 +11,9 @@ const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
 int AL_HasRouteIndex(object oWp)
 {
-    // Backward-compat: legacy content may still set al_route_index_set.
-    // New contract relies on al_route_index only.
-    int nIndex = GetLocalInt(oWp, "al_route_index");
-    return GetLocalInt(oWp, "al_route_index_set") || nIndex != 0;
+    // Contract: index presence is explicit via al_route_index_set.
+    // This allows al_route_index == 0 to be treated as a valid, set value.
+    return GetLocalInt(oWp, "al_route_index_set");
 }
 
 int AL_HasValidRouteIndex(object oWp)
