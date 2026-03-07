@@ -84,11 +84,6 @@ void main()
         return;
     }
 
-    if (AL_IsAreaModeOff(oArea))
-    {
-        return;
-    }
-
     int iToken = GetLocalInt(oArea, "al_tick_token") + 1;
     SetLocalInt(oArea, "al_tick_token", iToken);
     SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_HOT);
