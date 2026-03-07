@@ -2,11 +2,144 @@
 // Registry synchronization runs only at the area level (see AreaTick).
 
 #include "al_constants_inc"
+#include "al_area_constants_inc"
 #include "al_debug_inc"
+#include "al_area_mode_contract_inc"
 
 const int AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS = 60;
 
+const string AL_FREEZE_REASON_MANUAL = "manual";
+const string AL_FREEZE_REASON_EMPTY = "empty";
+const string AL_FREEZE_REASON_INTERIOR_POLICY = "interior-policy";
+
+const string AL_FREEZE_MODE_HOT = "hot";
+const string AL_FREEZE_MODE_WARM = "warm";
+const string AL_FREEZE_MODE_COLD = "cold";
+const string AL_FREEZE_MODE_OFF = "off";
+
 void AL_ResetNPCFreezeState(object oNpc);
+void AL_HideRegisteredNPCs(object oArea);
+
+string AL_FormatFreezeTimestamp(int nHour, int nMinute, int nSecond)
+{
+    string sHour = IntToString(nHour);
+    if (nHour < 10)
+    {
+        sHour = "0" + sHour;
+    }
+
+    string sMinute = IntToString(nMinute);
+    if (nMinute < 10)
+    {
+        sMinute = "0" + sMinute;
+    }
+
+    string sSecond = IntToString(nSecond);
+    if (nSecond < 10)
+    {
+        sSecond = "0" + sSecond;
+    }
+
+    return sHour + ":" + sMinute + ":" + sSecond;
+}
+
+string AL_GetAreaFreezeMode(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return AL_FREEZE_MODE_COLD;
+    }
+
+    if (GetLocalInt(oArea, "al_player_count") > 0)
+    {
+        return AL_FREEZE_MODE_HOT;
+    }
+
+    if (GetLocalInt(oArea, "al_tick_warm_left") > 0)
+    {
+        return AL_FREEZE_MODE_WARM;
+    }
+
+    if (GetLocalString(oArea, "al_freeze_to_mode") == AL_FREEZE_MODE_OFF)
+    {
+        return AL_FREEZE_MODE_OFF;
+    }
+
+    return AL_FREEZE_MODE_COLD;
+}
+
+string AL_GetFreezeTargetModeByReason(string sReason)
+{
+    if (sReason == AL_FREEZE_REASON_INTERIOR_POLICY)
+    {
+        return AL_FREEZE_MODE_OFF;
+    }
+
+    return AL_FREEZE_MODE_COLD;
+}
+
+void AL_LogFreezeTransition(object oArea, string sReason, string sFromMode, string sToMode)
+{
+    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
+    }
+
+    AL_SendDebugMessageToAreaPCs(
+        oArea,
+        "AL: freeze transition reason='" + sReason
+            + "' from='" + sFromMode
+            + "' to='" + sToMode
+            + "'."
+    );
+}
+
+void AL_RecordAreaFreezeState(object oArea, string sReason, string sFromMode, string sToMode)
+{
+    int nHour = GetTimeHour();
+    int nMinute = GetTimeMinute();
+    int nSecond = GetTimeSecond();
+    int nDaySeconds = nSecond + (nMinute * 60) + (nHour * 3600);
+
+    SetLocalString(oArea, "al_freeze_reason", sReason);
+    SetLocalString(oArea, "al_freeze_from_mode", sFromMode);
+    SetLocalString(oArea, "al_freeze_to_mode", sToMode);
+    SetLocalString(oArea, "al_freeze_timestamp", AL_FormatFreezeTimestamp(nHour, nMinute, nSecond));
+    SetLocalInt(oArea, "al_freeze_epoch", nDaySeconds);
+}
+
+void AL_ApplyAreaFreezeRuntimeInvariant(object oArea)
+{
+    SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
+    DeleteLocalInt(oArea, "al_tick_scheduled_token");
+    DeleteLocalInt(oArea, "al_tick_warm_left");
+    DeleteLocalInt(oArea, "al_routes_cached");
+}
+
+void AL_FreezeArea(object oArea, string sReason)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    if (sReason != AL_FREEZE_REASON_MANUAL
+        && sReason != AL_FREEZE_REASON_EMPTY
+        && sReason != AL_FREEZE_REASON_INTERIOR_POLICY)
+    {
+        sReason = AL_FREEZE_REASON_MANUAL;
+    }
+
+    string sFromMode = AL_GetAreaFreezeMode(oArea);
+    string sToMode = AL_GetFreezeTargetModeByReason(sReason);
+
+    AL_RecordAreaFreezeState(oArea, sReason, sFromMode, sToMode);
+    AL_LogFreezeTransition(oArea, sReason, sFromMode, sToMode);
+
+    // Freeze invariant: always terminate runtime loop and persist mode transition metadata.
+    AL_ApplyAreaFreezeRuntimeInvariant(oArea);
+    AL_HideRegisteredNPCs(oArea);
+}
 
 int AL_GetAmbientLifeDaySeconds()
 {
@@ -169,6 +302,12 @@ void AL_RegisterNPC(object oNpc)
         return;
     }
 
+    if (AL_IsAreaModeOff(oArea))
+    {
+        AL_LogRegistrationSkip(oNpc, oArea, "area mode is OFF");
+        return;
+    }
+
     SetLocalObject(oNpc, "al_last_area", oArea);
 
     int iCount = GetLocalInt(oArea, "al_npc_count");
@@ -246,6 +385,11 @@ void AL_UnregisterNPC(object oNpc)
 
 void AL_SyncAreaNPCRegistry(object oArea)
 {
+    if (AL_IsAreaModeOff(oArea))
+    {
+        return;
+    }
+
     int iCount = GetLocalInt(oArea, "al_npc_count");
     int i = 0;
 
@@ -330,7 +474,9 @@ void AL_ResetNPCFreezeState(object oNpc)
 
 void AL_HandleAreaBecameEmpty(object oArea)
 {
+    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_COLD);
     SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
+    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_COLD);
     DeleteLocalInt(oArea, "al_tick_scheduled_token");
     DeleteLocalInt(oArea, "al_tick_warm_left");
     DeleteLocalInt(oArea, "al_routes_cached");
@@ -340,6 +486,11 @@ void AL_HandleAreaBecameEmpty(object oArea)
 
 void AL_UnhideAndResyncRegisteredNPCs(object oArea)
 {
+    if (AL_IsAreaModeOff(oArea) || AL_IsAreaModeCold(oArea))
+    {
+        return;
+    }
+
     int iCount = GetLocalInt(oArea, "al_npc_count");
     int i = 0;
 
@@ -366,6 +517,11 @@ void AL_UnhideAndResyncRegisteredNPCs(object oArea)
 
 void AL_BroadcastUserEvent(object oArea, int nEvent)
 {
+    if (AL_IsAreaModeOff(oArea))
+    {
+        return;
+    }
+
     int iCount = GetLocalInt(oArea, "al_npc_count");
     int i = 0;
 
