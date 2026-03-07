@@ -35,6 +35,7 @@ NPC events
 │  └─ если в area есть игроки: unhide + AL_EVT_RESYNC, иначе hide
 ├─ al_npc_onud.nss
 │  ├─ единая точка обработки AL_EVT_SLOT_*, AL_EVT_RESYNC, AL_EVT_ROUTE_REPEAT
+│  ├─ на `AL_EVT_RESYNC` сначала переинициализирует pair subsystem
 │  ├─ пересобирает route для nSlot только по NPC local `alwp<slot>`
 │  ├─ управляет route loop и повторной доставкой AL_EVT_ROUTE_REPEAT
 │  └─ применяет активность/анимацию без legacy fallback-источников
@@ -59,6 +60,8 @@ Domain includes
 │  ├─ AL_GetWaypointActivityForSlot() строго из waypoint `al_activity`
 │  ├─ проверка route requirements / training / bar pair
 │  └─ применение custom/numeric анимаций
+├─ al_npc_pair_inc.nss
+│  └─ AL_InitTrainingPartner / AL_InitBarPair (runtime-resync пар)
 └─ al_acts_inc.nss
    ├─ enum activity-констант
    ├─ mapping activity -> custom/numeric animation set
@@ -97,7 +100,7 @@ Domain includes
 4. `AL_HandleAreaBecameEmpty` централизованно выполняет:
    - инкремент `al_tick_token` (инвалидация ранее запланированных `AreaTick`),
    - `DeleteLocalInt(oArea, "al_routes_cached")` (форс полной пересборки route-cache при следующем запуске),
-   - `AL_HideRegisteredNPCs` (скрытие NPC, и очистка action queue при включённом флаге).
+   - `AL_HideRegisteredNPCs` (freeze NPC), где перед hide применяется правило sleep-reset: очистка action queue + возврат collision/state в безопасный baseline (`al_sleep_*` сброшены).
 
 ---
 
@@ -133,7 +136,7 @@ Domain includes
 | Event | Кто генерирует | Trigger-условие | Что делает получатель (`al_npc_onud.nss`) |
 |---|---|---|---|
 | `AL_EVT_SLOT_0 .. AL_EVT_SLOT_5` | `AreaTick` через `AL_BroadcastUserEvent` | Зафиксирована смена `al_slot` в area | NPC переключает поведение на слот, обновляет route/activity, при необходимости запускает новый route-loop. |
-| `AL_EVT_RESYNC` | `al_area_onenter`, `AL_UnhideAndResyncRegisteredNPCs`, `al_npc_onspawn`, `AL_HandleRouteAreaTransition` | Нужна полная пересинхронизация NPC с текущим состоянием area | Берёт `nSlot` из `area.al_slot`, сбрасывает `al_last_slot=-1`, пересобирает route/activity с нуля. |
+| `AL_EVT_RESYNC` | `al_area_onenter`, `AL_UnhideAndResyncRegisteredNPCs`, `al_npc_onspawn`, `AL_HandleRouteAreaTransition` | Нужна полная пересинхронизация NPC с текущим состоянием area | Жёсткий порядок: (1) lightweight-resync пар `AL_InitTrainingPartner/AL_InitBarPair` -> (2) `al_last_slot=-1` -> (3) пересборка route/activity с нуля для `area.al_slot`. |
 | `AL_EVT_ROUTE_REPEAT` | сам NPC (через `ActionDoCommand(SignalEvent(...))`) | Завершён проход по route без межзонового transition, либо запланирован repeat-пульс | Продолжает route-loop в текущем `r_slot`; игнорируется если `r_active==FALSE`, route пустой или слот устарел. |
 
 ---
@@ -152,8 +155,8 @@ Domain includes
 5. **Источник активности:** активность берётся только из `al_activity` текущего waypoint маршрута; если точка/активность некорректна — используется безопасный `AL_ACT_NPC_ACT_ONE`.
 6. **Обработка скрытого состояния:** при `AL_ACT_NPC_HIDDEN` активный route прекращается (clear actions + сброс runtime route locals).
 7. **Симметрия bar-пары:** активности `AL_ACT_NPC_BARMAID` и `AL_ACT_NPC_BARTENDER` обе требуют валидный local `al_bar_pair`; при потере партнёра обе роли одинаково деградируют в `AL_ACT_NPC_ACT_ONE`.
-
-7. **Актуальность `*_ref`-локалов пар:** `al_training_npc*_ref` и `al_bar_*_ref` должны обновляться при замене ключевых NPC; при невалидном/"мёртвом" ref runtime-пара очищается и остаётся в безопасном unbound-состоянии до появления валидной ссылки.
+8. **Актуальность `*_ref`-локалов пар:** `al_training_npc*_ref` и `al_bar_*_ref` должны обновляться при замене ключевых NPC; при невалидном/"мёртвом" ref runtime-пара очищается и остаётся в безопасном unbound-состоянии до появления валидной ссылки.
+9. **Fallback после wake/resync для парных активностей:** если после `AL_InitTrainingPartner`/`AL_InitBarPair` пара остаётся невалидной, activity не «дрейфует» в stale-state — применяется явный защитный режим `AL_ACT_NPC_ACT_ONE` (в debug-area дополнительно пишется диагностическое сообщение о fallback).
 
 ---
 
@@ -198,6 +201,7 @@ Domain includes
 3. Поведение рантайма:
    - при успешном docking ставятся локалы `al_sleep_docked=1`, `al_sleep_approach_tag=<tag>`;
    - при выходе из сна NPC прыгает обратно в `approach`, затем возвращает `SetCollision(TRUE)`;
+   - при freeze area (`al_player_count -> 0`) до `SetScriptHidden(TRUE)` выполняется принудительный sleep-reset: чистятся действия, сбрасываются `al_sleep_*`, collision возвращается в TRUE (чтобы не оставлять подвешенный sleep/collision-state на период hide);
    - если `approach` не найден, включается fallback: сон без docking (анимация на месте/«на полу»).
 
 ## 7) Полный аудит модуля поведения (AL) — 2026-03-01
