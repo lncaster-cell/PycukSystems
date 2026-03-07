@@ -8,7 +8,7 @@
 int AL_GetAreaModeOrLegacy(object oArea);
 int AL_IsAreaInteriorByContract(object oArea);
 
-int AL_TrimContractToken(string sValue)
+string AL_TrimContractToken(string sValue)
 {
     while (GetStringLength(sValue) > 0 && GetSubString(sValue, 0, 1) == " ")
     {
