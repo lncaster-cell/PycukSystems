@@ -274,6 +274,26 @@ string AL_SelectRandomToken(string sList)
     return sSelected;
 }
 
+string AL_AppendDegradeReasonCode(string sReasonCodes, string sReasonCode)
+{
+    if (sReasonCode == "")
+    {
+        return sReasonCodes;
+    }
+
+    if (sReasonCodes == "")
+    {
+        return sReasonCode;
+    }
+
+    return sReasonCodes + "," + sReasonCode;
+}
+
+string AL_GetActivityName(int nActivity)
+{
+    return IntToString(nActivity);
+}
+
 int AL_ShouldLoopCustomAnimation(int nActivity)
 {
     if (nActivity == AL_ACT_NPC_MIDNIGHT_BED
