@@ -242,17 +242,38 @@ void AL_CacheAreaRoutes(object oArea)
             }
             DeleteLocalInt(oArea, sTmpPrefix + "n");
 
-            int iSeen = 0;
-            while (iSeen < nSeenCount)
+            if (bRequiresIndex)
             {
-                int iIndex = GetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(iSeen));
-                string sIndex = sAreaPrefix + IntToString(iIndex);
-                if (GetLocalInt(oArea, sIndex + "_set"))
+                // Indexed mode: build dense traversal in al_route_index order,
+                // while keeping sparse source indices in idx_*.
+                int iIndex = 0;
+                while (iIndex <= AL_AREA_ROUTE_INDEX_MAX)
                 {
-                    SetLocalInt(oArea, sAreaPrefix + "idx_" + IntToString(nDenseCount), iIndex);
-                    nDenseCount++;
+                    string sIndex = sAreaPrefix + IntToString(iIndex);
+                    if (GetLocalInt(oArea, sIndex + "_set"))
+                    {
+                        SetLocalInt(oArea, sAreaPrefix + "idx_" + IntToString(nDenseCount), iIndex);
+                        nDenseCount++;
+                    }
+
+                    iIndex++;
                 }
-                iSeen++;
+            }
+            else
+            {
+                // Legacy fallback: preserve waypoint discovery order.
+                int iSeen = 0;
+                while (iSeen < nSeenCount)
+                {
+                    int iIndex = GetLocalInt(oArea, sAreaPrefix + "seen_" + IntToString(iSeen));
+                    string sIndex = sAreaPrefix + IntToString(iIndex);
+                    if (GetLocalInt(oArea, sIndex + "_set"))
+                    {
+                        SetLocalInt(oArea, sAreaPrefix + "idx_" + IntToString(nDenseCount), iIndex);
+                        nDenseCount++;
+                    }
+                    iSeen++;
+                }
             }
 
             // Keep only runtime keys:
