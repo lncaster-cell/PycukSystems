@@ -6,6 +6,7 @@
 // without introducing scheduler/runtime policy changes.
 
 int AL_GetAreaModeOrLegacy(object oArea);
+int AL_IsAreaInteriorByContract(object oArea);
 
 string AL_TrimContractToken(string sValue)
 {
@@ -168,7 +169,7 @@ void AL_SoftActivateAdjacentAreas(object oSourceArea)
             if (sAreaTag != "")
             {
                 object oAdjacent = GetObjectByTag(sAreaTag, 0);
-                if (!GetIsObjectValid(oAdjacent) || GetObjectType(oAdjacent) != OBJECT_TYPE_AREA)
+                if (!GetIsObjectValid(oAdjacent))
                 {
                     AL_LogAreaAdjFallbackDebug(oSourceArea, "unknown adjacent area tag '" + sAreaTag + "'; skipped");
                 }

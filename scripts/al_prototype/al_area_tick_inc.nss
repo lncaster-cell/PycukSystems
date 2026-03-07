@@ -8,6 +8,8 @@
 // scheduling always goes through AL_ScheduleNextAreaTick().
 // NPC registry synchronization is handled here at the area level only.
 
+void AreaTick(object oArea, int nToken);
+
 int AL_ComputeTimeSlot()
 {
     // GetTimeHour() is expected to be in the 0..23 range.

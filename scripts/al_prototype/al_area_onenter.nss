@@ -5,6 +5,8 @@
 #include "al_npc_reg_inc"
 #include "al_player_count_inc"
 
+void AL_CacheTrainingPartners(object oArea);
+
 string AL_GetAreaModeName(int iMode)
 {
     if (iMode == AL_AREA_MODE_HOT)
