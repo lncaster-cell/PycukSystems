@@ -1,8 +1,74 @@
 // Area OnEnter: attach to the Area OnEnter event in the toolset.
 
 #include "al_area_tick_inc"
+#include "al_area_mode_contract_inc"
 #include "al_npc_reg_inc"
 #include "al_player_count_inc"
+
+string AL_GetAreaModeName(int iMode)
+{
+    if (iMode == AL_AREA_MODE_HOT)
+    {
+        return "HOT";
+    }
+
+    if (iMode == AL_AREA_MODE_WARM)
+    {
+        return "WARM";
+    }
+
+    if (iMode == AL_AREA_MODE_COLD)
+    {
+        return "COLD";
+    }
+
+    if (iMode == AL_AREA_MODE_OFF)
+    {
+        return "OFF";
+    }
+
+    return "UNKNOWN";
+}
+
+void AL_LogWakeTransition(object oArea, int iFromMode, int iTargetMode, int iWakeEpoch)
+{
+    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
+    }
+
+    AL_SendDebugMessageToAreaPCs(
+        oArea,
+        "AL: wake transition "
+            + AL_GetAreaModeName(iFromMode)
+            + " -> "
+            + AL_GetAreaModeName(iTargetMode)
+            + " (epoch="
+            + IntToString(iWakeEpoch)
+            + ")."
+    );
+}
+
+void AL_RunColdWakeFastPath(object oArea, int iToken)
+{
+    SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
+    AL_SyncAreaNPCRegistry(oArea);
+    DeleteLocalInt(oArea, "al_routes_cached");
+    AL_CacheAreaRoutes(oArea);
+    AL_UnhideAndResyncRegisteredNPCs(oArea);
+    AL_ScheduleNextAreaTick(oArea, iToken);
+}
+
+void AL_RunDefaultWakePath(object oArea, int iToken)
+{
+    SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
+    AL_CacheTrainingPartners(oArea);
+    AL_SyncAreaNPCRegistry(oArea);
+    DeleteLocalInt(oArea, "al_routes_cached");
+    AL_CacheAreaRoutes(oArea);
+    AL_UnhideAndResyncRegisteredNPCs(oArea);
+    AL_ScheduleNextAreaTick(oArea, iToken);
+}
 
 void AL_CacheTrainingPartners(object oArea)
 {
@@ -65,16 +131,22 @@ void main()
         return;
     }
 
+    int iFromMode = AL_GetAreaModeOrLegacy(oArea);
+    int iTargetMode = AL_AREA_MODE_HOT;
+
     int iToken = GetLocalInt(oArea, "al_tick_token") + 1;
     SetLocalInt(oArea, "al_tick_token", iToken);
+    int iWakeEpoch = GetLocalInt(oArea, "al_wake_epoch") + 1;
+    SetLocalInt(oArea, "al_wake_epoch", iWakeEpoch);
+    AL_LogWakeTransition(oArea, iFromMode, iTargetMode, iWakeEpoch);
 
-    SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
     SetLocalInt(oArea, "al_tick_warm_left", AL_TICK_WARM_REPEATS);
 
-    AL_CacheTrainingPartners(oArea);
-    AL_SyncAreaNPCRegistry(oArea);
-    DeleteLocalInt(oArea, "al_routes_cached");
-    AL_CacheAreaRoutes(oArea);
-    AL_UnhideAndResyncRegisteredNPCs(oArea);
-    AL_ScheduleNextAreaTick(oArea, iToken);
+    if (iFromMode == AL_AREA_MODE_COLD)
+    {
+        AL_RunColdWakeFastPath(oArea, iToken);
+        return;
+    }
+
+    AL_RunDefaultWakePath(oArea, iToken);
 }
