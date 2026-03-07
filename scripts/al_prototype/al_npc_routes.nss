@@ -274,7 +274,10 @@ void AL_HandleRouteAreaTransition()
         if (nPlayerCount <= 0)
         {
             // Protect zero-activity areas without PCs; activation happens via al_area_onenter.
-            SetScriptHidden(oNpc, TRUE, TRUE);
+            if (!GetScriptHidden(oNpc))
+            {
+                SetScriptHidden(oNpc, TRUE, TRUE);
+            }
             if (GetLocalInt(oNpc, "r_active"))
             {
                 AL_ClearActiveRoute(oNpc, TRUE);

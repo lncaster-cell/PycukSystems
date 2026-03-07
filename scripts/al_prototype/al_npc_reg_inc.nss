@@ -299,8 +299,10 @@ void AL_HideRegisteredNPCs(object oArea)
 
         AL_ResetNPCFreezeState(oNpc);
         AssignCommand(oNpc, ClearAllActions());
-        AL_ResetNpcSleepStateForFreeze(oNpc);
-        SetScriptHidden(oNpc, TRUE, TRUE);
+        if (!GetScriptHidden(oNpc))
+        {
+            SetScriptHidden(oNpc, TRUE, TRUE);
+        }
         i++;
     }
 }
@@ -351,9 +353,10 @@ void AL_UnhideAndResyncRegisteredNPCs(object oArea)
             continue;
         }
 
-        // Post-wake sanity check: stale sleep/route runtime state must not survive freeze.
-        AL_ResetNPCFreezeState(oNpc);
-        SetScriptHidden(oNpc, FALSE, FALSE);
+        if (GetScriptHidden(oNpc))
+        {
+            SetScriptHidden(oNpc, FALSE, FALSE);
+        }
         SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC));
         i++;
     }
