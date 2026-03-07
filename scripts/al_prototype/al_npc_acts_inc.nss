@@ -76,18 +76,6 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
 
     if (!GetIsObjectValid(oApproachWp))
     {
-        string sApproachTag = GetLocalString(oSleepWp, "al_bed_approach_wp");
-        oApproachWp = AL_FindWaypointByTagInArea(oArea, sApproachTag);
-    }
-
-    if (!GetIsObjectValid(oPoseWp))
-    {
-        string sPoseTag = GetLocalString(oSleepWp, "al_bed_pose_wp");
-        oPoseWp = AL_FindWaypointByTagInArea(oArea, sPoseTag);
-    }
-
-    if (!GetIsObjectValid(oApproachWp))
-    {
         AL_ResetSleepDockState(oNpc);
         return FALSE;
     }
@@ -140,10 +128,8 @@ void AL_StopSleepAtBed(object oNpc)
     AL_ResetSleepDockState(oNpc);
 }
 
-// Finds nearest sleep route waypoint that has bed config via one of:
+// Finds nearest sleep route waypoint that has bed config via:
 // - al_bed_tag (resolved by AL_StartSleepAtBed into <tag>_approach/<tag>_pose)
-// - al_bed_approach_wp
-// - al_bed_pose_wp
 object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
 {
     int nCount = AL_GetRouteCount(oNpc, nSlot);
@@ -183,15 +169,11 @@ object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
     object oObj = GetFirstObjectInArea(oArea);
     while (GetIsObjectValid(oObj))
     {
-        // Sleep waypoint is valid if configured via one of 3 options:
-        // 1) al_bed_tag (resolved to <tag>_approach/<tag>_pose)
-        // 2) al_bed_approach_wp
-        // 3) al_bed_pose_wp
+        // Sleep waypoint is valid only when configured via al_bed_tag
+        // (resolved to <tag>_approach/<tag>_pose).
         if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT
             && GetTag(oObj) == sRouteTag
-            && (GetLocalString(oObj, "al_bed_tag") != ""
-                || GetLocalString(oObj, "al_bed_approach_wp") != ""
-                || GetLocalString(oObj, "al_bed_pose_wp") != ""))
+            && GetLocalString(oObj, "al_bed_tag") != "")
         {
             float fDist = GetDistanceBetweenLocations(GetLocation(oObj), lRoutePoint);
             if (!GetIsObjectValid(oBest) || fDist < fBestDist)
