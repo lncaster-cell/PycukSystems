@@ -69,6 +69,7 @@ void main()
     SetLocalInt(oArea, "al_tick_token", iToken);
 
     SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
+    SetLocalInt(oArea, "al_tick_warm_left", AL_TICK_WARM_REPEATS);
 
     AL_CacheTrainingPartners(oArea);
     AL_SyncAreaNPCRegistry(oArea);

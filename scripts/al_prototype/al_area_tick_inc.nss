@@ -2,7 +2,8 @@
 #include "al_npc_reg_inc"
 #include "al_route_cache_inc"
 
-// Shared Area tick helper: scheduled every 45s while players are present.
+// Shared Area tick helper: period is chosen here (normal vs warm) and
+// scheduling always goes through AL_ScheduleNextAreaTick().
 // NPC registry synchronization is handled here at the area level only.
 
 int AL_ComputeTimeSlot()
@@ -17,6 +18,16 @@ int AL_ComputeTimeSlot()
     return iSlot;
 }
 
+float AL_GetAreaTickPeriod(object oArea)
+{
+    if (GetLocalInt(oArea, "al_tick_warm_left") > 0)
+    {
+        return AL_TICK_PERIOD_WARM;
+    }
+
+    return AL_TICK_PERIOD;
+}
+
 void AL_ScheduleNextAreaTick(object oArea, int nToken)
 {
     if (GetLocalInt(oArea, "al_tick_scheduled_token") == nToken)
@@ -25,7 +36,7 @@ void AL_ScheduleNextAreaTick(object oArea, int nToken)
     }
 
     SetLocalInt(oArea, "al_tick_scheduled_token", nToken);
-    DelayCommand(AL_TICK_PERIOD, AreaTick(oArea, nToken));
+    DelayCommand(AL_GetAreaTickPeriod(oArea), AreaTick(oArea, nToken));
 }
 
 void AreaTick(object oArea, int nToken)
@@ -51,6 +62,20 @@ void AreaTick(object oArea, int nToken)
         bSynced = TRUE;
     }
     SetLocalInt(oArea, "al_sync_tick", iSyncTick);
+
+    int iWarmLeft = GetLocalInt(oArea, "al_tick_warm_left");
+    if (iWarmLeft > 0)
+    {
+        iWarmLeft--;
+        if (iWarmLeft > 0)
+        {
+            SetLocalInt(oArea, "al_tick_warm_left", iWarmLeft);
+            AL_ScheduleNextAreaTick(oArea, nToken);
+            return;
+        }
+
+        DeleteLocalInt(oArea, "al_tick_warm_left");
+    }
 
     int iSlot = AL_ComputeTimeSlot();
 

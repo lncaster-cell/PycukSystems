@@ -35,6 +35,7 @@ NPC events
 │  └─ если в area есть игроки: unhide + AL_EVT_RESYNC, иначе hide
 ├─ al_npc_onud.nss
 │  ├─ единая точка обработки AL_EVT_SLOT_*, AL_EVT_RESYNC, AL_EVT_ROUTE_REPEAT
+│  ├─ на `AL_EVT_RESYNC` сначала переинициализирует pair subsystem
 │  ├─ пересобирает route для nSlot только по NPC local `alwp<slot>`
 │  ├─ управляет route loop и повторной доставкой AL_EVT_ROUTE_REPEAT
 │  └─ применяет активность/анимацию без legacy fallback-источников
@@ -59,6 +60,8 @@ Domain includes
 │  ├─ AL_GetWaypointActivityForSlot() строго из waypoint `al_activity`
 │  ├─ проверка route requirements / training / bar pair
 │  └─ применение custom/numeric анимаций
+├─ al_npc_pair_inc.nss
+│  └─ AL_InitTrainingPartner / AL_InitBarPair (runtime-resync пар)
 └─ al_acts_inc.nss
    ├─ enum activity-констант
    ├─ mapping activity -> custom/numeric animation set
@@ -69,15 +72,39 @@ Domain includes
 
 ## 2) Жизненный цикл
 
-### 2.1 Вход первого игрока -> запуск `AreaTick`
+### 2.1 Вход первого игрока -> wake-контур и запуск `AreaTick`
 1. `al_area_onenter.nss` обрабатывает только PC, сбрасывает anti-double-exit флаг на игроке (`al_exit_counted`).
 2. Увеличивает `al_player_count`.
 3. Если это **первый** игрок (`al_player_count == 1`):
-   - увеличивает `al_tick_token` (новая «эпоха» тиков),
-   - вычисляет и сохраняет `al_slot = AL_ComputeTimeSlot()`,
-   - синхронизирует registry,
-   - делает unhide NPC и отправляет им `AL_EVT_RESYNC`,
+   - выполняет wake-цепочку в фиксированном порядке (см. §2.1.1),
    - планирует первый `AreaTick(area, token)` через `AL_TICK_PERIOD`.
+
+#### 2.1.1 Wake-порядок (контракт)
+
+Wake всегда описывается как единый канонический порядок шагов:
+
+1. **Bump token** — инкремент `al_tick_token` (новая wake-эпоха).
+2. **Slot compute** — вычисление и запись `al_slot = AL_ComputeTimeSlot()`.
+3. **Registry sync** — `AL_SyncAreaNPCRegistry()`.
+4. **Route cache readiness** — подготовка route cache для area (`AL_CacheAreaRoutes`/эквивалентная гарантия готовности кэша).
+5. **Unhide + RESYNC** — `AL_UnhideAndResyncRegisteredNPCs`.
+6. **Schedule tick** — первый `DelayCommand(... AreaTick(area, token))`.
+
+#### 2.1.2 Обязательность шагов (COLD/WARM)
+
+- **COLD wake (первый запуск после empty-area / сброшенного состояния):** шаги 1–6 обязательны.
+- **WARM wake (повторный wake без полного teardown):**
+  - **обязательные:** 1, 2, 3, 5, 6;
+  - **опциональный:** 4 (можно пропустить только если есть валидный признак, что area route-cache уже готов и актуален для текущей wake-эпохи).
+
+#### 2.1.3 Диагностический маркер wake-эпохи (area)
+
+Для дебага в контракте фиксируется area-level маркер wake-эпохи:
+
+- `al_wake_epoch` — монотонный локал-счётчик (инкремент на каждом wake),
+- опционально: `al_wake_epoch_ts` — timestamp последнего wake.
+
+Маркер используется только для диагностики/трассировки и не заменяет `al_tick_token` как runtime-guard актуальности тика.
 
 ### 2.2 Смена слота времени (`AL_ComputeTimeSlot`) -> broadcast `AL_EVT_SLOT_*`
 1. `AreaTick` выполняется циклически только если:
@@ -96,8 +123,20 @@ Domain includes
 3. Если после декремента игроков не осталось (`al_player_count == 0`), оба события вызывают единый helper `AL_HandleAreaBecameEmpty(oArea)`.
 4. `AL_HandleAreaBecameEmpty` централизованно выполняет:
    - инкремент `al_tick_token` (инвалидация ранее запланированных `AreaTick`),
+   - `DeleteLocalInt(oArea, "al_tick_scheduled_token")` (reset дедупликации планировщика тиков),
    - `DeleteLocalInt(oArea, "al_routes_cached")` (форс полной пересборки route-cache при следующем запуске),
-   - `AL_HideRegisteredNPCs` (скрытие NPC, и очистка action queue при включённом флаге).
+   - `AL_HideRegisteredNPCs` (freeze NPC), где перед hide применяется правило sleep-reset: очистка action queue + возврат collision/state в безопасный baseline (`al_sleep_*` сброшены).
+
+### 2.4 Порядок обработки `al_exit_counted` и `al_last_area` по всем exit-сценариям
+
+| Сценарий | Порядок событий | `al_exit_counted` | `al_last_area` | Результат по `al_player_count` |
+|---|---|---|---|---|
+| Обычный переход PC A->B (оба area в модуле) | `al_area_onexit(A)` -> `al_area_onenter(B)` | Ставится в `1` на `OnExit`, затем удаляется на `OnEnter` | На `OnEnter` перезаписывается на `B` | `A: -1`, `B: +1`; двойной декремент исключён |
+| Дисконнект после `OnExit`, но до `OnEnter` (transition/лоадинг) | `al_area_onexit(A)` -> `al_mod_onleave` | Уже `1`, поэтому `OnClientLeave` завершится early-return | Остаётся последняя валидная area (обычно `A`) до следующего входа | Декремент выполняется только один раз в `A` |
+| Дисконнект без `OnExit` (например, сетевой обрыв в area) | `al_mod_onleave` | Если `0`, ставится в `1` внутри `OnClientLeave` | Берётся `GetArea(oLeaving)`; если invalid — fallback в `al_last_area` | Один декремент в найденной area; защита от negative сохраняется |
+| Массовый релог (N клиентов почти одновременно) | N вызовов `OnExit/OnClientLeave` в произвольном порядке | На каждом PC флаг ставится максимум один раз до следующего `OnEnter` | Для каждого PC локаль очищается/обновляется при повторном входе | Для каждой area счётчик уменьшается ровно на число уникально вышедших PC |
+
+Практический инвариант: `al_exit_counted` живёт только между событием выхода и следующим `al_area_onenter`; `al_last_area` — это страховка для leave-событий, где `GetArea` уже недоступен.
 
 ---
 
@@ -127,6 +166,23 @@ Domain includes
 | `r_active` | int/bool | Флаг, что route-loop активен и может принимать `AL_EVT_ROUTE_REPEAT`. |
 | `al_last_slot` | int | Последний применённый слот активности; защита от лишних повторных применений. |
 | `al_last_area` | object | Последняя area NPC для корректного unregister/register при переходах. |
+| `al_anim_next` | int | Антиспам-маркер времени для повторной анимации на `AL_EVT_ROUTE_REPEAT`. |
+| `al_sleep_docked` | int/bool | Флаг, что NPC сейчас припаркован в sleep docking-позиции. |
+| `al_sleep_approach_tag` | string | Tag `approach`-waypoint для возврата из docked sleep. |
+
+### 3.3 Freeze side effects (ключевые local-поля)
+
+| Local key | Где меняется при freeze | Что происходит в freeze | Что происходит после wake (`AL_EVT_RESYNC`) |
+|---|---|---|---|
+| `al_tick_token` (area) | area-level | Инкрементируется для инвалидации старых `AreaTick(area, token)` | На новом onenter снова инкрементируется и используется для планирования нового валидного тика. |
+| `al_tick_scheduled_token` (area) | area-level | Удаляется, чтобы сбросить dedupe «тик уже запланирован» | Выставляется заново при первом `AL_ScheduleNextTick` в новом цикле. |
+| `al_routes_cached` (area) | area-level | Удаляется, forcing full recache маршрутов | Ставится обратно в `1` после `AL_CacheAreaRoutes` в новом рабочем цикле. |
+| `r_active` (NPC) | freeze не трогает напрямую | Значение сохраняется как есть; NPC скрыт и без очереди действий | На `AL_EVT_RESYNC` route пересобирается заново; активность route определяется текущим слотом/данными маршрута. |
+| `r_slot` (NPC) | freeze не трогает напрямую | Сохраняется последнее значение слота | На `AL_EVT_RESYNC` вычисляется актуальный slot от area и runtime route-state выравнивается под него. |
+| `r_idx` (NPC) | freeze не трогает напрямую | Сохраняется последний индекс точки | На `AL_EVT_RESYNC` маршрут стартует заново (индекс пересчитывается от новой сборки route-loop). |
+| `al_anim_next` (NPC) | freeze не трогает | Сохраняется throttle-маркер анимации | Используется как есть; повторная анимация допускается только когда наступит окно по anti-spam логике. |
+| `al_sleep_docked` (NPC) | freeze не трогает | Состояние docking сохраняется | При следующем применении активности sleep логика корректно делает undock/dock по текущей точке и тегам. |
+| `al_sleep_approach_tag` (NPC) | freeze не трогает | Сохраняется tag последнего docking approach | На wake используется sleep-логикой как опорная точка для корректного возврата/перепривязки. |
 
 ---
 
@@ -154,8 +210,8 @@ Domain includes
 5. **Источник активности:** активность берётся только из `al_activity` текущего waypoint маршрута; если точка/активность некорректна — используется безопасный `AL_ACT_NPC_ACT_ONE`.
 6. **Обработка скрытого состояния:** при `AL_ACT_NPC_HIDDEN` активный route прекращается (clear actions + сброс runtime route locals).
 7. **Симметрия bar-пары:** активности `AL_ACT_NPC_BARMAID` и `AL_ACT_NPC_BARTENDER` обе требуют валидный local `al_bar_pair`; при потере партнёра обе роли одинаково деградируют в `AL_ACT_NPC_ACT_ONE`.
-
-7. **Актуальность `*_ref`-локалов пар:** `al_training_npc*_ref` и `al_bar_*_ref` должны обновляться при замене ключевых NPC; при невалидном/"мёртвом" ref runtime-пара очищается и остаётся в безопасном unbound-состоянии до появления валидной ссылки.
+8. **Актуальность `*_ref`-локалов пар:** `al_training_npc*_ref` и `al_bar_*_ref` должны обновляться при замене ключевых NPC; при невалидном/"мёртвом" ref runtime-пара очищается и остаётся в безопасном unbound-состоянии до появления валидной ссылки.
+9. **Fallback после wake/resync для парных активностей:** если после `AL_InitTrainingPartner`/`AL_InitBarPair` пара остаётся невалидной, activity не «дрейфует» в stale-state — применяется явный защитный режим `AL_ACT_NPC_ACT_ONE` (в debug-area дополнительно пишется диагностическое сообщение о fallback).
 
 ---
 
@@ -170,6 +226,42 @@ Domain includes
 5. **Зависимости на парные роли (training/bar):** смерть/деспаун одного NPC приводит к деградации активности второго в `AL_ACT_NPC_ACT_ONE`.
 
 ### 6.2 Рекомендации по расширению
+
+### 6.2.1 Минимальная модель кварталов и соседства area (без глобального scheduler)
+
+Цель: обеспечить локальный прогрев/охлаждение area без введения централизованного оркестратора.
+
+**Минимальные locals на area:**
+1. `al_quarter_id` (`string`) — квартал, к которому принадлежит area.
+2. `al_adjacent_areas` (`string`, CSV по area-tag) — прямые соседи area.
+3. `al_area_heat` (`int`) — текущее состояние прогрева:
+   - `0` = `COLD`
+   - `1` = `WARM`
+   - `2` = `HOT`
+
+Этого достаточно для локального резолва соседства «по месту», когда событие пробуждения/активности обрабатывается в конкретной area и распространяется максимум на 1 hop по adjacency.
+
+### 6.2.2 Правила резолва соседства
+
+1. Если area-источник получает/удерживает `HOT`, её прямые соседи из `al_adjacent_areas` могут подниматься в `WARM`.
+2. Повышение соседей ограничивается уровнем `WARM` (без автоматического каскада `WARM -> HOT` только из-за соседства).
+3. При отсутствии у соседа валидной конфигурации прогрев не эскалируется выше локального fallback, чтобы не разгонять «ложный heat-wave».
+
+### 6.2.3 Правило для interior area
+
+`Interior`-area по умолчанию маркируется кандидатом в `COLD`, если одновременно:
+1. нет прямого wake-триггера (игрок, системный ресинк, сценарное событие);
+2. нет явного принудительного heat-state из контента/скрипта.
+
+Это правило нужно для стабилизации фоновой нагрузки: interior зоны не удерживаются в `WARM/HOT` только по историческому состоянию.
+
+### 6.2.4 Fallback при неполном adjacency-конфиге
+
+При битом/неполном `al_adjacent_areas` (пустой CSV, несуществующие tag, циклические ссылки с отсутствующими целями):
+1. рантайм **не должен** молча игнорировать проблему;
+2. в debug-режиме (`al_debug=1`) должна появляться явная запись о fallback-пути;
+3. area продолжает работать в локальном режиме (обновление собственного `al_area_heat` без обязательного уведомления соседей);
+4. обработка не прерывает текущий area-tick и не ломает базовые `AL_EVT_*`-циклы.
 
 #### Новые активности
 1. Добавить константу в `al_acts_inc.nss`.
@@ -200,7 +292,16 @@ Domain includes
 3. Поведение рантайма:
    - при успешном docking ставятся локалы `al_sleep_docked=1`, `al_sleep_approach_tag=<tag>`;
    - при выходе из сна NPC прыгает обратно в `approach`, затем возвращает `SetCollision(TRUE)`;
+   - при freeze area (`al_player_count -> 0`) до `SetScriptHidden(TRUE)` выполняется принудительный sleep-reset: чистятся действия, сбрасываются `al_sleep_*`, collision возвращается в TRUE (чтобы не оставлять подвешенный sleep/collision-state на период hide);
    - если `approach` не найден, включается fallback: сон без docking (анимация на месте/«на полу»).
+4. Freeze/post-wake reset-поля (обязательный sanity check):
+   - `al_sleep_docked` (delete);
+   - `al_sleep_approach_tag` (delete);
+   - `r_active`, `r_slot`, `r_idx` (delete);
+   - collision NPC принудительно возвращается в `TRUE`.
+5. Совместимость:
+   - reset не конфликтует с `AL_StopSleepAtBed`: helper вызывается только когда `al_sleep_docked=1`; после freeze-пути локал очищен и повторный вызов безопасно no-op;
+   - очистка `r_active/r_slot/r_idx` гарантирует, что после wake запускается полный `AL_EVT_RESYNC`, а не «грязное» продолжение старого repeat-цикла.
 
 ## 7) Полный аудит модуля поведения (AL) — 2026-03-01
 
@@ -246,7 +347,27 @@ Domain includes
    - route truncation;
    - area-mismatch route points;
    - переполнение registry.
-2. После правок waypoint обязательно прогонять smoke-сценарий:
-   - `onenter (1-й игрок)` -> `slot switch` -> `route repeat` -> `empty area` -> `resync`.
+2. После правок waypoint обязательно прогонять smoke-сценарии:
+   - базовый: `onenter (1-й игрок)` -> `slot switch` -> `route repeat` -> `empty area` -> `resync`;
+   - QA на freeze/wake: `sleep/pair activity active` -> `freeze (area empty)` -> `wake (player enter)` -> проверка корректного `AL_EVT_RESYNC` без reuse старых `r_active/r_slot/r_idx`.
 3. Для парных ролей (training/bar) добавить в контент-процесс обязательный шаг ревизии `*_ref`-локалов после замены blueprint/респауна ключевых NPC.
 4. Для особо загруженных area держать маршруты короткими и валидными по индексации, чтобы уменьшить шум `AL_EVT_ROUTE_REPEAT` и лишние clear/requeue.
+
+### 7.4 QA-сценарии для проверки переходов и reconnect
+
+1. **Быстрый переход area->area (A->B->A за минимальное время):**
+   - шаги: пройти триггер A->B и сразу вернуться B->A; повторить 10+ раз;
+   - ожидание: `al_player_count` в обеих area не уходит в минус и возвращается к исходному;
+   - ожидание: на каждом входе `al_exit_counted` сбрасывается, `al_last_area` указывает на текущую area после `OnEnter`.
+2. **Дисконнект в transition (после `OnExit`, до `OnEnter`):**
+   - шаги: начать межзоновый переход и оборвать клиент в экране загрузки;
+   - ожидание: `OnClientLeave` не делает второй декремент из-за `al_exit_counted=1`;
+   - ожидание: old-area корректно доходит до `al_player_count==0` и один раз запускает `AL_HandleAreaBecameEmpty`.
+3. **Массовый релог (burst reconnect):**
+   - шаги: 15-30 клиентов одновременно выйти и зайти обратно в одну/несколько area;
+   - ожидание: нет отрицательных счётчиков игроков, нет «залипших» скрытых NPC после возврата первого игрока;
+   - ожидание: `AL_EVT_RESYNC` приходит однократно на unhide-цикл area, без каскадного дублирования.
+4. **Transition-mode без двойного freeze/wake:**
+   - шаги: отправить NPC по межзоновому route в area без игроков, затем завести туда игрока;
+   - ожидание: при переходе в пустую area NPC скрывается ровно один раз (`SetScriptHidden(TRUE)` только если до этого был видим);
+   - ожидание: при входе игрока NPC просыпается/размораживается ровно один раз (`SetScriptHidden(FALSE)` только если был скрыт), после чего получает единичный `AL_EVT_RESYNC`.

@@ -331,6 +331,21 @@ int AL_ActivityHasRequiredRoute(object oNpc, int nSlot, int nActivity)
     return AL_GetRouteTag(oNpc, nSlot) == sWaypointTag;
 }
 
+string AL_AppendDegradeReasonCode(string sCodes, string sCode)
+{
+    if (sCode == "")
+    {
+        return sCodes;
+    }
+
+    if (sCodes == "")
+    {
+        return sCode;
+    }
+
+    return sCodes + "," + sCode;
+}
+
 void AL_ApplyActivityForSlot(object oNpc, int nSlot)
 {
     if (nSlot < 0 || nSlot > AL_SLOT_MAX)
@@ -349,16 +364,49 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
     int bNeedsBarPair = AL_ActivityRequiresBarPair(nActivity);
     object oTrainingPartner = GetLocalObject(oNpc, "al_training_partner");
     object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    object oNpcArea = GetArea(oNpc);
     // Cross-area references are not considered valid for paired placements.
-    int bTrainingPartnerValid = GetIsObjectValid(oTrainingPartner)
-        && GetArea(oTrainingPartner) == GetArea(oNpc);
-    int bBarPairValid = GetIsObjectValid(oBarPair)
-        && GetArea(oBarPair) == GetArea(oNpc);
+    int bHasTrainingPartner = GetIsObjectValid(oTrainingPartner);
+    int bHasBarPair = GetIsObjectValid(oBarPair);
+    int bTrainingPartnerInArea = bHasTrainingPartner && GetArea(oTrainingPartner) == oNpcArea;
+    int bBarPairInArea = bHasBarPair && GetArea(oBarPair) == oNpcArea;
+    int bTrainingPartnerValid = bHasTrainingPartner && bTrainingPartnerInArea;
+    int bBarPairValid = bHasBarPair && bBarPairInArea;
 
-    if (!AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity)
+    int bRouteTagMismatch = !AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity);
+    int bTrainingPartnerMissing = bNeedsTrainingPartner && !bHasTrainingPartner;
+    int bTrainingPartnerInvalidArea = bNeedsTrainingPartner && bHasTrainingPartner && !bTrainingPartnerInArea;
+    int bBarPairMissing = bNeedsBarPair && !bHasBarPair;
+    int bBarPairInvalidArea = bNeedsBarPair && bHasBarPair && !bBarPairInArea;
+
+    if (bRouteTagMismatch
         || (bNeedsTrainingPartner && !bTrainingPartnerValid)
         || (bNeedsBarPair && !bBarPairValid))
     {
+        if (GetIsObjectValid(oNpcArea) && GetLocalInt(oNpcArea, "al_debug") == 1)
+        {
+            string sReasonCodes = "";
+            if (bRouteTagMismatch)
+            {
+                sReasonCodes = AL_AppendDegradeReasonCode(sReasonCodes, "route_tag_mismatch");
+            }
+
+            if (bTrainingPartnerMissing || bBarPairMissing)
+            {
+                sReasonCodes = AL_AppendDegradeReasonCode(sReasonCodes, "missing_partner");
+            }
+
+            if (bTrainingPartnerInvalidArea || bBarPairInvalidArea)
+            {
+                sReasonCodes = AL_AppendDegradeReasonCode(sReasonCodes, "invalid_pair_area");
+            }
+
+            AL_SendDebugMessageToAreaPCs(oNpcArea,
+                "AL: activity degrade; reason_codes=" + sReasonCodes
+                + "; slot=" + IntToString(nSlot)
+                + "; source_activity=" + AL_GetActivityName(nActivity));
+        }
+
         nActivity = AL_ACT_NPC_ACT_ONE;
     }
 
