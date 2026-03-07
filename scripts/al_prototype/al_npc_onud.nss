@@ -1,6 +1,7 @@
 // NPC OnUserDefined: attach to NPC OnUserDefined in the toolset.
 
 #include "al_npc_acts_inc"
+#include "al_npc_pair_inc"
 
 void AL_ResetRouteIndex(object oNpc)
 {
@@ -86,6 +87,44 @@ void AL_MarkAnimationApplied(object oNpc, int nIntervalSeconds)
     SetLocalInt(oNpc, "al_anim_next", nNext + 1);
 }
 
+
+void AL_LogPairFallbackOnResync(object oNpc, int nEvent, int nActivity)
+{
+    if (nEvent != AL_EVT_RESYNC)
+    {
+        return;
+    }
+
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    {
+        return;
+    }
+
+    int bNeedsTrainingPartner = AL_ActivityRequiresTrainingPartner(nActivity);
+    int bNeedsBarPair = AL_ActivityRequiresBarPair(nActivity);
+    if (!bNeedsTrainingPartner && !bNeedsBarPair)
+    {
+        return;
+    }
+
+    object oTrainingPartner = GetLocalObject(oNpc, "al_training_partner");
+    object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    int bTrainingPartnerValid = GetIsObjectValid(oTrainingPartner)
+        && GetArea(oTrainingPartner) == oArea;
+    int bBarPairValid = GetIsObjectValid(oBarPair)
+        && GetArea(oBarPair) == oArea;
+
+    if ((bNeedsTrainingPartner && !bTrainingPartnerValid)
+        || (bNeedsBarPair && !bBarPairValid))
+    {
+        AL_SendDebugMessageToAreaPCs(oArea,
+            "AL: resync fallback to ACT_ONE for " + GetName(oNpc)
+            + " (invalid training/bar pair after wake)."
+        );
+    }
+}
+
 void main()
 {
     object oNpc = OBJECT_SELF;
@@ -117,6 +156,10 @@ void main()
 
     if (nEvent == AL_EVT_RESYNC)
     {
+        // Wake/resync contract: pair subsystem must be validated before
+        // evaluating route/activity requirements for this slot.
+        AL_InitTrainingPartner(oNpc);
+        AL_InitBarPair(oNpc);
         SetLocalInt(oNpc, "al_last_slot", -1);
     }
 
@@ -131,6 +174,7 @@ void main()
     int bRequiresRouteTag = AL_GetActivityWaypointTag(nActivity) != "";
     int bHasRequiredRoute = AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity);
     int bCanUseRoute = bUsesRoute && bHasRequiredRoute;
+    AL_LogPairFallbackOnResync(oNpc, nEvent, nActivity);
     if (nActivity == AL_ACT_NPC_HIDDEN)
     {
         AL_StopSleepAtBed(oNpc);
