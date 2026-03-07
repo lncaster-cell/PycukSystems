@@ -514,6 +514,20 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
     string sCustom = bLocateWrapper
         ? AL_GetLocateWrapperCustomAnims(nActivity)
         : AL_GetActivityCustomAnims(nActivity);
+    if (sCustom == "" && nActivity != AL_ACT_NPC_ACT_ONE)
+    {
+        int nOriginalActivity = nActivity;
+        nActivity = AL_ACT_NPC_ACT_ONE;
+        sCustom = AL_GetActivityCustomAnims(AL_ACT_NPC_ACT_ONE);
+
+        object oArea = GetArea(oNpc);
+        if (GetIsObjectValid(oArea) && GetLocalInt(oArea, "al_debug") == 1)
+        {
+            AL_SendDebugMessageToAreaPCs(oArea, "AL: fallback to AL_ACT_NPC_ACT_ONE due to empty custom anim list for activity "
+                + IntToString(nOriginalActivity) + ".");
+        }
+    }
+
     if (sCustom != "")
     {
         string sAnim = AL_SelectRandomToken(sCustom);
