@@ -11,7 +11,7 @@ const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
 void AL_AreaDebugLog(object oArea, string sMessage)
 {
-    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    if (!GetIsObjectValid(oArea) || !AL_DebugEnabledFor(oArea, 2))
     {
         return;
     }

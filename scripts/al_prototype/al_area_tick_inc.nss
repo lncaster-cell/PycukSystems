@@ -1,6 +1,8 @@
 #include "al_area_constants_inc"
+#include "al_area_mode_contract_inc"
 #include "al_npc_reg_inc"
 #include "al_route_cache_inc"
+#include "al_area_mode_contract_inc"
 
 // Shared Area tick helper: period is chosen here (normal vs warm) and
 // scheduling always goes through AL_ScheduleNextAreaTick().
@@ -20,12 +22,17 @@ int AL_ComputeTimeSlot()
 
 float AL_GetAreaTickPeriod(object oArea)
 {
-    if (GetLocalInt(oArea, "al_tick_warm_left") > 0)
+    if (AL_IsAreaModeHot(oArea))
+    {
+        return AL_TICK_PERIOD_HOT;
+    }
+
+    if (AL_IsAreaModeWarm(oArea))
     {
         return AL_TICK_PERIOD_WARM;
     }
 
-    return AL_TICK_PERIOD;
+    return AL_TICK_PERIOD_COLD;
 }
 
 void AL_ScheduleNextAreaTick(object oArea, int nToken)
@@ -41,13 +48,20 @@ void AL_ScheduleNextAreaTick(object oArea, int nToken)
 
 void AreaTick(object oArea, int nToken)
 {
-    if (GetLocalInt(oArea, "al_player_count") <= 0)
+    if (nToken != GetLocalInt(oArea, "al_tick_token"))
     {
         return;
     }
 
-    if (nToken != GetLocalInt(oArea, "al_tick_token"))
+    if (AL_IsAreaModeOff(oArea) || AL_IsAreaModeCold(oArea))
     {
+        DeleteLocalInt(oArea, "al_tick_scheduled_token");
+        return;
+    }
+
+    if (GetLocalInt(oArea, "al_player_count") <= 0)
+    {
+        DeleteLocalInt(oArea, "al_tick_scheduled_token");
         return;
     }
 
@@ -70,11 +84,15 @@ void AreaTick(object oArea, int nToken)
         if (iWarmLeft > 0)
         {
             SetLocalInt(oArea, "al_tick_warm_left", iWarmLeft);
-            AL_ScheduleNextAreaTick(oArea, nToken);
-            return;
         }
-
-        DeleteLocalInt(oArea, "al_tick_warm_left");
+        else
+        {
+            DeleteLocalInt(oArea, "al_tick_warm_left");
+            if (AL_IsAreaModeHot(oArea))
+            {
+                SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_WARM);
+            }
+        }
     }
 
     int iSlot = AL_ComputeTimeSlot();

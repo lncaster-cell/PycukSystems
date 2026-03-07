@@ -1,5 +1,6 @@
 // NPC OnDeath: attach to NPC OnDeath in the toolset.
 
+#include "al_debug_inc"
 #include "al_npc_reg_inc"
 
 void main()
@@ -43,15 +44,8 @@ void main()
 
             if (GetLocalInt(oArea, "al_debug") == 1)
             {
-                object oPc = GetFirstPC(FALSE);
-                while (GetIsObjectValid(oPc))
-                {
-                    if (GetArea(oPc) == oArea)
-                    {
-                        SendMessageToPC(oPc, "AL: training partner cache reset on death of " + GetName(oNpc) + ".");
-                    }
-                    oPc = GetNextPC(FALSE);
-                }
+                AL_SendDebugMessageToAreaPCs(oArea,
+                    "AL: training partner cache reset on death of " + GetName(oNpc) + ".");
             }
         }
     }

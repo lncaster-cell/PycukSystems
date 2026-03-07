@@ -2,6 +2,7 @@
 
 #include "al_npc_acts_inc"
 #include "al_npc_pair_inc"
+#include "al_area_mode_contract_inc"
 
 void AL_ResetRouteIndex(object oNpc)
 {
@@ -67,10 +68,25 @@ void AL_SyncRouteForSlot(object oNpc, int nSlot)
 }
 
 
-int AL_IsWarmArea(object oNpc)
+int AL_GetRepeatRequeueMinGapSeconds(object oNpc)
 {
     object oArea = GetArea(oNpc);
-    return GetIsObjectValid(oArea) && GetLocalInt(oArea, "al_player_count") > 0;
+    if (!GetIsObjectValid(oArea))
+    {
+        return 0;
+    }
+
+    if (AL_IsAreaModeWarm(oArea))
+    {
+        return AL_ROUTE_REPEAT_MIN_GAP_SECONDS_WARM;
+    }
+
+    if (AL_IsAreaModeHot(oArea))
+    {
+        return AL_ROUTE_REPEAT_MIN_GAP_SECONDS_HOT;
+    }
+
+    return 0;
 }
 
 void AL_RecordEventNoise(object oNpc, int nEvent)
@@ -91,9 +107,10 @@ void AL_RecordEventNoise(object oNpc, int nEvent)
     }
 }
 
-int AL_IsRepeatRequeueCoolingDownInWarm(object oNpc)
+int AL_IsRepeatRequeueCoolingDownByMode(object oNpc)
 {
-    if (!AL_IsWarmArea(oNpc))
+    int nMinGap = AL_GetRepeatRequeueMinGapSeconds(oNpc);
+    if (nMinGap <= 0)
     {
         return FALSE;
     }
@@ -147,7 +164,7 @@ void AL_LogPairFallbackOnResync(object oNpc, int nEvent, int nActivity)
     }
 
     object oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    if (!GetIsObjectValid(oArea) || !AL_DebugEnabled(2))
     {
         return;
     }
@@ -180,9 +197,21 @@ void main()
 {
     object oNpc = OBJECT_SELF;
     int nEvent = GetUserDefinedEventNumber();
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea) || AL_IsAreaModeOff(oArea) || AL_IsAreaModeCold(oArea))
+    {
+        return;
+    }
+
     int nSlot = AL_ResolveSlot(oNpc, nEvent);
 
     if (nSlot < 0 || nSlot > AL_SLOT_MAX)
+    {
+        return;
+    }
+
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea) || AL_IsAreaModeOff(oArea))
     {
         return;
     }
@@ -262,7 +291,7 @@ void main()
     int bRepeatRequeueWarmCooldown = FALSE;
     if (bSkipMoveRepeat)
     {
-        bRepeatRequeueWarmCooldown = AL_IsRepeatRequeueCoolingDownInWarm(oNpc);
+        bRepeatRequeueWarmCooldown = AL_IsRepeatRequeueCoolingDownByMode(oNpc);
     }
 
     if (bCanUseRoute && !bSleepActivity)
@@ -277,13 +306,13 @@ void main()
                 AssignCommand(oNpc, ActionWait(fRepeatDelay));
                 AssignCommand(oNpc, ActionDoCommand(SignalEvent(oNpc, EventUserDefined(AL_EVT_ROUTE_REPEAT))));
 
-                int nWarmDelay = nRepeatDelaySeconds;
-                if (nWarmDelay < AL_EVT_ROUTE_REPEAT_WARM_MIN_GAP_SECONDS)
+                int nModeMinGap = AL_GetRepeatRequeueMinGapSeconds(oNpc);
+                if (nModeMinGap > nRepeatDelaySeconds)
                 {
-                    nWarmDelay = AL_EVT_ROUTE_REPEAT_WARM_MIN_GAP_SECONDS;
+                    nRepeatDelaySeconds = nModeMinGap;
                 }
 
-                AL_MarkRepeatRequeueScheduled(oNpc, nWarmDelay);
+                AL_MarkRepeatRequeueScheduled(oNpc, nRepeatDelaySeconds);
             }
         }
         else

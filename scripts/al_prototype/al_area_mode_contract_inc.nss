@@ -2,13 +2,18 @@
 #include "al_debug_inc"
 
 // Area mode contract helpers.
-// This include intentionally provides only read/check API wrappers,
+// This include intentionally provides only area-local read/check API wrappers,
 // without introducing scheduler/runtime policy changes.
 
 int AL_GetAreaModeOrLegacy(object oArea);
 
 int AL_GetAreaModeLegacyDefault(object oArea)
 {
+    if (AL_IsAreaInteriorDefaultCold(oArea))
+    {
+        return AL_AREA_MODE_COLD;
+    }
+
     if (GetLocalInt(oArea, "al_player_count") > 0)
     {
         return AL_AREA_MODE_HOT;
@@ -182,6 +187,12 @@ void AL_SoftActivateAdjacentAreas(object oSourceArea)
 
 int AL_GetAreaModeOrLegacy(object oArea)
 {
+    // Legacy behavior remains default until per-area mode flags are enabled.
+    if (!AL_IsAreaModeFlagsEnabled(oArea))
+    {
+        return AL_GetAreaModeLegacyDefault(oArea);
+    }
+
     int iMode = GetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY);
     if (iMode == AL_AREA_MODE_HOT
         || iMode == AL_AREA_MODE_WARM
@@ -212,4 +223,138 @@ int AL_IsAreaModeCold(object oArea)
 int AL_IsAreaModeOff(object oArea)
 {
     return AL_GetAreaModeOrLegacy(oArea) == AL_AREA_MODE_OFF;
+}
+
+string AL_GetAdjacencyLocalKey(int nIndex)
+{
+    return AL_AREA_ADJ_KEY_PREFIX + IntToString(nIndex);
+}
+
+void AL_ResetAdjacencyCsvCache(object oArea, int nOldCount)
+{
+    int i = 0;
+    while (i < nOldCount)
+    {
+        DeleteLocalString(oArea, AL_AREA_ADJ_CACHE_KEY_PREFIX + IntToString(i));
+        i++;
+    }
+
+    DeleteLocalInt(oArea, AL_AREA_ADJ_CACHE_COUNT_KEY);
+    DeleteLocalString(oArea, AL_AREA_ADJ_CACHE_RAW_KEY);
+}
+
+int AL_HasValidAdjacencyDenseLocals(object oArea)
+{
+    int nCount = GetLocalInt(oArea, AL_AREA_ADJ_COUNT_LOCAL_KEY);
+    if (nCount <= 0)
+    {
+        return FALSE;
+    }
+
+    int i = 0;
+    while (i < nCount)
+    {
+        string sTag = AL_TrimSpaces(GetLocalString(oArea, AL_GetAdjacencyLocalKey(i)));
+        if (sTag == "")
+        {
+            AL_LogAdjacencyFallback(oArea, "empty local " + AL_GetAdjacencyLocalKey(i) + ".");
+            return FALSE;
+        }
+
+        i++;
+    }
+
+    return TRUE;
+}
+
+int AL_BuildAdjacencyCsvCache(object oArea)
+{
+    string sRaw = GetLocalString(oArea, AL_AREA_ADJ_CSV_LOCAL_KEY);
+    string sPrevRaw = GetLocalString(oArea, AL_AREA_ADJ_CACHE_RAW_KEY);
+    int nPrevCount = GetLocalInt(oArea, AL_AREA_ADJ_CACHE_COUNT_KEY);
+
+    if (sRaw == sPrevRaw && nPrevCount > 0)
+    {
+        return nPrevCount;
+    }
+
+    AL_ResetAdjacencyCsvCache(oArea, nPrevCount);
+
+    if (sRaw == "")
+    {
+        AL_LogAdjacencyFallback(oArea, "CSV local al_adjacent_areas is empty.");
+        return 0;
+    }
+
+    int nCount = 0;
+    while (sRaw != "")
+    {
+        int nComma = FindSubString(sRaw, ",");
+        string sToken = sRaw;
+
+        if (nComma >= 0)
+        {
+            sToken = GetSubString(sRaw, 0, nComma);
+            sRaw = GetSubString(sRaw, nComma + 1, GetStringLength(sRaw) - (nComma + 1));
+        }
+        else
+        {
+            sRaw = "";
+        }
+
+        sToken = AL_TrimSpaces(sToken);
+        if (sToken == "")
+        {
+            continue;
+        }
+
+        SetLocalString(oArea, AL_AREA_ADJ_CACHE_KEY_PREFIX + IntToString(nCount), sToken);
+        nCount++;
+    }
+
+    if (nCount <= 0)
+    {
+        AL_LogAdjacencyFallback(oArea, "CSV local al_adjacent_areas has no valid area tags.");
+        return 0;
+    }
+
+    SetLocalString(oArea, AL_AREA_ADJ_CACHE_RAW_KEY, GetLocalString(oArea, AL_AREA_ADJ_CSV_LOCAL_KEY));
+    SetLocalInt(oArea, AL_AREA_ADJ_CACHE_COUNT_KEY, nCount);
+    return nCount;
+}
+
+int AL_GetAreaAdjacencyCount(object oArea)
+{
+    if (AL_HasValidAdjacencyDenseLocals(oArea))
+    {
+        return GetLocalInt(oArea, AL_AREA_ADJ_COUNT_LOCAL_KEY);
+    }
+
+    return AL_BuildAdjacencyCsvCache(oArea);
+}
+
+string AL_GetAreaAdjacentTagByIndex(object oArea, int nIndex)
+{
+    if (nIndex < 0)
+    {
+        return "";
+    }
+
+    if (AL_HasValidAdjacencyDenseLocals(oArea))
+    {
+        if (nIndex >= GetLocalInt(oArea, AL_AREA_ADJ_COUNT_LOCAL_KEY))
+        {
+            return "";
+        }
+
+        return AL_TrimSpaces(GetLocalString(oArea, AL_GetAdjacencyLocalKey(nIndex)));
+    }
+
+    int nCount = AL_BuildAdjacencyCsvCache(oArea);
+    if (nIndex >= nCount)
+    {
+        return "";
+    }
+
+    return GetLocalString(oArea, AL_AREA_ADJ_CACHE_KEY_PREFIX + IntToString(nIndex));
 }

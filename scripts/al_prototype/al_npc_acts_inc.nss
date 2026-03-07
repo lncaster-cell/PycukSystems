@@ -167,7 +167,7 @@ object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
     int nIndex = GetLocalInt(oNpc, "r_idx");
     if (nIndex < 0 || nIndex >= nCount)
     {
-        if (GetLocalInt(oArea, "al_debug") == 1)
+        if (AL_DebugEnabledFor(oArea, 2))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: corrected invalid r_idx " + IntToString(nIndex)
                 + " to 0 for sleep waypoint lookup.");
@@ -331,6 +331,20 @@ int AL_ActivityHasRequiredRoute(object oNpc, int nSlot, int nActivity)
     return AL_GetRouteTag(oNpc, nSlot) == sWaypointTag;
 }
 
+void AL_ClearAreaPairKeyIfStale(object oArea, string sAreaKey)
+{
+    if (!GetIsObjectValid(oArea) || sAreaKey == "")
+    {
+        return;
+    }
+
+    object oAreaPair = GetLocalObject(oArea, sAreaKey);
+    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
+    {
+        DeleteLocalObject(oArea, sAreaKey);
+    }
+}
+
 void AL_RevalidateAreaPairLinksForWake(object oNpc)
 {
     if (!GetIsObjectValid(oNpc))
@@ -346,7 +360,7 @@ void AL_RevalidateAreaPairLinksForWake(object oNpc)
         return;
     }
 
-    int bDebug = GetLocalInt(oArea, "al_debug") == 1;
+    int bDebug = AL_DebugEnabledFor(oArea, 1);
     int bClearedTraining = FALSE;
     int bClearedBar = FALSE;
 
@@ -373,64 +387,14 @@ void AL_RevalidateAreaPairLinksForWake(object oNpc)
     }
 
     // Keep area-level runtime pair cache clean so slot wake/resync never reuses stale links.
-    string sAreaKey = "";
-    object oAreaPair = OBJECT_INVALID;
-
-    sAreaKey = "al_training_npc1";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_training_npc2";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_bar_bartender";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_bar_barmaid";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_training_npc1_ref";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_training_npc2_ref";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_bar_bartender_ref";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
-
-    sAreaKey = "al_bar_barmaid_ref";
-    oAreaPair = GetLocalObject(oArea, sAreaKey);
-    if (GetIsObjectValid(oAreaPair) && GetArea(oAreaPair) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaKey);
-    }
+    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc1");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc2");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_bartender");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_barmaid");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc1_ref");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc2_ref");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_bartender_ref");
+    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_barmaid_ref");
 
     if (bDebug)
     {
@@ -483,7 +447,7 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
         || (bNeedsTrainingPartner && !bTrainingPartnerValid)
         || (bNeedsBarPair && !bBarPairValid))
     {
-        if (GetIsObjectValid(oNpcArea) && GetLocalInt(oNpcArea, "al_debug") == 1)
+        if (GetIsObjectValid(oNpcArea) && AL_DebugEnabledFor(oNpcArea, 2))
         {
             string sReasonCodes = "";
             if (bRouteTagMismatch)
@@ -521,7 +485,7 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
         sCustom = AL_GetActivityCustomAnims(AL_ACT_NPC_ACT_ONE);
 
         object oArea = GetArea(oNpc);
-        if (GetIsObjectValid(oArea) && GetLocalInt(oArea, "al_debug") == 1)
+        if (GetIsObjectValid(oArea) && AL_DebugEnabledFor(oArea, 1))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: fallback to AL_ACT_NPC_ACT_ONE due to empty custom anim list for activity "
                 + IntToString(nOriginalActivity) + ".");
