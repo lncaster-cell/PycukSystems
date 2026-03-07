@@ -1,79 +1,158 @@
-# PycukSystems
+# Ambient Life: активности и полная настройка
 
-## Ambient Life (AL)
+## 1) Какие скрипты куда назначать
 
-`Ambient Life` — модуль событийного поведения NPC для NWN2, построенный вокруг area lifecycle и slot-based расписания (6 слотов в сутки).
-
-## Что делает модуль
-
-- включает/замораживает area по присутствию игроков;
-- поддерживает режимы area: `COLD`, `WARM`, `HOT`, `OFF`;
-- держит реестр NPC на area и синхронизирует его в тиках;
-- исполняет активности NPC через маршруты waypoint (`alwp0..alwp5`);
-- безопасно деградирует в fallback-поведение при невалидном контенте;
-- поддерживает мягкий one-hop прогрев соседних area из `HOT`-источника.
-
-## Быстрое подключение в Toolset
-
-Подключите скрипты к стандартным событиям:
+Назначьте скрипты в Toolset строго по событиям:
 
 - **Area**
-  - `al_area_onenter`
-  - `al_area_onexit`
-  - `al_area_tick`
-- **NPC**
-  - `al_npc_onspawn`
-  - `al_npc_onud`
-  - `al_npc_ondeath`
+  - `OnEnter` → `al_area_onenter`
+  - `OnExit` → `al_area_onexit`
+  - `OnHeartbeat` (или эквивалент area tick) → `al_area_tick`
+- **NPC (Creature)**
+  - `OnSpawn` → `al_npc_onspawn`
+  - `OnUserDefined` → `al_npc_onud`
+  - `OnDeath` → `al_npc_ondeath`
 - **Module**
-  - `al_mod_onleave`
+  - `OnClientLeave` → `al_mod_onleave`
 
-## Минимальная конфигурация
+---
 
-### NPC locals
+## 2) Какие locals куда прописывать
 
-- `alwp0` … `alwp5` — теги route-waypoint по слотам (достаточно `alwp0` и `alwp5` для простого профиля).
-- Альтернатива: `al_enabled=1` (маркер участия в AL, если маршруты задаются позже).
+### 2.1 NPC locals (обязательно для участия в AL)
 
-### Waypoint locals
+- `alwp0` … `alwp5` — теги route-waypoint по слотам суток.
+- Допустимый минимум: задать только часть слотов (например, `alwp0` и `alwp1` для сна), но лучше заполнять все 6.
+- `al_enabled=1` — опциональный маркер участия NPC в AL, если маршруты будут назначены позже.
 
-- `al_activity` — ID активности.
-- Для межзоновых переходов (fallback-цепочка):
-  - `al_transition_location` **или**
-  - `al_transition_area`, `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing`.
+### 2.2 Waypoint locals (обязательно для каждой route-точки)
 
-### Area locals
+- `al_activity` — ID активности в данной точке маршрута.
 
-- `al_area_mode` — явный режим area (`0=COLD`, `1=WARM`, `2=HOT`, `3=OFF`).
-- `al_is_interior=1` — интерьерная area (по контракту по умолчанию уходит в `COLD`).
-- `al_adjacent_areas` — CSV-теги соседних area для soft-activation.
-- `al_adj_interior_whitelist` — CSV-теги interior-соседей, которым разрешён прогрев.
-- `al_debug=1` — диагностические сообщения в чат area.
+Для перехода в другую area (если используете межзоновые точки):
 
-## Ключевые runtime-инварианты
+- предпочтительно: `al_transition_location`,
+- либо fallback-набор:
+  - `al_transition_area`
+  - `al_transition_x`
+  - `al_transition_y`
+  - `al_transition_z`
+  - `al_transition_facing`
 
-- Tick не исполняется в `OFF` и `COLD`.
-- Tick не исполняется без игроков в area.
-- В `HOT` тик быстрее (`15s`), в `WARM` медленнее (`30s`), `COLD` дефолтно (`45s`).
-- Реестр area ограничен `AL_MAX_NPCS=100`.
-- Route на NPC ограничен `AL_ROUTE_MAX_POINTS=10`.
+### 2.3 Настройка сна через waypoint locals
 
-## Активности
+На sleep-route waypoint укажите:
 
-Полный список activity ID и wrapper-активностей `91..98` описан в `scripts/al_prototype/al_acts_inc.nss`.
+- `al_bed_tag=<bed_id>`
 
-## Документация
+И создайте в той же area две waypoint-точки по шаблону тегов:
 
-- Архитектура и контракты: `docs/ambient-life-technical.md`
-- Контракт режимов area: `docs/al-area-transition-matrix.md`
-- Контракт интерьеров: `docs/ambient-life-interior-hot-warm-cold-contract.md`
-- Roadmap: `docs/area-modes-roadmap.md`
-- QA checklists: `docs/ambient-life-qa-2026-03-07.md`
-- Технический аудит: `docs/behavior-module-audit-2026-03-04.md`
+- `<bed_id>_approach` — точка подхода к кровати,
+- `<bed_id>_pose` — точка укладки (поза сна).
 
-## Troubleshooting
+Если `al_bed_tag`/bed-точки не заданы, bed-docking не сработает, и NPC уйдёт в fallback-проигрывание сна без корректной привязки к кровати.
 
-- **NPC не двигается:** проверьте `alwp*` на NPC и наличие waypoint с соответствующими тегами в area.
-- **Area не «просыпается»:** проверьте, что в `OnEnter/OnExit` реально приходят counted-игроки и area не в `OFF`.
-- **Соседи не прогреваются:** проверьте `al_adjacent_areas`; для interior-соседа нужен `al_adj_interior_whitelist`.
-- **Парные роли (training/bar) распались:** обновите `al_training_npc*_ref` / `al_bar_*_ref` после замены NPC.
+### 2.4 Area locals (рекомендуется)
+
+- `al_area_mode` — режим area: `0=COLD`, `1=WARM`, `2=HOT`, `3=OFF`.
+- `al_is_interior=1` — пометка интерьерной area.
+- `al_adjacent_areas` — CSV тегов соседних area для soft-activation.
+- `al_adj_interior_whitelist` — CSV интерьерных соседей, которых можно прогревать.
+- `al_debug=1` — отладочные сообщения для area.
+
+---
+
+## 3) Как организовать сон
+
+### 3.1 Логика слотов
+
+Сутки делятся на 6 слотов по 4 часа (`GetTimeHour()/4`):
+
+- `slot 0`: 00:00–03:59
+- `slot 1`: 04:00–07:59
+- `slot 2`: 08:00–11:59
+- `slot 3`: 12:00–15:59
+- `slot 4`: 16:00–19:59
+- `slot 5`: 20:00–23:59
+
+Для сна обычно используются **slot 0 и slot 1**.
+
+### 3.2 Практическая схема сна
+
+1. Пропишите NPC `alwp0` и `alwp1` на sleep-route теги.
+2. На waypoint этого sleep-route задайте `al_activity` со sleep-типом (например `4`, `5`, `31`, `32`) и `al_bed_tag`.
+3. Разместите `<bed_id>_approach` и `<bed_id>_pose` рядом с кроватью.
+4. Проверьте, что у NPC нет конфликтующих маршрутов в этих слотах.
+
+### 3.3 Особенность fallback для сна
+
+Если задан только один из sleep-слотов (`alwp0` или `alwp1`), система умеет переиспользовать соседний sleep-route тег между слотами 0 и 1.
+
+---
+
+## 4) Справочник активностей (ID)
+
+### 4.1 Базовые NPC активности
+
+- `0` — `AL_ACT_NPC_HIDDEN`
+- `1` — `AL_ACT_NPC_ACT_ONE`
+- `2` — `AL_ACT_NPC_ACT_TWO`
+- `3` — `AL_ACT_NPC_DINNER`
+- `4` — `AL_ACT_NPC_MIDNIGHT_BED`
+- `5` — `AL_ACT_NPC_SLEEP_BED`
+- `6` — `AL_ACT_NPC_WAKE`
+- `7` — `AL_ACT_NPC_AGREE`
+- `8` — `AL_ACT_NPC_ANGRY`
+- `9` — `AL_ACT_NPC_SAD`
+- `10` — `AL_ACT_NPC_COOK`
+- `11` — `AL_ACT_NPC_DANCE_FEMALE`
+- `12` — `AL_ACT_NPC_DANCE_MALE`
+- `13` — `AL_ACT_NPC_DRUM`
+- `14` — `AL_ACT_NPC_FLUTE`
+- `15` — `AL_ACT_NPC_FORGE`
+- `16` — `AL_ACT_NPC_GUITAR`
+- `17` — `AL_ACT_NPC_WOODSMAN`
+- `18` — `AL_ACT_NPC_MEDITATE`
+- `19` — `AL_ACT_NPC_POST`
+- `20` — `AL_ACT_NPC_READ`
+- `21` — `AL_ACT_NPC_SIT`
+- `22` — `AL_ACT_NPC_SIT_DINNER`
+- `23` — `AL_ACT_NPC_STAND_CHAT`
+- `24` — `AL_ACT_NPC_TRAINING_ONE`
+- `25` — `AL_ACT_NPC_TRAINING_TWO`
+- `26` — `AL_ACT_NPC_TRAINER_PACE`
+- `27` — `AL_ACT_NPC_WWP`
+- `28` — `AL_ACT_NPC_CHEER`
+- `29` — `AL_ACT_NPC_COOK_MULTI`
+- `30` — `AL_ACT_NPC_FORGE_MULTI`
+- `31` — `AL_ACT_NPC_MIDNIGHT_90`
+- `32` — `AL_ACT_NPC_SLEEP_90`
+- `33` — `AL_ACT_NPC_THIEF`
+- `36` — `AL_ACT_NPC_THIEF2`
+- `37` — `AL_ACT_NPC_ASSASSIN`
+- `38` — `AL_ACT_NPC_MERCHANT_MULTI`
+- `39` — `AL_ACT_NPC_KNEEL_TALK`
+- `41` — `AL_ACT_NPC_BARMAID`
+- `42` — `AL_ACT_NPC_BARTENDER`
+- `43` — `AL_ACT_NPC_GUARD`
+
+### 4.2 Wrapper-активности locate (диапазон 91..98)
+
+- `91` — `AL_ACT_LOCATE_LOOK`
+- `92` — `AL_ACT_LOCATE_IDLE`
+- `93` — `AL_ACT_LOCATE_SIT`
+- `94` — `AL_ACT_LOCATE_KNEEL`
+- `95` — `AL_ACT_LOCATE_TALK`
+- `96` — `AL_ACT_LOCATE_CRAFT`
+- `97` — `AL_ACT_LOCATE_MEDITATE`
+- `98` — `AL_ACT_LOCATE_STEALTH`
+
+---
+
+## 5) Минимальный чек-лист запуска
+
+1. Скрипты назначены на события Area/NPC/Module.
+2. У каждого AL-NPC есть `alwp*` (минимум sleep-слоты).
+3. На route-waypoint заполнен `al_activity`.
+4. Для сна настроены `al_bed_tag`, `<bed_id>_approach`, `<bed_id>_pose`.
+5. Area не в `OFF`, и корректно считаются вход/выход игроков.

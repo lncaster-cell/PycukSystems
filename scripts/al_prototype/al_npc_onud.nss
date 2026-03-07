@@ -1,6 +1,8 @@
 // NPC OnUserDefined: attach to NPC OnUserDefined in the toolset.
 
-#include "al_npc_acts_inc"
+#include "al_npc_activity_apply_inc"
+#include "al_npc_sleep_inc"
+#include "al_npc_pair_revalidate_inc"
 #include "al_npc_pair_inc"
 #include "al_area_mode_contract_inc"
 
@@ -244,50 +246,8 @@ void AL_LogPairFallbackOnResync(object oNpc, int nEvent, int nActivity)
     }
 }
 
-void main()
+void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
 {
-    object oNpc = OBJECT_SELF;
-    int nEvent = GetUserDefinedEventNumber();
-    object oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea) || AL_IsAreaModeOff(oArea) || AL_IsAreaModeCold(oArea))
-    {
-        return;
-    }
-
-    int nSlot = AL_ResolveSlot(oNpc, nEvent);
-
-    if (nSlot < 0 || nSlot > AL_SLOT_MAX)
-    {
-        return;
-    }
-
-    if (nEvent == AL_EVT_ROUTE_REPEAT)
-    {
-        if (AL_ShouldIgnoreRepeatEvent(oNpc, oArea, nSlot))
-        {
-            return;
-        }
-    }
-    else if (nEvent != AL_EVT_RESYNC && GetLocalInt(oNpc, "al_last_slot") == nSlot)
-    {
-        return;
-    }
-
-    if (nEvent != AL_EVT_ROUTE_REPEAT)
-    {
-        AL_ResetRepeatRequeueCooldown(oNpc);
-    }
-
-    if (nEvent == AL_EVT_RESYNC)
-    {
-        AL_DebugLogL1(oArea, oNpc, "AL: RESYNC started for " + GetName(oNpc) + ".");
-        // Wake/resync contract: pair subsystem must be validated before
-        // evaluating route/activity requirements for this slot.
-        AL_InitTrainingPartner(oNpc);
-        AL_InitBarPair(oNpc);
-        SetLocalInt(oNpc, "al_last_slot", -1);
-    }
-
     AL_RevalidateAreaPairLinksForWake(oNpc);
 
     if (nEvent != AL_EVT_ROUTE_REPEAT)
@@ -375,5 +335,70 @@ void main()
             AL_ApplyActivityForSlot(oNpc, nSlot);
         }
         AL_MarkAnimationApplied(oNpc, nIntervalSeconds);
+    }
+}
+
+void AL_HandleResyncEvent(object oNpc, object oArea, int nSlot)
+{
+    AL_ResetRepeatRequeueCooldown(oNpc);
+    AL_DebugLogL1(oArea, oNpc, "AL: RESYNC started for " + GetName(oNpc) + ".");
+    // Wake/resync contract: pair subsystem must be validated before
+    // evaluating route/activity requirements for this slot.
+    AL_InitTrainingPartner(oNpc);
+    AL_InitBarPair(oNpc);
+    SetLocalInt(oNpc, "al_last_slot", -1);
+
+    AL_ProcessSlotEvent(oNpc, oArea, nSlot, AL_EVT_RESYNC);
+}
+
+void AL_HandleRouteRepeatEvent(object oNpc, object oArea, int nSlot)
+{
+    if (AL_ShouldIgnoreRepeatEvent(oNpc, oArea, nSlot))
+    {
+        return;
+    }
+
+    AL_ProcessSlotEvent(oNpc, oArea, nSlot, AL_EVT_ROUTE_REPEAT);
+}
+
+void AL_HandleSlotTickEvent(object oNpc, object oArea, int nSlot, int nEvent)
+{
+    if (GetLocalInt(oNpc, "al_last_slot") == nSlot)
+    {
+        return;
+    }
+
+    AL_ResetRepeatRequeueCooldown(oNpc);
+    AL_ProcessSlotEvent(oNpc, oArea, nSlot, nEvent);
+}
+
+void main()
+{
+    object oNpc = OBJECT_SELF;
+    int nEvent = GetUserDefinedEventNumber();
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea) || AL_IsAreaModeOff(oArea) || AL_IsAreaModeCold(oArea))
+    {
+        return;
+    }
+
+    int nSlot = AL_ResolveSlot(oNpc, nEvent);
+
+    if (nSlot < 0 || nSlot > AL_SLOT_MAX)
+    {
+        return;
+    }
+
+    if (nEvent == AL_EVT_ROUTE_REPEAT)
+    {
+        AL_HandleRouteRepeatEvent(oNpc, oArea, nSlot);
+    }
+    else if (nEvent == AL_EVT_RESYNC)
+    {
+        AL_HandleResyncEvent(oNpc, oArea, nSlot);
+    }
+    else
+    {
+        AL_HandleSlotTickEvent(oNpc, oArea, nSlot, nEvent);
     }
 }
