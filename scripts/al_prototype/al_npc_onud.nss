@@ -1,6 +1,8 @@
 // NPC OnUserDefined: attach to NPC OnUserDefined in the toolset.
 
-#include "al_npc_acts_inc"
+#include "al_npc_activity_apply_inc"
+#include "al_npc_sleep_inc"
+#include "al_npc_pair_revalidate_inc"
 #include "al_npc_pair_inc"
 #include "al_area_mode_contract_inc"
 
