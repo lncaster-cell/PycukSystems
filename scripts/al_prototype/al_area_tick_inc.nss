@@ -98,15 +98,16 @@ void AreaTick(object oArea, int nToken)
     }
 
     int iSlot = AL_ComputeTimeSlot();
+    int iPrevSlot = GetLocalInt(oArea, "al_slot");
 
-    if (iSlot == GetLocalInt(oArea, "al_slot"))
+    if (iSlot == iPrevSlot)
     {
         AL_ScheduleNextAreaTick(oArea, nToken);
         return;
     }
 
     AL_DebugLogL1(oArea, OBJECT_INVALID, "AL: mode transition slot "
-        + IntToString(GetLocalInt(oArea, "al_slot")) + " -> " + IntToString(iSlot) + ".");
+        + IntToString(iPrevSlot) + " -> " + IntToString(iSlot) + ".");
 
     if (!bSynced)
     {
