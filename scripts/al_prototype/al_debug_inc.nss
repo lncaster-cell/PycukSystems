@@ -1,5 +1,46 @@
 // Debug helpers for sending messages to players in a specific area.
 
+int AL_GetDebugLevel(object oContext)
+{
+    if (!GetIsObjectValid(oContext))
+    {
+        return 0;
+    }
+
+    int nLevel = GetLocalInt(oContext, "al_debug");
+    if (nLevel > 0)
+    {
+        return nLevel;
+    }
+
+    object oArea = GetArea(oContext);
+    if (GetIsObjectValid(oArea))
+    {
+        nLevel = GetLocalInt(oArea, "al_debug");
+        if (nLevel > 0)
+        {
+            return nLevel;
+        }
+    }
+
+    return 0;
+}
+
+int AL_DebugEnabledFor(object oContext, int nLevel)
+{
+    if (nLevel <= 0)
+    {
+        nLevel = 1;
+    }
+
+    return AL_GetDebugLevel(oContext) >= nLevel;
+}
+
+int AL_DebugEnabled(int nLevel)
+{
+    return AL_DebugEnabledFor(OBJECT_SELF, nLevel);
+}
+
 void AL_SendDebugMessageToAreaPCs(object oArea, string sMessage)
 {
     if (!GetIsObjectValid(oArea))

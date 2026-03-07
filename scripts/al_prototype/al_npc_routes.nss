@@ -10,7 +10,7 @@
 #include "al_npc_reg_inc"
 #include "al_route_cache_inc"
 
-void AL_RouteDebugLog(object oNpc, string sMessage)
+void AL_RouteDebugLog(object oNpc, int nLevel, string sMessage)
 {
     object oArea = GetArea(oNpc);
     if (!GetIsObjectValid(oArea))
@@ -18,7 +18,7 @@ void AL_RouteDebugLog(object oNpc, string sMessage)
         return;
     }
 
-    if (GetLocalInt(oNpc, "al_debug") != 1 && GetLocalInt(oArea, "al_debug") != 1)
+    if (!AL_DebugEnabledFor(oNpc, nLevel) && !AL_DebugEnabledFor(oArea, nLevel))
     {
         return;
     }
@@ -124,11 +124,8 @@ void AL_OnRouteStep(object oNpc, int nIdx, location lPoint)
 
     SetLocalInt(oNpc, "al_last_route_recover_tick", nTickToken);
 
-    if (GetLocalInt(oNpc, "al_debug") == 1 || GetLocalInt(oNpcArea, "al_debug") == 1)
-    {
-        AL_RouteDebugLog(oNpc, "AL: route step failed, idx=" + IntToString(nIdx)
-            + ", dist=" + FloatToString(fDist) + ", resync.");
-    }
+    AL_RouteDebugLog(oNpc, 2, "AL: route step failed, idx=" + IntToString(nIdx)
+        + ", dist=" + FloatToString(fDist) + ", resync.");
 
     AssignCommand(oNpc, ClearAllActions());
     SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC));
@@ -195,7 +192,7 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
     if (iAreaCount > AL_ROUTE_MAX_POINTS)
     {
         iAreaCount = AL_ROUTE_MAX_POINTS;
-        AL_RouteDebugLog(oNpc, "AL: route tag " + sTag + " truncated to "
+        AL_RouteDebugLog(oNpc, 2, "AL: route tag " + sTag + " truncated to "
             + IntToString(AL_ROUTE_MAX_POINTS) + " points (was "
             + IntToString(iAreaCountOriginal) + ").");
     }
@@ -238,7 +235,7 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
         }
         else if (GetIsObjectValid(oPointArea) && oPointArea != oArea)
         {
-            AL_RouteDebugLog(oNpc, "AL: route tag " + sTag + " skipped point "
+            AL_RouteDebugLog(oNpc, 2, "AL: route tag " + sTag + " skipped point "
                 + IntToString(iSourceIndex) + " due to area mismatch.");
         }
 

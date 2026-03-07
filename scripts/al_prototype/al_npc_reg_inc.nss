@@ -240,7 +240,7 @@ int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
 
 void AL_LogRegistrationSkip(object oNpc, object oArea, string sReason)
 {
-    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    if (!GetIsObjectValid(oArea) || !AL_DebugEnabledFor(oArea, 1))
     {
         return;
     }
@@ -332,7 +332,7 @@ void AL_RegisterNPC(object oNpc)
 
     if (iCount >= AL_MAX_NPCS)
     {
-        if (GetLocalInt(oArea, "al_debug") == 1 && !AL_IsRegistryFullMessageCoolingDown(oArea))
+        if (AL_DebugEnabledFor(oArea, 1) && !AL_IsRegistryFullMessageCoolingDown(oArea))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: NPC registry full for area; registration skipped.");
 

@@ -105,7 +105,7 @@ void AL_InitTrainingPartner(object oNpc)
 
         SetLocalInt(oArea, "al_training_partner_cached", bHasRestoredPair);
 
-        if (!bHasRestoredPair && GetLocalInt(oArea, "al_debug") == 1)
+        if (!bHasRestoredPair && AL_DebugEnabledFor(oArea, 1))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: training partner cache reset; pair restore failed.");
         }
@@ -150,7 +150,7 @@ void AL_InitBarPair(object oNpc)
             // is stale and must not be reused for requirement checks.
             DeleteLocalObject(oNpc, "al_bar_pair");
 
-            if (GetLocalInt(oArea, "al_debug") == 1)
+            if (AL_DebugEnabledFor(oArea, 2))
             {
                 AL_SendDebugMessageToAreaPCs(oArea, "AL: asymmetric bar pair repaired for " + GetName(oNpc) + ".");
             }
@@ -159,7 +159,7 @@ void AL_InitBarPair(object oNpc)
         {
             DeleteLocalObject(oNpc, "al_bar_pair");
 
-            if (GetLocalInt(oArea, "al_debug") == 1)
+            if (AL_DebugEnabledFor(oArea, 2))
             {
                 AL_SendDebugMessageToAreaPCs(oArea, "AL: stale bar pair reset for " + GetName(oNpc) + ".");
             }

@@ -163,7 +163,7 @@ void AL_LogPairFallbackOnResync(object oNpc, int nEvent, int nActivity)
     }
 
     object oArea = GetArea(oNpc);
-    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    if (!GetIsObjectValid(oArea) || !AL_DebugEnabled(2))
     {
         return;
     }
