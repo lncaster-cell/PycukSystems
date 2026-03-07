@@ -1,4 +1,5 @@
 #include "al_area_constants_inc"
+#include "al_area_mode_contract_inc"
 #include "al_npc_reg_inc"
 #include "al_route_cache_inc"
 
@@ -41,6 +42,11 @@ void AL_ScheduleNextAreaTick(object oArea, int nToken)
 
 void AreaTick(object oArea, int nToken)
 {
+    if (AL_IsAreaModeOff(oArea))
+    {
+        return;
+    }
+
     if (GetLocalInt(oArea, "al_player_count") <= 0)
     {
         return;

@@ -2,6 +2,7 @@
 
 #include "al_npc_acts_inc"
 #include "al_npc_pair_inc"
+#include "al_area_mode_contract_inc"
 
 void AL_ResetRouteIndex(object oNpc)
 {
@@ -70,7 +71,22 @@ void AL_SyncRouteForSlot(object oNpc, int nSlot)
 int AL_IsWarmArea(object oNpc)
 {
     object oArea = GetArea(oNpc);
-    return GetIsObjectValid(oArea) && GetLocalInt(oArea, "al_player_count") > 0;
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    if (AL_IsAreaModeWarm(oArea))
+    {
+        return TRUE;
+    }
+
+    if (GetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY) == 0)
+    {
+        return GetLocalInt(oArea, "al_player_count") > 0;
+    }
+
+    return FALSE;
 }
 
 void AL_RecordEventNoise(object oNpc, int nEvent)
@@ -183,6 +199,12 @@ void main()
     int nSlot = AL_ResolveSlot(oNpc, nEvent);
 
     if (nSlot < 0 || nSlot > AL_SLOT_MAX)
+    {
+        return;
+    }
+
+    object oArea = GetArea(oNpc);
+    if (!GetIsObjectValid(oArea) || AL_IsAreaModeOff(oArea))
     {
         return;
     }
