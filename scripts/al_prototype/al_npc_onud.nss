@@ -89,6 +89,27 @@ int AL_GetRepeatRequeueMinGapSeconds(object oNpc)
     return 0;
 }
 
+int AL_IsDaySecondsCooldownActive(object oObj, string sKey)
+{
+    int nNextStored = GetLocalInt(oObj, sKey);
+    if (nNextStored == 0)
+    {
+        return FALSE;
+    }
+
+    int nNow = AL_GetAmbientLifeDaySeconds();
+    int nNext = nNextStored - 1;
+    int nDelta = (nNext - nNow + 86400) % 86400;
+    return nDelta > 0 && nDelta < 43200;
+}
+
+void AL_MarkDaySecondsCooldown(object oObj, string sKey, int nDelaySeconds)
+{
+    int nNow = AL_GetAmbientLifeDaySeconds();
+    int nNext = (nNow + nDelaySeconds) % 86400;
+    SetLocalInt(oObj, sKey, nNext + 1);
+}
+
 void AL_ResetRepeatRequeueCooldown(object oNpc)
 {
     DeleteLocalInt(oNpc, "al_repeat_next");
@@ -102,44 +123,52 @@ int AL_IsRepeatRequeueCoolingDownByMode(object oNpc)
         return FALSE;
     }
 
-    int nNextStored = GetLocalInt(oNpc, "al_repeat_next");
-    if (nNextStored == 0)
-    {
-        return FALSE;
-    }
-
-    int nNow = AL_GetAmbientLifeDaySeconds();
-    int nNext = nNextStored - 1;
-    int nDelta = (nNext - nNow + 86400) % 86400;
-    return nDelta > 0 && nDelta < 43200;
+    return AL_IsDaySecondsCooldownActive(oNpc, "al_repeat_next");
 }
 
 void AL_MarkRepeatRequeueScheduled(object oNpc, int nDelaySeconds)
 {
-    int nNow = AL_GetAmbientLifeDaySeconds();
-    int nNext = (nNow + nDelaySeconds) % 86400;
-    SetLocalInt(oNpc, "al_repeat_next", nNext + 1);
+    AL_MarkDaySecondsCooldown(oNpc, "al_repeat_next", nDelaySeconds);
 }
 
 int AL_IsRepeatAnimCoolingDown(object oNpc)
 {
-    int nNextStored = GetLocalInt(oNpc, "al_anim_next");
-    if (nNextStored == 0)
-    {
-        return FALSE;
-    }
-
-    int nNext = nNextStored - 1;
-    int nNow = AL_GetAmbientLifeDaySeconds();
-    int nDelta = (nNext - nNow + 86400) % 86400;
-    return nDelta > 0 && nDelta < 43200;
+    return AL_IsDaySecondsCooldownActive(oNpc, "al_anim_next");
 }
 
 void AL_MarkAnimationApplied(object oNpc, int nIntervalSeconds)
 {
-    int nNow = AL_GetAmbientLifeDaySeconds();
-    int nNext = (nNow + nIntervalSeconds) % 86400;
-    SetLocalInt(oNpc, "al_anim_next", nNext + 1);
+    AL_MarkDaySecondsCooldown(oNpc, "al_anim_next", nIntervalSeconds);
+}
+
+void AL_ClearRouteAndRepeatState(object oNpc, int bStopSleep)
+{
+    if (bStopSleep)
+    {
+        AL_StopSleepAtBed(oNpc);
+    }
+
+    AL_ResetRepeatRequeueCooldown(oNpc);
+    AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+}
+
+void AL_QueueRepeatRequeue(object oNpc, object oArea)
+{
+    AL_DebugLogL2(oArea, oNpc, "AL: repeat requeue in warm area.");
+    int nRepeatDelaySeconds = 5 + Random(8);
+
+    int nModeMinGap = AL_GetRepeatRequeueMinGapSeconds(oNpc);
+    if (nModeMinGap > nRepeatDelaySeconds)
+    {
+        nRepeatDelaySeconds = nModeMinGap;
+    }
+
+    float fRepeatDelay = IntToFloat(nRepeatDelaySeconds);
+
+    AssignCommand(oNpc, ActionWait(fRepeatDelay));
+    AssignCommand(oNpc, ActionDoCommand(SignalEvent(oNpc, EventUserDefined(AL_EVT_ROUTE_REPEAT))));
+
+    AL_MarkRepeatRequeueScheduled(oNpc, nRepeatDelaySeconds);
 }
 
 
@@ -247,16 +276,12 @@ void main()
     AL_LogPairFallbackOnResync(oNpc, nEvent, nActivity);
     if (nActivity == AL_ACT_NPC_HIDDEN)
     {
-        AL_StopSleepAtBed(oNpc);
-        AL_ResetRepeatRequeueCooldown(oNpc);
-        AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+        AL_ClearRouteAndRepeatState(oNpc, TRUE);
         return;
     }
     if (nEvent == AL_EVT_ROUTE_REPEAT && !bCanUseRoute)
     {
-        AL_StopSleepAtBed(oNpc);
-        AL_ResetRepeatRequeueCooldown(oNpc);
-        AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+        AL_ClearRouteAndRepeatState(oNpc, TRUE);
         return;
     }
 
@@ -268,8 +293,7 @@ void main()
 
     if (!bCanUseRoute)
     {
-        AL_ResetRepeatRequeueCooldown(oNpc);
-        AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+        AL_ClearRouteAndRepeatState(oNpc, FALSE);
     }
 
     int bSkipMoveRepeat = FALSE;
@@ -290,21 +314,7 @@ void main()
         {
             if (!bRepeatRequeueWarmCooldown)
             {
-                AL_DebugLogL2(oArea, oNpc, "AL: repeat requeue in warm area.");
-                int nRepeatDelaySeconds = 5 + Random(8);
-
-                int nModeMinGap = AL_GetRepeatRequeueMinGapSeconds(oNpc);
-                if (nModeMinGap > nRepeatDelaySeconds)
-                {
-                    nRepeatDelaySeconds = nModeMinGap;
-                }
-
-                float fRepeatDelay = IntToFloat(nRepeatDelaySeconds);
-
-                AssignCommand(oNpc, ActionWait(fRepeatDelay));
-                AssignCommand(oNpc, ActionDoCommand(SignalEvent(oNpc, EventUserDefined(AL_EVT_ROUTE_REPEAT))));
-
-                AL_MarkRepeatRequeueScheduled(oNpc, nRepeatDelaySeconds);
+                AL_QueueRepeatRequeue(oNpc, oArea);
             }
             else
             {
@@ -320,8 +330,7 @@ void main()
     {
         // Sleep does not need movement repeat loops: keep NPC docked and avoid
         // extra AL_EVT_ROUTE_REPEAT scheduling/load while sleeping.
-        AL_ResetRepeatRequeueCooldown(oNpc);
-        AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+        AL_ClearRouteAndRepeatState(oNpc, FALSE);
     }
 
     int bAllowAnimation = TRUE;
