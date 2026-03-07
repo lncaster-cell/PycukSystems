@@ -1,5 +1,5 @@
 #include "al_area_constants_inc"
-#include "al_area_mode_contract_inc"
+#include "al_debug_inc"
 #include "al_npc_reg_inc"
 #include "al_route_cache_inc"
 #include "al_area_mode_contract_inc"
@@ -102,6 +102,9 @@ void AreaTick(object oArea, int nToken)
         AL_ScheduleNextAreaTick(oArea, nToken);
         return;
     }
+
+    AL_DebugLogL1(oArea, OBJECT_INVALID, "AL: mode transition slot "
+        + IntToString(GetLocalInt(oArea, "al_slot")) + " -> " + IntToString(iSlot) + ".");
 
     if (!bSynced)
     {

@@ -241,7 +241,7 @@ int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
 
 void AL_LogRegistrationSkip(object oNpc, object oArea, string sReason)
 {
-    if (!GetIsObjectValid(oArea) || !AL_DebugEnabledFor(oArea, 1))
+    if (!GetIsObjectValid(oArea) || !AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
     {
         return;
     }
@@ -333,7 +333,7 @@ void AL_RegisterNPC(object oNpc)
 
     if (iCount >= AL_MAX_NPCS)
     {
-        if (AL_DebugEnabledFor(oArea, 1) && !AL_IsRegistryFullMessageCoolingDown(oArea))
+        if (AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1) && !AL_IsRegistryFullMessageCoolingDown(oArea))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: NPC registry full for area; registration skipped.");
 
@@ -481,6 +481,7 @@ void AL_HandleAreaBecameEmpty(object oArea)
     DeleteLocalInt(oArea, "al_tick_warm_left");
     DeleteLocalInt(oArea, "al_routes_cached");
     AL_HideRegisteredNPCs(oArea);
+    AL_DebugLogL1(oArea, OBJECT_INVALID, "AL: freeze complete; routes invalidated and NPCs hidden.");
 }
 
 void AL_UnhideAndResyncRegisteredNPCs(object oArea)
@@ -508,6 +509,7 @@ void AL_UnhideAndResyncRegisteredNPCs(object oArea)
         {
             SetScriptHidden(oNpc, FALSE, FALSE);
         }
+        AL_DebugLogL1(oArea, oNpc, "AL: wake RESYNC signaled for " + GetName(oNpc) + ".");
         SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC));
         i++;
     }

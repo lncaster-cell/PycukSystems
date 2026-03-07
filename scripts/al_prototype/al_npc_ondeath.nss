@@ -42,11 +42,7 @@ void main()
         {
             SetLocalInt(oArea, "al_training_partner_cached", FALSE);
 
-            if (GetLocalInt(oArea, "al_debug") == 1)
-            {
-                AL_SendDebugMessageToAreaPCs(oArea,
-                    "AL: training partner cache reset on death of " + GetName(oNpc) + ".");
-            }
+            AL_DebugLogL1(oArea, oNpc, "AL: training partner cache reset on death of " + GetName(oNpc) + ".");
         }
     }
 

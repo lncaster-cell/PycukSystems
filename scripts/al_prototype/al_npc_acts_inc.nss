@@ -167,7 +167,7 @@ object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
     int nIndex = GetLocalInt(oNpc, "r_idx");
     if (nIndex < 0 || nIndex >= nCount)
     {
-        if (AL_DebugEnabledFor(oArea, 2))
+        if (AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: corrected invalid r_idx " + IntToString(nIndex)
                 + " to 0 for sleep waypoint lookup.");
@@ -360,7 +360,7 @@ void AL_RevalidateAreaPairLinksForWake(object oNpc)
         return;
     }
 
-    int bDebug = AL_DebugEnabledFor(oArea, 1);
+    int bDebug = AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1);
     int bClearedTraining = FALSE;
     int bClearedBar = FALSE;
 
@@ -447,7 +447,7 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
         || (bNeedsTrainingPartner && !bTrainingPartnerValid)
         || (bNeedsBarPair && !bBarPairValid))
     {
-        if (GetIsObjectValid(oNpcArea) && AL_DebugEnabledFor(oNpcArea, 2))
+        if (GetIsObjectValid(oNpcArea) && AL_IsDebugLevelEnabled(oNpcArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
         {
             string sReasonCodes = "";
             if (bRouteTagMismatch)
@@ -485,7 +485,7 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
         sCustom = AL_GetActivityCustomAnims(AL_ACT_NPC_ACT_ONE);
 
         object oArea = GetArea(oNpc);
-        if (GetIsObjectValid(oArea) && AL_DebugEnabledFor(oArea, 1))
+        if (GetIsObjectValid(oArea) && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
         {
             AL_SendDebugMessageToAreaPCs(oArea, "AL: fallback to AL_ACT_NPC_ACT_ONE due to empty custom anim list for activity "
                 + IntToString(nOriginalActivity) + ".");

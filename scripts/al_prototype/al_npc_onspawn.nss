@@ -34,7 +34,7 @@ void main()
             }
         }
     }
-    else if (GetIsObjectValid(oArea) && GetLocalInt(oArea, "al_debug") == 1)
+    else if (GetIsObjectValid(oArea) && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
     {
         string sTag = GetTag(oNpc);
         if (sTag == "")

@@ -155,9 +155,11 @@ void main()
     AL_SoftActivateAdjacentAreas(oArea);
 
     AL_CacheTrainingPartners(oArea);
+    AL_DebugLogL1(oArea, OBJECT_INVALID, "AL: wake begin; area became active.");
     AL_SyncAreaNPCRegistry(oArea);
     DeleteLocalInt(oArea, "al_routes_cached");
     AL_CacheAreaRoutes(oArea);
+    AL_DebugLogL2(oArea, OBJECT_INVALID, "AL: wake route cache rebuilt.");
     AL_UnhideAndResyncRegisteredNPCs(oArea);
     AL_ScheduleNextAreaTick(oArea, iToken);
 }

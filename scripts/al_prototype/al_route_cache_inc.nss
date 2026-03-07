@@ -9,14 +9,9 @@
 
 const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
-void AL_AreaDebugLog(object oArea, string sMessage)
+void AL_AreaDebugLog(object oArea, int nLevel, string sMessage)
 {
-    if (!GetIsObjectValid(oArea) || !AL_DebugEnabledFor(oArea, 2))
-    {
-        return;
-    }
-
-    AL_SendDebugMessageToAreaPCs(oArea, sMessage);
+    AL_DebugLog(oArea, OBJECT_INVALID, nLevel, sMessage);
 }
 
 void AL_ClearAreaRouteCacheByTag(object oArea, string sTag)
@@ -160,7 +155,7 @@ void AL_CacheAreaRoutes(object oArea)
                     string sMissingIndexLoggedKey = sAreaPrefix + "missing_index_logged";
                     if (!GetLocalInt(oArea, sMissingIndexLoggedKey))
                     {
-                        AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " missing al_route_index; skipped.");
+                        AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L1, "AL: waypoint " + sTag + " missing al_route_index; skipped.");
                         SetLocalInt(oArea, sMissingIndexLoggedKey, TRUE);
                     }
                     continue;
@@ -172,7 +167,7 @@ void AL_CacheAreaRoutes(object oArea)
                     nIndex = GetLocalInt(oWp, "al_route_index");
                     if (nIndex < 0 || nIndex > AL_AREA_ROUTE_INDEX_MAX)
                     {
-                        AL_AreaDebugLog(oArea, "AL: waypoint " + sTag + " has invalid al_route_index " + IntToString(nIndex) + " (allowed 0.." + IntToString(AL_AREA_ROUTE_INDEX_MAX) + "); skipped.");
+                        AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L1, "AL: waypoint " + sTag + " has invalid al_route_index " + IntToString(nIndex) + " (allowed 0.." + IntToString(AL_AREA_ROUTE_INDEX_MAX) + "); skipped.");
                         continue;
                     }
                 }
@@ -181,7 +176,7 @@ void AL_CacheAreaRoutes(object oArea)
                 string sIndexMarker = sIndex + "_set";
                 if (GetLocalInt(oArea, sIndexMarker))
                 {
-                    AL_AreaDebugLog(oArea, "AL: duplicate route index " + IntToString(nIndex) + " for tag " + sTag + "; skipped.");
+                    AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L1, "AL: duplicate route index " + IntToString(nIndex) + " for tag " + sTag + "; skipped.");
                     continue;
                 }
 
@@ -251,7 +246,7 @@ void AL_CacheAreaRoutes(object oArea)
             SetLocalInt(oArea, sAreaPrefix + "idx_built", TRUE);
             if (nCount > 0 && nCount != nDenseCount)
             {
-                AL_AreaDebugLog(oArea, "AL: route tag " + sTag + " has gaps in al_route_index; using dense list.");
+                AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L2, "AL: route adjacency tag " + sTag + " has index gaps; using dense list.");
             }
         }
 
@@ -268,7 +263,7 @@ void AL_CacheAreaRoutes(object oArea)
         if (sKnownTag != "" && !GetLocalInt(oArea, "al_route_rebuild_seen_" + sKnownTag))
         {
             AL_ClearAreaRouteCacheByTag(oArea, sKnownTag);
-            AL_AreaDebugLog(oArea, "AL: cleared stale route tag cache " + sKnownTag + ".");
+            AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L2, "AL: route adjacency stale cache cleared for tag " + sKnownTag + ".");
         }
 
         DeleteLocalString(oArea, "al_route_known_tag_" + IntToString(iKnownTagIndex));

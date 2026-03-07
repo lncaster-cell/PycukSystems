@@ -23,5 +23,6 @@ void main()
         return;
     }
 
+    AL_DebugLogL1(oArea, OBJECT_INVALID, "AL: freeze begin; area became empty.");
     AL_HandleAreaBecameEmpty(oArea);
 }
