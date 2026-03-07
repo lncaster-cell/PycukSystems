@@ -28,6 +28,53 @@ object AL_FindWaypointByTagInArea(object oArea, string sTag)
     return OBJECT_INVALID;
 }
 
+string AL_GetBedWaypointCacheKey(string sBedTag, string sSuffix)
+{
+    if (sBedTag == "" || sSuffix == "")
+    {
+        return "";
+    }
+
+    return "al_bed_wp_" + sBedTag + "_" + sSuffix;
+}
+
+object AL_GetBedWaypointCached(object oArea, string sBedTag, string sSuffix, object oNpc)
+{
+    if (!GetIsObjectValid(oArea) || sBedTag == "" || sSuffix == "")
+    {
+        return OBJECT_INVALID;
+    }
+
+    string sCacheKey = AL_GetBedWaypointCacheKey(sBedTag, sSuffix);
+    string sTag = sBedTag + "_" + sSuffix;
+    object oCached = GetLocalObject(oArea, sCacheKey);
+
+    if (GetIsObjectValid(oCached))
+    {
+        if (GetArea(oCached) == oArea)
+        {
+            AL_DebugLogL2(oArea, oNpc, "AL: bed wp cache hit [" + sTag + "].");
+            return oCached;
+        }
+
+        DeleteLocalObject(oArea, sCacheKey);
+    }
+    else
+    {
+        DeleteLocalObject(oArea, sCacheKey);
+    }
+
+    AL_DebugLogL2(oArea, oNpc, "AL: bed wp cache miss [" + sTag + "].");
+
+    object oFound = AL_FindWaypointByTagInArea(oArea, sTag);
+    if (GetIsObjectValid(oFound) && GetArea(oFound) == oArea)
+    {
+        SetLocalObject(oArea, sCacheKey, oFound);
+    }
+
+    return oFound;
+}
+
 void AL_QueueSleepAnimationLoop(object oNpc)
 {
     AssignCommand(oNpc, AL_PlayCustomAnimation(oNpc, "laydownB", FALSE));
@@ -70,8 +117,8 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
 
     if (sBedTag != "")
     {
-        oApproachWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_approach");
-        oPoseWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_pose");
+        oApproachWp = AL_GetBedWaypointCached(oArea, sBedTag, "approach", oNpc);
+        oPoseWp = AL_GetBedWaypointCached(oArea, sBedTag, "pose", oNpc);
     }
 
     if (!GetIsObjectValid(oApproachWp))
