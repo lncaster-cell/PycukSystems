@@ -248,3 +248,17 @@ Domain includes
    - `onenter (1-й игрок)` -> `slot switch` -> `route repeat` -> `empty area` -> `resync`.
 3. Для парных ролей (training/bar) добавить в контент-процесс обязательный шаг ревизии `*_ref`-локалов после замены blueprint/респауна ключевых NPC.
 4. Для особо загруженных area держать маршруты короткими и валидными по индексации, чтобы уменьшить шум `AL_EVT_ROUTE_REPEAT` и лишние clear/requeue.
+
+### 7.5 Коды причин деградации активности (debug triage)
+
+При деградации в `AL_ACT_NPC_ACT_ONE` рантайм пишет структурированные `reason_codes` **только** если на area включён `al_debug=1`.
+
+| Код причины | Когда выставляется | Типичный источник проблемы |
+|---|---|---|
+| `route_tag_mismatch` | Activity требует специальный route tag (`AL_GetActivityWaypointTag`), но фактический route tag слота отличается/пустой. | Неверный `alwp<slot>` у NPC, или activity не соответствует маршруту. |
+| `missing_partner` | Activity требует пару (`training`/`bar`), но соответствующий local-объект отсутствует. | Не проставлен/потерян `al_training_partner` или `al_bar_pair`. |
+| `invalid_pair_area` | Партнёр есть, но находится в другой area (cross-area pair считается невалидной). | Межзоновый переход/деспаун оставил «висящую» ссылку на пару. |
+
+Формат debug-сообщения:
+- `AL: activity degrade; reason_codes=<code[,code...]>; slot=<n>; source_activity=<name>`
+
