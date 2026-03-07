@@ -1,74 +1,55 @@
-# AL Area Mode Transition Matrix (HOT/WARM/COLD/OFF)
+# AL Area Mode Contract and Transition Matrix
 
-Документ фиксирует единый контракт по mode/transition reason и ключам area locals для Ambient Life.
+Обновлено: 2026-03-07
 
-## 1) Утверждённые enum
+Документ фиксирует **текущий реализованный** контракт area mode в `scripts/al_prototype`.
 
-### 1.1 Area mode enum
+## 1) Каноничные enum (источник истины)
 
-Источник истины: `scripts/al_prototype/al_area_constants_inc.nss`.
+Источник: `scripts/al_prototype/al_area_constants_inc.nss`.
 
-- `AL_AREA_MODE_OFF = 0`
-- `AL_AREA_MODE_COLD = 1`
-- `AL_AREA_MODE_WARM = 2`
-- `AL_AREA_MODE_HOT = 3`
+- `AL_AREA_MODE_COLD = 0`
+- `AL_AREA_MODE_WARM = 1`
+- `AL_AREA_MODE_HOT = 2`
+- `AL_AREA_MODE_OFF = 3`
 
-### 1.2 Transition reason enum
+> Важно: это актуальный порядок enum. Любые старые документы/скриншоты с `OFF=0` считаются устаревшими.
 
-Источник истины: `scripts/al_prototype/al_area_constants_inc.nss`.
+## 2) Каноничные area locals
 
-- `AL_AREA_TRANSITION_REASON_UNSPECIFIED = 0`
-- `AL_AREA_TRANSITION_REASON_LEGACY_PLAYERS_PRESENT = 1`
-- `AL_AREA_TRANSITION_REASON_LEGACY_EMPTY = 2`
-- `AL_AREA_TRANSITION_REASON_ENTER_FIRST_PLAYER = 3`
-- `AL_AREA_TRANSITION_REASON_EXIT_LAST_PLAYER = 4`
-- `AL_AREA_TRANSITION_REASON_NEIGHBOR_HEAT = 5`
-- `AL_AREA_TRANSITION_REASON_CONTENT_OVERRIDE = 6`
-- `AL_AREA_TRANSITION_REASON_SCRIPT_OVERRIDE = 7`
-- `AL_AREA_TRANSITION_REASON_ADMIN_OVERRIDE = 8`
+- `al_area_mode` (`AL_AREA_MODE_LOCAL_KEY`) — основной local с режимом.
+- `al_quarter_id` (`AL_AREA_QUARTER_LOCAL_KEY`) — идентификатор квартала (используется как metadata-поле).
+- `al_adjacent_areas` (`AL_AREA_ADJ_LIST_LOCAL_KEY`) — CSV-теги соседних area для one-hop прогрева.
+- `al_adj_interior_whitelist` (`AL_AREA_ADJ_INTERIOR_WHITELIST_LOCAL_KEY`) — CSV interior-соседей, которым разрешён прогрев.
 
-## 2) Утверждённые ключи locals
+## 3) Legacy fallback
 
-Источник истины: `scripts/al_prototype/al_area_constants_inc.nss`.
+Если `al_area_mode` не задан или содержит невалидное значение, применяется `AL_GetAreaModeLegacyDefault`:
 
-- `AL_AREA_MODE_LOCAL_KEY = "al_area_mode"`
-- `AL_AREA_MODE_FLAGS_ENABLED_LOCAL_KEY = "al_area_mode_flags_enabled"`
-- `AL_AREA_MODE_REASON_LOCAL_KEY = "al_area_mode_reason"`
-- `AL_AREA_MODE_PREV_LOCAL_KEY = "al_area_mode_prev"`
-- `AL_AREA_MODE_CHANGED_TS_LOCAL_KEY = "al_area_mode_changed_ts"`
+- interior-area (`al_is_interior=1`) -> `COLD`;
+- иначе, при `al_player_count > 0` -> `HOT`;
+- иначе -> `COLD`.
 
-## 3) Legacy fallback (обязательный default)
+## 4) Реально применяемые переходы
 
-До включения mode-флагов на конкретной area (`al_area_mode_flags_enabled != TRUE`) действует legacy-резолв:
-
-- `al_player_count > 0` -> `HOT`
-- `al_player_count == 0` -> `COLD`
-
-Это поведение является default и сохраняет текущую runtime-совместимость.
-
-## 4) Transition matrix
-
-Ниже — целевая матрица переходов состояний. Фактическое применение перехода может быть ограничено политикой рантайма, но причины и результат должны соответствовать этой таблице.
-
-| From | To | Reason enum | Минимальное условие |
+| Событие | From | To | Где происходит |
 |---|---|---|---|
-| OFF | COLD | `CONTENT_OVERRIDE` / `SCRIPT_OVERRIDE` / `ADMIN_OVERRIDE` | Явное включение area |
-| OFF | WARM | `NEIGHBOR_HEAT` / override | Явный прогрев от соседа или override |
-| OFF | HOT | `ENTER_FIRST_PLAYER` / override | Появился первый игрок или принудительный override |
-| COLD | OFF | `CONTENT_OVERRIDE` / `SCRIPT_OVERRIDE` / `ADMIN_OVERRIDE` | Принудительное выключение |
-| COLD | WARM | `NEIGHBOR_HEAT` / override | Прогрев от активной соседней area |
-| COLD | HOT | `ENTER_FIRST_PLAYER` | Первый игрок вошёл в area |
-| WARM | OFF | override | Принудительное выключение |
-| WARM | COLD | `EXIT_LAST_PLAYER` / `LEGACY_EMPTY` | Нет игроков и нет поддерживающего прогрева |
-| WARM | HOT | `ENTER_FIRST_PLAYER` | В area появился игрок |
-| HOT | OFF | override | Принудительное выключение |
-| HOT | COLD | `EXIT_LAST_PLAYER` / `LEGACY_EMPTY` | Последний игрок покинул area, warm-окно завершено |
-| HOT | WARM | `EXIT_LAST_PLAYER` / `NEIGHBOR_HEAT` | Игроков нет, но допускается мягкий прогрев |
+| Первый counted-игрок входит | `COLD/WARM` | `HOT` | `al_area_onenter` |
+| Последний counted-игрок выходит/disconnect | `HOT/WARM` | `COLD` | `AL_HandleAreaBecameEmpty` |
+| Источник HOT активирует соседей | `< WARM` | `WARM` | `AL_SoftActivateAdjacentAreas` |
+| Завершился warm-tail (`al_tick_warm_left`) | `HOT` | `WARM` | `AreaTick` |
+| Контент/скрипт принудительно отключает area | `*` | `OFF` | через `al_area_mode=3` |
 
-## 5) Инварианты
+## 5) Runtime-инварианты
 
-1. **Legacy-first:** если mode-флаги не включены на area, runtime обязан использовать legacy fallback.
-2. **Enum-only:** любые значения mode/reason вне утверждённых enum считаются невалидными и не должны ломать fallback.
-3. **Monotonic traceability:** при смене mode допускается запись `prev/reason/changed_ts` для диагностики; отсутствие этих полей не должно ломать runtime.
-4. **No silent OFF escalation:** переход в `OFF` выполняется только явным override-контуром.
-5. **Player dominance:** наличие игроков в area всегда имеет приоритет над пассивным охлаждением и должно приводить минимум к `HOT` (в legacy) либо к разрешённому policy-уровню с reason, отражающим событие входа.
+1. Tick не должен исполняться в `OFF`/`COLD`.
+2. Tick не должен исполняться при `al_player_count <= 0`.
+3. Прогрев соседей никогда не поднимает режим выше `WARM`.
+4. Interior-соседи прогреваются только через whitelist.
+5. При очистке area token увеличивается, старые отложенные тики становятся stale и не исполняются.
+
+## 6) Примечания по эксплуатации
+
+- Если нужно «всегда живую» area без игроков, явно держите `al_area_mode=HOT` и не давайте empty-cleanup переводить её в `COLD`.
+- Для service/maintenance area используйте `OFF` и не рассчитывайте на wake-path.
+- Для наблюдаемости включайте `al_debug=1` точечно на staging/debug-сценах, а не глобально.

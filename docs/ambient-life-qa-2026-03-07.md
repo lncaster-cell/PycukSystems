@@ -1,72 +1,57 @@
-# QA-проверка сценариев AL (статический проход)
+# Ambient Life QA Checklist
 
-Дата: 2026-03-07
+Версия чеклиста: 2026-03-07 (обновлено)
 
-## Ограничения проверки
+## 1) Smoke: lifecycle area
 
-Проверка выполнена как **статический аудит скриптов** `scripts/al_prototype` (без запуска игрового рантайма NWN2 в этом окружении).
+1. Игрок входит в пустую area:
+   - `al_player_count` становится `1`;
+   - `al_area_mode` -> `HOT`;
+   - у area увеличивается `al_tick_token`;
+   - регистрированные NPC получают `AL_EVT_RESYNC`.
 
-Важно: стоковые/third-party скрипты не проверялись.
+2. Второй игрок входит в ту же area:
+   - `al_player_count` инкрементируется;
+   - wake-path повторно не запускается.
 
-## 1) Сценарии lifecycle
+3. Последний игрок выходит:
+   - `al_player_count` -> `0`;
+   - `AL_HandleAreaBecameEmpty` переводит area в `COLD`;
+   - route cache инвалидируется;
+   - NPC скрываются.
 
-### 1.1 enter / exit / client leave
-- `OnEnter` всегда сбрасывает `al_exit_counted`, выставляет `al_last_area`, инкрементит `al_player_count`, а для первого игрока запускает warm-up + unhide/resync.
-- `OnExit` и `OnClientLeave` используют единый helper `AL_OnPlayerExitCount`; повторный декремент блокируется через `al_exit_counted`.
-- Empty-handler (`AL_HandleAreaBecameEmpty`) вызывается только когда decrement довёл счётчик до нуля.
+## 2) Smoke: tick pipeline
 
-**Вывод:** сценарии enter/exit/client leave покрыты единым каноном счётчика игроков и защищены от двойного декремента.
+1. В `HOT` тик идёт с hot period (`15s`).
+2. При warm-tail (`al_tick_warm_left`) происходит переход `HOT -> WARM`.
+3. В `COLD/OFF` тик не продолжает планирование.
+4. При stale token отложенный тик безопасно прерывается.
 
-### 1.2 empty freeze
-- При переходе area в пустое состояние выполняется `AL_HandleAreaBecameEmpty`:
-  - инвалидируется тик-эпоха (`al_tick_token++`), очищаются scheduling-локалы;
-  - сбрасывается `al_tick_warm_left` и route-cache;
-  - вызывается `AL_HideRegisteredNPCs`.
-- В `AL_HideRegisteredNPCs` перед hide вызывается `AL_ResetNPCFreezeState` + `ClearAllActions()`.
+## 3) Smoke: adjacency / interior
 
-**Вывод:** freeze-path очищает runtime state и скрывает NPC без оставления подвешенных sleep/route локалов.
+1. На source-area задать `al_adjacent_areas="area_b"`.
+2. Убедиться, что при пробуждении source-area сосед получает минимум `WARM`.
+3. Если сосед interior (`al_is_interior=1`) и не в whitelist:
+   - прогрев не применяется;
+   - при `al_debug=1` виден fallback-log.
+4. Добавить interior tag в `al_adj_interior_whitelist` и повторить тест.
 
-### 1.3 wake fast
-- На первом игроке `OnEnter` делает `AL_UnhideAndResyncRegisteredNPCs` и запускает warm ticks (`al_tick_warm_left`).
-- `AL_UnhideAndResyncRegisteredNPCs` выполняет unhide только если NPC реально скрыт (`GetScriptHidden`) и затем отправляет `AL_EVT_RESYNC`.
+## 4) Smoke: registry integrity
 
-**Вывод:** быстрый wake после empty-фазы корректно форсирует единый RESYNC-проход и не дублирует `SetScriptHidden(FALSE)`.
+1. Проверить dense-массив `al_npc_0..al_npc_count-1` без дыр после unregister.
+2. Проверить, что NPC при смене area удаляется из старой и добавляется в новую registry.
+3. При переполнении (`>100`) убедиться, что лишние NPC не регистрируются и есть throttled debug.
 
-### 1.4 hot-warm-hot / cold-hot
-- `OnEnter` первого игрока всегда выставляет `al_tick_warm_left`.
-- `AreaTick` потребляет warm budget и затем переключается в обычный период; при неизменном слоте просто планирует следующий тик.
-- При смене слота происходит только slot-broadcast (`AL_EVT_SLOT_*`) без дублирующего full-resync.
+## 5) Smoke: route/activity safety
 
-**Вывод:** цепочка hot-warm-hot/cold-hot соблюдает slot-driven модель и не смешивает slot switch с лишними lifecycle-операциями.
+1. Невалидный route/activity должен уводить NPC в безопасный fallback.
+2. `AL_EVT_ROUTE_REPEAT` игнорируется, если route неактивен или слот устарел.
+3. Для парных ролей (training/bar) при разрыве пары обе стороны переходят в fallback-активность.
 
-### 1.5 off-detach / attach
-- При empty area вызывается hide для текущего registry состава.
-- В `AL_SyncAreaNPCRegistry` NPC, сменивший area, удаляется из старого registry и регистрируется в новом (`AL_RegisterNPC`) с обновлением `al_last_area`.
-- `AL_HandleRouteAreaTransition` (в `al_npc_routes.nss`) после transition форсирует RESYNC при наличии игроков в целевой area, иначе hide.
+## 6) Regression notes
 
-**Вывод:** detach/attach сценарий согласован между area-registry и route-transition логикой.
+После любых правок scripts/al_prototype обязательно прогонять секции 1–5 минимум на:
 
-## 2) sleep reset и pair revalidation на wake
-
-### 2.1 sleep reset
-- Freeze reset (`AL_ResetNPCFreezeState`) принудительно возвращает collision в `TRUE` и удаляет:
-  - `al_sleep_docked`, `al_sleep_approach_tag`;
-  - `r_active`, `r_slot`, `r_idx`.
-- Дополнительно, при обычном выходе из сна используется `AL_StopSleepAtBed`/`AL_ResetSleepDockState`.
-
-**Вывод:** sleep-state и route-loop state сбрасываются корректно перед hide и при wake не переиспользуются.
-
-### 2.2 pair revalidation на wake
-- На `AL_EVT_RESYNC` в `al_npc_onud` сначала вызываются `AL_InitTrainingPartner` и `AL_InitBarPair`, затем `AL_RevalidateAreaPairLinksForWake`.
-- `AL_RevalidateAreaPairLinksForWake` удаляет stale ссылки NPC-level и area-level (включая `*_ref`/runtime ключи), если объекты уже не в текущей area или backlink асимметричен.
-
-**Вывод:** wake-путь выполняет реинициализацию и повторную валидацию пар до применения активности/маршрута.
-
-## 3) Подтверждение: нет дублирования hide/unhide lifecycle, slot-driven канон сохранён
-
-- `AL_HideRegisteredNPCs` вызывает `SetScriptHidden(TRUE)` только если NPC ещё не скрыт.
-- `AL_UnhideAndResyncRegisteredNPCs` вызывает `SetScriptHidden(FALSE)` только если NPC скрыт.
-- `AreaTick` в slot-driven режиме шлёт `AL_EVT_SLOT_*` только при фактической смене `al_slot`.
-- В `al_npc_onud` повторный non-resync event для того же слота отсекается через `al_last_slot`, а repeat-event дополнительно проверяет `r_active` и соответствие `al_last_slot`.
-
-**Итог:** дублирования hide/unhide lifecycle не выявлено; slot-driven канон (`slot change -> AL_EVT_SLOT_* -> route/activity`) сохранён.
+- одной уличной area;
+- одной interior area;
+- одной area с высокой плотностью NPC.
