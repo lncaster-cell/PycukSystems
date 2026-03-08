@@ -54,6 +54,9 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     // Contract: this helper only performs bed docking + sleep loop when docking
     // is possible. Fallback sleep animation is owned by the caller
     // (AL_ApplyActivityForSlot in al_npc_onud.nss).
+    // Route sleep waypoint is required.
+    // <bed_id>_pose waypoint is required.
+    // <bed_id>_approach waypoint is optional override.
     if (!GetIsObjectValid(oNpc))
     {
         return FALSE;
@@ -67,16 +70,21 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     }
 
     string sBedTag = GetLocalString(oSleepWp, AL_L_BED_TAG);
-    object oApproachWp = OBJECT_INVALID;
+    object oApproachWp = oSleepWp;
     object oPoseWp = OBJECT_INVALID;
 
     if (sBedTag != "")
     {
-        oApproachWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_approach");
+        object oApproachOverrideWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_approach");
+        if (GetIsObjectValid(oApproachOverrideWp))
+        {
+            oApproachWp = oApproachOverrideWp;
+        }
+
         oPoseWp = AL_FindWaypointByTagInArea(oArea, sBedTag + "_pose");
     }
 
-    if (!GetIsObjectValid(oApproachWp))
+    if (!GetIsObjectValid(oPoseWp))
     {
         AL_ResetSleepDockState(oNpc);
         return FALSE;
@@ -97,13 +105,10 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     AssignCommand(oNpc, ActionMoveToLocation(lApproach));
     AssignCommand(oNpc, ActionWait(0.1));
 
-    if (GetIsObjectValid(oPoseWp))
-    {
-        location lPose = GetLocation(oPoseWp);
-        AssignCommand(oNpc, ActionDoCommand(SetCollision(oNpc, FALSE)));
-        AssignCommand(oNpc, ActionJumpToLocation(lPose));
-        AssignCommand(oNpc, ActionWait(0.1));
-    }
+    location lPose = GetLocation(oPoseWp);
+    AssignCommand(oNpc, ActionDoCommand(SetCollision(oNpc, FALSE)));
+    AssignCommand(oNpc, ActionJumpToLocation(lPose));
+    AssignCommand(oNpc, ActionWait(0.1));
 
     AL_QueueSleepAnimationLoop(oNpc);
 
@@ -133,7 +138,9 @@ void AL_StopSleepAtBed(object oNpc)
 }
 
 // Finds nearest sleep route waypoint that has bed config via:
-// - al_bed_tag (resolved by AL_StartSleepAtBed into <tag>_approach/<tag>_pose)
+// - route sleep waypoint (required)
+// - al_bed_tag (required for <tag>_pose lookup)
+// - <tag>_approach (optional override, fallback to route sleep waypoint)
 object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
 {
     int nCount = AL_GetRouteCount(oNpc, nSlot);
@@ -174,7 +181,7 @@ object AL_FindSleepWaypointForSlot(object oNpc, int nSlot)
     while (GetIsObjectValid(oObj))
     {
         // Sleep waypoint is valid only when configured via al_bed_tag
-        // (resolved to <tag>_approach/<tag>_pose).
+        // (resolved to required <tag>_pose and optional <tag>_approach).
         if (GetObjectType(oObj) == OBJECT_TYPE_WAYPOINT
             && GetTag(oObj) == sRouteTag
             && GetLocalString(oObj, AL_L_BED_TAG) != "")
