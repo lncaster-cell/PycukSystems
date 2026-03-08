@@ -3,6 +3,100 @@
 #include "al_constants_inc"
 #include "al_debug_inc"
 
+int AL_IsValidAreaRef(object oArea, object oRef)
+{
+    return GetIsObjectValid(oArea)
+        && GetIsObjectValid(oRef)
+        && GetArea(oRef) == oArea;
+}
+
+object AL_FindNpcByTagInArea(object oArea, string sTag)
+{
+    if (!GetIsObjectValid(oArea) || sTag == "")
+    {
+        return OBJECT_INVALID;
+    }
+
+    int iNth = 0;
+    object oCandidate = GetObjectByTag(sTag, iNth);
+    while (GetIsObjectValid(oCandidate))
+    {
+        if (GetArea(oCandidate) == oArea)
+        {
+            return oCandidate;
+        }
+
+        iNth++;
+        oCandidate = GetObjectByTag(sTag, iNth);
+    }
+
+    return OBJECT_INVALID;
+}
+
+string AL_AreaRefTagKey(string sRefKey)
+{
+    return sRefKey + "_tag";
+}
+
+object AL_RestoreAreaRefByRuntimeAndTag(object oArea, string sRefKey, string sRuntimeKey)
+{
+    if (!GetIsObjectValid(oArea) || sRefKey == "" || sRuntimeKey == "")
+    {
+        return OBJECT_INVALID;
+    }
+
+    string sRefTagKey = AL_AreaRefTagKey(sRefKey);
+    object oRef = GetLocalObject(oArea, sRefKey);
+    if (AL_IsValidAreaRef(oArea, oRef))
+    {
+        string sTag = GetTag(oRef);
+        if (sTag != "")
+        {
+            SetLocalString(oArea, sRefTagKey, sTag);
+        }
+        return oRef;
+    }
+
+    object oRuntime = GetLocalObject(oArea, sRuntimeKey);
+    if (AL_IsValidAreaRef(oArea, oRuntime))
+    {
+        string sTag = GetTag(oRuntime);
+        if (sTag != "")
+        {
+            SetLocalString(oArea, sRefTagKey, sTag);
+        }
+        SetLocalObject(oArea, sRefKey, oRuntime);
+        return oRuntime;
+    }
+
+    object oFound = OBJECT_INVALID;
+    string sLookupTag = GetLocalString(oArea, sRefTagKey);
+
+    if (sLookupTag == "" && GetIsObjectValid(oRuntime))
+    {
+        sLookupTag = GetTag(oRuntime);
+    }
+
+    if (sLookupTag == "" && GetIsObjectValid(oRef))
+    {
+        sLookupTag = GetTag(oRef);
+    }
+
+    if (sLookupTag != "")
+    {
+        oFound = AL_FindNpcByTagInArea(oArea, sLookupTag);
+    }
+
+    if (GetIsObjectValid(oFound))
+    {
+        SetLocalString(oArea, sRefTagKey, sLookupTag);
+        SetLocalObject(oArea, sRefKey, oFound);
+        return oFound;
+    }
+
+    return OBJECT_INVALID;
+}
+
 void AL_InitTrainingPartner(object oNpc)
 {
     if (!GetIsObjectValid(oNpc))
@@ -45,8 +139,8 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea))
     {
-        oTrainingNpc1Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
-        oTrainingNpc2Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
+        oTrainingNpc1Ref = AL_RestoreAreaRefByRuntimeAndTag(oArea, AL_L_TRAINING_NPC1_REF, AL_L_TRAINING_NPC1);
+        oTrainingNpc2Ref = AL_RestoreAreaRefByRuntimeAndTag(oArea, AL_L_TRAINING_NPC2_REF, AL_L_TRAINING_NPC2);
     }
 
     if (oNpc == oTrainingNpc1Ref)
@@ -66,7 +160,7 @@ void AL_InitTrainingPartner(object oNpc)
     {
         if (GetIsObjectValid(oArea) && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
         {
-            AL_SendDebugMessageToAreaPCs(oArea, "AL: training partner init skipped for " + GetName(oNpc) + " (not matched to al_training_npc1_ref/al_training_npc2_ref).");
+            AL_SendDebugMessageToAreaPCs(oArea, "AL: training partner init skipped for " + GetName(oNpc) + " (not matched to training pair refs).");
         }
         return;
     }
@@ -180,8 +274,8 @@ void AL_InitBarPair(object oNpc)
         }
     }
 
-    object oBartenderRef = GetLocalObject(oArea, AL_L_BAR_BARTENDER_REF);
-    object oBarmaidRef = GetLocalObject(oArea, AL_L_BAR_BARMAID_REF);
+    object oBartenderRef = AL_RestoreAreaRefByRuntimeAndTag(oArea, AL_L_BAR_BARTENDER_REF, AL_L_BAR_BARTENDER);
+    object oBarmaidRef = AL_RestoreAreaRefByRuntimeAndTag(oArea, AL_L_BAR_BARMAID_REF, AL_L_BAR_BARMAID);
     string sAreaPartnerKey = "";
     string sAreaSelfKey = "";
     object oPartnerRef = OBJECT_INVALID;

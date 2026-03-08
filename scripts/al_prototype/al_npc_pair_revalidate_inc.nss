@@ -93,11 +93,6 @@ void AL_RevalidateAreaPairLinksForWake(object oNpc)
     AL_ClearAreaPairKeyIfStale(oArea, AL_L_BAR_BARTENDER);
     AL_ClearAreaPairKeyIfStale(oArea, AL_L_BAR_BARMAID);
 
-    AL_LogAreaRefOutOfArea(oArea, AL_L_TRAINING_NPC1_REF);
-    AL_LogAreaRefOutOfArea(oArea, AL_L_TRAINING_NPC2_REF);
-    AL_LogAreaRefOutOfArea(oArea, AL_L_BAR_BARTENDER_REF);
-    AL_LogAreaRefOutOfArea(oArea, AL_L_BAR_BARMAID_REF);
-
     if (bDebug)
     {
         if (bClearedTraining)
