@@ -181,6 +181,27 @@ void AL_QueueRepeatRequeue(object oNpc, object oArea)
     AL_MarkRepeatRequeueScheduled(oNpc, nQueuedDelaySeconds);
 }
 
+
+int AL_IsResyncRetryCoolingDown(object oNpc)
+{
+    return AL_IsDaySecondsCooldownActive(oNpc, "al_resync_retry_next");
+}
+
+void AL_MarkResyncRetryScheduled(object oNpc, int nDelaySeconds)
+{
+    AL_MarkDaySecondsCooldown(oNpc, "al_resync_retry_next", nDelaySeconds);
+}
+
+void AL_QueueResyncRetry(object oNpc, object oArea)
+{
+    int nDelaySeconds = 2 + Random(3);
+    float fDelay = IntToFloat(nDelaySeconds);
+    AL_DebugLogL2(oArea, oNpc, "AL: sleep RESYNC retry queued.");
+    AssignCommand(oNpc, ActionWait(fDelay));
+    AssignCommand(oNpc, ActionDoCommand(SignalEvent(oNpc, EventUserDefined(AL_EVT_RESYNC))));
+    AL_MarkResyncRetryScheduled(oNpc, nDelaySeconds);
+}
+
 int AL_ShouldIgnoreRepeatEvent(object oNpc, object oArea, int nSlot)
 {
     if (GetLocalInt(oNpc, AL_L_ROUTE_ACTIVE) == FALSE || AL_GetRouteCount(oNpc, nSlot) <= 0)
@@ -305,6 +326,22 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
         AL_StopSleepAtBed(oNpc);
     }
 
+    int bSleepResyncNeedsRouteRetry = bSleepActivity
+        && nEvent == AL_EVT_RESYNC
+        && !bCanUseRoute
+        && AL_GetDesiredRouteTag(oNpc, nSlot) != "";
+
+    if (bSleepResyncNeedsRouteRetry)
+    {
+        // On first wake/resync in sleep slots route cache may still be rebuilding.
+        // Avoid immediate fallback sleep animation at spawn point; retry RESYNC.
+        if (!AL_IsResyncRetryCoolingDown(oNpc))
+        {
+            AL_QueueResyncRetry(oNpc, oArea);
+        }
+        return;
+    }
+
     if (!bCanUseRoute)
     {
         AL_IncrementLocalMetric(oNpc, AL_L_METRIC_ACTIVITY_FALLBACK_COUNT);
@@ -339,13 +376,6 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
             AL_QueueRoute(oNpc, nSlot, nEvent != AL_EVT_ROUTE_REPEAT);
         }
     }
-    else if (bSleepActivity)
-    {
-        // Sleep does not need movement repeat loops: keep NPC docked and avoid
-        // extra AL_EVT_ROUTE_REPEAT scheduling/load while sleeping.
-        AL_ClearRouteAndRepeatState(oNpc, FALSE);
-    }
-
     int bAllowAnimation = nEvent != AL_EVT_ROUTE_REPEAT || !AL_IsRepeatAnimCoolingDown(oNpc);
 
     int bShouldPlay = bAllowAnimation && (bSleepActivity || !(bCanUseRoute && nEvent != AL_EVT_ROUTE_REPEAT));
@@ -359,7 +389,18 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
             // Source of truth for sleep animation fallback:
             // AL_StartSleepAtBed only docks + starts sleep when bed config is valid.
             // If docking fails, we run a single fallback via AL_ApplyActivityForSlot here.
-            if (!AL_StartSleepAtBed(oNpc, oSleepWp))
+            if (AL_StartSleepAtBed(oNpc, oSleepWp))
+            {
+                // Sleep does not need route repeat loops after successful docking.
+                AL_ClearRouteAndRepeatState(oNpc, FALSE);
+            }
+            else if (bCanUseRoute)
+            {
+                // If docking data is temporarily unavailable, keep movement toward
+                // the sleep route instead of forcing lie-down at the current point.
+                AL_QueueRoute(oNpc, nSlot, nEvent != AL_EVT_ROUTE_REPEAT);
+            }
+            else if (nEvent != AL_EVT_RESYNC)
             {
                 AL_ApplyActivityForSlot(oNpc, nSlot);
             }
