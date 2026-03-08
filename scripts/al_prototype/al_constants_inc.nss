@@ -15,6 +15,9 @@ const int AL_EVT_ROUTE_REPEAT = 3007;
 const int AL_ROUTE_REPEAT_MIN_GAP_SECONDS_WARM = 2;
 const int AL_ROUTE_REPEAT_MIN_GAP_SECONDS_HOT = 1;
 
+// Compiler compatibility: some NWScript toolchains do not expose OBJECT_TYPE_AREA.
+const int AL_OBJECT_TYPE_AREA = 16;
+
 // Shared local-variable keys (dictionary for maintainability).
 const string AL_L_ENABLED = "al_enabled";
 const string AL_L_EXIT_COUNTED = "al_exit_counted";

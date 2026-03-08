@@ -282,7 +282,7 @@ void AL_CacheAreaRoutes(object oArea)
                             break;
                         }
 
-                        if (GetObjectType(oTagCandidate) == OBJECT_TYPE_AREA)
+                        if (GetObjectType(oTagCandidate) == AL_OBJECT_TYPE_AREA)
                         {
                             oTargetArea = oTagCandidate;
                             break;

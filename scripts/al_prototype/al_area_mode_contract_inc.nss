@@ -186,7 +186,7 @@ void AL_SoftActivateAdjacentAreas(object oSourceArea)
                         break;
                     }
 
-                    if (GetObjectType(oTagCandidate) == OBJECT_TYPE_AREA)
+                    if (GetObjectType(oTagCandidate) == AL_OBJECT_TYPE_AREA)
                     {
                         oAdjacent = oTagCandidate;
                         break;
