@@ -18,7 +18,6 @@
 ## 2) Каноничные area locals
 
 - `al_area_mode` (`AL_AREA_MODE_LOCAL_KEY`) — основной local с режимом.
-- `al_quarter_id` (`AL_AREA_QUARTER_LOCAL_KEY`) — идентификатор квартала (используется как metadata-поле).
 - `al_adjacent_areas` (`AL_AREA_ADJ_LIST_LOCAL_KEY`) — CSV-теги соседних area для one-hop прогрева.
 - `al_adj_interior_whitelist` (`AL_AREA_ADJ_INTERIOR_WHITELIST_LOCAL_KEY`) — CSV interior-соседей, которым разрешён прогрев.
 
