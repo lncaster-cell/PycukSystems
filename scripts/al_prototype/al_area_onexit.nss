@@ -18,6 +18,11 @@ void main()
         return;
     }
 
+    if (AL_IsAreaModeOff(oArea))
+    {
+        return;
+    }
+
     if (!AL_OnPlayerExitCount(oExiting, oArea))
     {
         return;

@@ -4,6 +4,8 @@
 
 // Include layering contract (one-way):
 // - al_npc_sleep_inc -> {al_npc_activity_apply_inc}
+// - al_npc_acts_inc  -> compatibility wrapper only (no runtime logic)
+//                       forwards to al_npc_sleep_inc + related split modules.
 // Sleep helpers depend on activity module only for custom animation playback.
 
 object AL_FindWaypointByTagInArea(object oArea, string sTag)

@@ -9,16 +9,30 @@
 
 const int AL_AREA_ROUTE_INDEX_MAX = 1023;
 
+int AL_HasRouteIndexFlag(object oWp)
+{
+    // Dual-key contract for explicit index presence:
+    // 1) Preferred key: al_route_index_present
+    // 2) Legacy fallback: al_route_index_set
+    // This allows al_route_index == 0 to be treated as a valid, set value.
+    int bHasIndexPresent = GetLocalInt(oWp, "al_route_index_present");
+    if (bHasIndexPresent)
+    {
+        return TRUE;
+    }
+
+    return GetLocalInt(oWp, "al_route_index_set");
+}
+
 int AL_HasRouteIndex(object oWp)
 {
-    // Contract: index presence is explicit via al_route_index_set.
-    // This allows al_route_index == 0 to be treated as a valid, set value.
-    return GetLocalInt(oWp, "al_route_index_set");
+    // Backward-compatible wrapper for callers using old helper name.
+    return AL_HasRouteIndexFlag(oWp);
 }
 
 int AL_HasValidRouteIndex(object oWp)
 {
-    if (!AL_HasRouteIndex(oWp))
+    if (!AL_HasRouteIndexFlag(oWp))
     {
         return FALSE;
     }

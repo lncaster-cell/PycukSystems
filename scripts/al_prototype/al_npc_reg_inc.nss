@@ -311,6 +311,11 @@ void AL_ResetNPCFreezeState(object oNpc)
 
 void AL_HandleAreaBecameEmpty(object oArea)
 {
+    if (AL_IsAreaModeOff(oArea))
+    {
+        return;
+    }
+
     SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_COLD);
     SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
     DeleteLocalInt(oArea, "al_tick_scheduled_token");
