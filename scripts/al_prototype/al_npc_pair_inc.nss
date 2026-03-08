@@ -142,8 +142,9 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea))
     {
-        oTrainingNpc1Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
-        oTrainingNpc2Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
+        // Refs remain authoritative, but recover them lazily via runtime/tag when handles are lost.
+        oTrainingNpc1Ref = AL_RestoreAreaRefByRuntimeAndTag(oArea, AL_L_TRAINING_NPC1_REF, AL_L_TRAINING_NPC1);
+        oTrainingNpc2Ref = AL_RestoreAreaRefByRuntimeAndTag(oArea, AL_L_TRAINING_NPC2_REF, AL_L_TRAINING_NPC2);
     }
 
     if (oNpc == oTrainingNpc1Ref)
