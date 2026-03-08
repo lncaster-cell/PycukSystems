@@ -1,5 +1,6 @@
 // NPC pair wake-time revalidation helpers.
 
+#include "al_constants_inc"
 #include "al_debug_inc"
 
 // Include layering contract (one-way):
@@ -32,8 +33,8 @@ void AL_RevalidateAreaPairLinksForWake(object oNpc)
     object oArea = GetArea(oNpc);
     if (!GetIsObjectValid(oArea))
     {
-        DeleteLocalObject(oNpc, "al_training_partner");
-        DeleteLocalObject(oNpc, "al_bar_pair");
+        DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
+        DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
         return;
     }
 
@@ -41,37 +42,37 @@ void AL_RevalidateAreaPairLinksForWake(object oNpc)
     int bClearedTraining = FALSE;
     int bClearedBar = FALSE;
 
-    object oTrainingPartner = GetLocalObject(oNpc, "al_training_partner");
+    object oTrainingPartner = GetLocalObject(oNpc, AL_L_TRAINING_PARTNER);
     if (GetIsObjectValid(oTrainingPartner))
     {
         if (GetArea(oTrainingPartner) != oArea
-            || GetLocalObject(oTrainingPartner, "al_training_partner") != oNpc)
+            || GetLocalObject(oTrainingPartner, AL_L_TRAINING_PARTNER) != oNpc)
         {
-            DeleteLocalObject(oNpc, "al_training_partner");
+            DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
             bClearedTraining = TRUE;
         }
     }
 
-    object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    object oBarPair = GetLocalObject(oNpc, AL_L_BAR_PAIR);
     if (GetIsObjectValid(oBarPair))
     {
         if (GetArea(oBarPair) != oArea
-            || GetLocalObject(oBarPair, "al_bar_pair") != oNpc)
+            || GetLocalObject(oBarPair, AL_L_BAR_PAIR) != oNpc)
         {
-            DeleteLocalObject(oNpc, "al_bar_pair");
+            DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
             bClearedBar = TRUE;
         }
     }
 
     // Keep area-level runtime pair cache clean so slot wake/resync never reuses stale links.
-    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc1");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc2");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_bartender");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_barmaid");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc1_ref");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_training_npc2_ref");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_bartender_ref");
-    AL_ClearAreaPairKeyIfStale(oArea, "al_bar_barmaid_ref");
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_TRAINING_NPC1);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_TRAINING_NPC2);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_BAR_BARTENDER);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_BAR_BARMAID);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_TRAINING_NPC1_REF);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_TRAINING_NPC2_REF);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_BAR_BARTENDER_REF);
+    AL_ClearAreaPairKeyIfStale(oArea, AL_L_BAR_BARMAID_REF);
 
     if (bDebug)
     {

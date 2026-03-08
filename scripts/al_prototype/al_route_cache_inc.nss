@@ -15,13 +15,13 @@ int AL_HasRouteIndexFlag(object oWp)
     // 1) Preferred key: al_route_index_present
     // 2) Legacy fallback: al_route_index_set
     // This allows al_route_index == 0 to be treated as a valid, set value.
-    int bHasIndexPresent = GetLocalInt(oWp, "al_route_index_present");
+    int bHasIndexPresent = GetLocalInt(oWp, AL_L_ROUTE_INDEX_PRESENT);
     if (bHasIndexPresent)
     {
         return TRUE;
     }
 
-    return GetLocalInt(oWp, "al_route_index_set");
+    return GetLocalInt(oWp, AL_L_ROUTE_INDEX_SET);
 }
 
 int AL_HasRouteIndex(object oWp)
@@ -37,7 +37,7 @@ int AL_HasValidRouteIndex(object oWp)
         return FALSE;
     }
 
-    int nIndex = GetLocalInt(oWp, "al_route_index");
+    int nIndex = GetLocalInt(oWp, AL_L_WP_ROUTE_INDEX);
     return nIndex >= 0 && nIndex <= AL_AREA_ROUTE_INDEX_MAX;
 }
 
@@ -81,7 +81,7 @@ void AL_ClearAreaRouteCacheByTag(object oArea, string sTag)
     // - dense map: al_route_<tag>_idx_<dense> + idx_built
     // - counters:  n (dense points), seen_n + seen_* (for exact cleanup)
     // - integrity: has_index, missing_index_logged
-    string sResetPrefix = "al_route_" + sTag + "_";
+    string sResetPrefix = AL_LocalRouteTagPrefix(sTag);
     int iExistingCount = GetLocalInt(oArea, sResetPrefix + "n");
     int iResetIndex = 0;
     int iSeenCount = GetLocalInt(oArea, sResetPrefix + "seen_n");
@@ -133,9 +133,9 @@ void AL_CacheAreaRoutes(object oArea)
         return;
     }
 
-    // NOTE: Clearing "al_routes_cached" is safe and forces a full rebuild
+    // NOTE: Clearing AL_L_ROUTES_CACHED is safe and forces a full rebuild
     // of the cached route data on the next call.
-    if (GetLocalInt(oArea, "al_routes_cached"))
+    if (GetLocalInt(oArea, AL_L_ROUTES_CACHED))
     {
         return;
     }
@@ -151,27 +151,27 @@ void AL_CacheAreaRoutes(object oArea)
             string sTag = GetTag(oObj);
             if (sTag != "")
             {
-                string sTagSeenKey = "al_route_scan_seen_" + sTag;
+                string sTagSeenKey = AL_LocalRouteScanSeenKey(sTag);
                 if (!GetLocalInt(oArea, sTagSeenKey))
                 {
                     SetLocalInt(oArea, sTagSeenKey, TRUE);
-                    SetLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagCount), sTag);
-                    SetLocalInt(oArea, "al_route_rebuild_seen_" + sTag, TRUE);
-                    SetLocalString(oArea, "al_route_rebuild_tag_" + IntToString(iTagCount), sTag);
+                    SetLocalString(oArea, AL_LocalRouteScanTagKey(iTagCount), sTag);
+                    SetLocalInt(oArea, AL_LocalRouteRebuildSeenKey(sTag), TRUE);
+                    SetLocalString(oArea, AL_LocalRouteRebuildTagKey(iTagCount), sTag);
                     iTagCount++;
 
                     // Reset previous cache for the tag once before rebuilding.
                     AL_ClearAreaRouteCacheByTag(oArea, sTag);
                 }
 
-                string sTmpPrefix = "al_route_scan_tmp_" + sTag + "_";
+                string sTmpPrefix = AL_LocalRouteScanTmpPrefix(sTag);
                 int nTmpCount = GetLocalInt(oArea, sTmpPrefix + "n");
                 SetLocalObject(oArea, sTmpPrefix + IntToString(nTmpCount), oObj);
                 SetLocalInt(oArea, sTmpPrefix + "n", nTmpCount + 1);
 
                 if (AL_HasValidRouteIndex(oObj))
                 {
-                    SetLocalInt(oArea, "al_route_" + sTag + "_has_index", TRUE);
+                    SetLocalInt(oArea, AL_LocalRouteTagPrefix(sTag) + "has_index", TRUE);
                 }
             }
         }
@@ -182,11 +182,11 @@ void AL_CacheAreaRoutes(object oArea)
     int iTagIndex = 0;
     while (iTagIndex < iTagCount)
     {
-        string sTag = GetLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagIndex));
+        string sTag = GetLocalString(oArea, AL_LocalRouteScanTagKey(iTagIndex));
         if (sTag != "")
         {
-            string sAreaPrefix = "al_route_" + sTag + "_";
-            string sTmpPrefix = "al_route_scan_tmp_" + sTag + "_";
+            string sAreaPrefix = AL_LocalRouteTagPrefix(sTag);
+            string sTmpPrefix = AL_LocalRouteScanTmpPrefix(sTag);
             int bRequiresIndex = GetLocalInt(oArea, sAreaPrefix + "has_index");
             int nCount = 0;
             int nDenseCount = 0;
@@ -219,7 +219,7 @@ void AL_CacheAreaRoutes(object oArea)
                 int nIndex = nCount;
                 if (bRequiresIndex)
                 {
-                    nIndex = GetLocalInt(oWp, "al_route_index");
+                    nIndex = GetLocalInt(oWp, AL_L_WP_ROUTE_INDEX);
                     if (nIndex < 0 || nIndex > AL_AREA_ROUTE_INDEX_MAX)
                     {
                         AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L1, "AL: waypoint " + sTag + " has invalid al_route_index " + IntToString(nIndex) + " (allowed 0.." + IntToString(AL_AREA_ROUTE_INDEX_MAX) + "); skipped.");
@@ -242,7 +242,7 @@ void AL_CacheAreaRoutes(object oArea)
                 nSeenCount++;
 
                 SetLocalLocation(oArea, sIndex, GetLocation(oWp));
-                int nActivity = GetLocalInt(oWp, "al_activity");
+                int nActivity = GetLocalInt(oWp, AL_L_ACTIVITY);
                 if (nActivity > 0)
                 {
                     SetLocalInt(oArea, sIndex + "_activity", nActivity);
@@ -254,17 +254,17 @@ void AL_CacheAreaRoutes(object oArea)
 
                 DeleteLocalLocation(oArea, sIndex + "_jump");
                 // Transition setup contract (simplified):
-                // - source waypoint local "al_transition_area_tag" points to target area tag.
-                // - optional source waypoint local "al_transition_waypoint_tag" points to
+                // - source waypoint local AL_L_TRANSITION_AREA_TAG points to target area tag.
+                // - optional source waypoint local AL_L_TRANSITION_WAYPOINT_TAG points to
                 //   destination waypoint tag in target area.
-                // - when "al_transition_waypoint_tag" is missing, current waypoint tag is used.
-                string sTargetAreaTag = GetLocalString(oWp, "al_transition_area_tag");
+                // - when AL_L_TRANSITION_WAYPOINT_TAG is missing, current waypoint tag is used.
+                string sTargetAreaTag = GetLocalString(oWp, AL_L_TRANSITION_AREA_TAG);
                 if (sTargetAreaTag != "")
                 {
                     object oTargetArea = GetObjectByTag(sTargetAreaTag);
                     if (GetIsObjectValid(oTargetArea) && GetObjectType(oTargetArea) == OBJECT_TYPE_AREA)
                     {
-                        string sTargetWpTag = GetLocalString(oWp, "al_transition_waypoint_tag");
+                        string sTargetWpTag = GetLocalString(oWp, AL_L_TRANSITION_WAYPOINT_TAG);
                         if (sTargetWpTag == "")
                         {
                             sTargetWpTag = sTag;
@@ -337,40 +337,40 @@ void AL_CacheAreaRoutes(object oArea)
             }
         }
 
-        DeleteLocalString(oArea, "al_route_scan_tag_" + IntToString(iTagIndex));
-        DeleteLocalInt(oArea, "al_route_scan_seen_" + sTag);
+        DeleteLocalString(oArea, AL_LocalRouteScanTagKey(iTagIndex));
+        DeleteLocalInt(oArea, AL_LocalRouteScanSeenKey(sTag));
         iTagIndex++;
     }
 
-    int iKnownTagCount = GetLocalInt(oArea, "al_route_known_n");
+    int iKnownTagCount = GetLocalInt(oArea, AL_L_ROUTE_KNOWN_N);
     int iKnownTagIndex = 0;
     while (iKnownTagIndex < iKnownTagCount)
     {
-        string sKnownTag = GetLocalString(oArea, "al_route_known_tag_" + IntToString(iKnownTagIndex));
-        if (sKnownTag != "" && !GetLocalInt(oArea, "al_route_rebuild_seen_" + sKnownTag))
+        string sKnownTag = GetLocalString(oArea, AL_LocalRouteKnownTagKey(iKnownTagIndex));
+        if (sKnownTag != "" && !GetLocalInt(oArea, AL_LocalRouteRebuildSeenKey(sKnownTag)))
         {
             AL_ClearAreaRouteCacheByTag(oArea, sKnownTag);
             AL_AreaDebugLog(oArea, AL_DEBUG_LEVEL_L2, "AL: route adjacency stale cache cleared for tag " + sKnownTag + ".");
         }
 
-        DeleteLocalString(oArea, "al_route_known_tag_" + IntToString(iKnownTagIndex));
+        DeleteLocalString(oArea, AL_LocalRouteKnownTagKey(iKnownTagIndex));
         iKnownTagIndex++;
     }
 
     int iRebuildTagIndex = 0;
     while (iRebuildTagIndex < iTagCount)
     {
-        string sRebuildTag = GetLocalString(oArea, "al_route_rebuild_tag_" + IntToString(iRebuildTagIndex));
+        string sRebuildTag = GetLocalString(oArea, AL_LocalRouteRebuildTagKey(iRebuildTagIndex));
         if (sRebuildTag != "")
         {
-            SetLocalString(oArea, "al_route_known_tag_" + IntToString(iRebuildTagIndex), sRebuildTag);
-            DeleteLocalInt(oArea, "al_route_rebuild_seen_" + sRebuildTag);
+            SetLocalString(oArea, AL_LocalRouteKnownTagKey(iRebuildTagIndex), sRebuildTag);
+            DeleteLocalInt(oArea, AL_LocalRouteRebuildSeenKey(sRebuildTag));
         }
 
-        DeleteLocalString(oArea, "al_route_rebuild_tag_" + IntToString(iRebuildTagIndex));
+        DeleteLocalString(oArea, AL_LocalRouteRebuildTagKey(iRebuildTagIndex));
         iRebuildTagIndex++;
     }
-    SetLocalInt(oArea, "al_route_known_n", iTagCount);
+    SetLocalInt(oArea, AL_L_ROUTE_KNOWN_N, iTagCount);
 
-    SetLocalInt(oArea, "al_routes_cached", TRUE);
+    SetLocalInt(oArea, AL_L_ROUTES_CACHED, TRUE);
 }

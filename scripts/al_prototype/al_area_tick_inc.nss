@@ -1,3 +1,4 @@
+#include "al_constants_inc"
 #include "al_area_constants_inc"
 #include "al_debug_inc"
 #include "al_npc_reg_inc"
@@ -39,37 +40,37 @@ float AL_GetAreaTickPeriod(object oArea)
 
 void AL_ScheduleNextAreaTick(object oArea, int nToken)
 {
-    if (GetLocalInt(oArea, "al_tick_scheduled_token") == nToken)
+    if (GetLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN) == nToken)
     {
         return;
     }
 
-    SetLocalInt(oArea, "al_tick_scheduled_token", nToken);
+    SetLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN, nToken);
     DelayCommand(AL_GetAreaTickPeriod(oArea), AreaTick(oArea, nToken));
 }
 
 void AreaTick(object oArea, int nToken)
 {
-    if (nToken != GetLocalInt(oArea, "al_tick_token"))
+    if (nToken != GetLocalInt(oArea, AL_L_TICK_TOKEN))
     {
         return;
     }
 
     if (AL_IsAreaModeOff(oArea) || AL_IsAreaModeCold(oArea))
     {
-        DeleteLocalInt(oArea, "al_tick_scheduled_token");
+        DeleteLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN);
         return;
     }
 
-    if (GetLocalInt(oArea, "al_player_count") <= 0)
+    if (GetLocalInt(oArea, AL_L_PLAYER_COUNT) <= 0)
     {
-        DeleteLocalInt(oArea, "al_tick_scheduled_token");
+        DeleteLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN);
         return;
     }
 
-    DeleteLocalInt(oArea, "al_tick_scheduled_token");
+    DeleteLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN);
 
-    int iSyncTick = GetLocalInt(oArea, "al_sync_tick") + 1;
+    int iSyncTick = GetLocalInt(oArea, AL_L_SYNC_TICK) + 1;
     int bSynced = FALSE;
     if (iSyncTick >= AL_SYNC_TICK_INTERVAL)
     {
@@ -77,19 +78,19 @@ void AreaTick(object oArea, int nToken)
         AL_SyncAreaNPCRegistry(oArea);
         bSynced = TRUE;
     }
-    SetLocalInt(oArea, "al_sync_tick", iSyncTick);
+    SetLocalInt(oArea, AL_L_SYNC_TICK, iSyncTick);
 
-    int iWarmLeft = GetLocalInt(oArea, "al_tick_warm_left");
+    int iWarmLeft = GetLocalInt(oArea, AL_L_TICK_WARM_LEFT);
     if (iWarmLeft > 0)
     {
         iWarmLeft--;
         if (iWarmLeft > 0)
         {
-            SetLocalInt(oArea, "al_tick_warm_left", iWarmLeft);
+            SetLocalInt(oArea, AL_L_TICK_WARM_LEFT, iWarmLeft);
         }
         else
         {
-            DeleteLocalInt(oArea, "al_tick_warm_left");
+            DeleteLocalInt(oArea, AL_L_TICK_WARM_LEFT);
             if (AL_IsAreaModeHot(oArea))
             {
                 SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_WARM);
@@ -98,7 +99,7 @@ void AreaTick(object oArea, int nToken)
     }
 
     int iSlot = AL_ComputeTimeSlot();
-    int iPrevSlot = GetLocalInt(oArea, "al_slot");
+    int iPrevSlot = GetLocalInt(oArea, AL_L_SLOT);
 
     if (iSlot == iPrevSlot)
     {
@@ -113,7 +114,7 @@ void AreaTick(object oArea, int nToken)
     {
         AL_SyncAreaNPCRegistry(oArea);
     }
-    SetLocalInt(oArea, "al_slot", iSlot);
+    SetLocalInt(oArea, AL_L_SLOT, iSlot);
     AL_BroadcastUserEvent(oArea, AL_EVT_SLOT_0 + iSlot);
     AL_ScheduleNextAreaTick(oArea, nToken);
 }

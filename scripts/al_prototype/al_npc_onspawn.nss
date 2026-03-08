@@ -1,12 +1,13 @@
 // NPC OnSpawn: attach to NPC OnSpawn in the toolset.
 
+#include "al_constants_inc"
 #include "al_npc_reg_inc"
 #include "al_npc_pair_inc"
 
 void main()
 {
     object oNpc = OBJECT_SELF;
-    SetLocalInt(oNpc, "al_last_slot", -1);
+    SetLocalInt(oNpc, AL_L_LAST_SLOT, -1);
     AL_InitTrainingPartner(oNpc);
     AL_InitBarPair(oNpc);
 
@@ -19,7 +20,7 @@ void main()
 
         if (GetIsObjectValid(oArea))
         {
-            int iSlotCount = GetLocalInt(oArea, "al_player_count");
+            int iSlotCount = GetLocalInt(oArea, AL_L_PLAYER_COUNT);
             if (iSlotCount > 0)
             {
                 if (GetScriptHidden(oNpc))

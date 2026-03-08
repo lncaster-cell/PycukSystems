@@ -1,5 +1,6 @@
 // NPC pair subsystem helpers: training + bar pair validation/resync.
 
+#include "al_constants_inc"
 #include "al_debug_inc"
 
 void AL_InitTrainingPartner(object oNpc)
@@ -9,7 +10,7 @@ void AL_InitTrainingPartner(object oNpc)
         return;
     }
 
-    object oExistingPartner = GetLocalObject(oNpc, "al_training_partner");
+    object oExistingPartner = GetLocalObject(oNpc, AL_L_TRAINING_PARTNER);
     if (GetIsObjectValid(oExistingPartner))
     {
         object oAreaSelf = GetArea(oNpc);
@@ -17,7 +18,7 @@ void AL_InitTrainingPartner(object oNpc)
 
         if (GetIsObjectValid(oAreaSelf) && oAreaPartner == oAreaSelf)
         {
-            object oPartnerBacklink = GetLocalObject(oExistingPartner, "al_training_partner");
+            object oPartnerBacklink = GetLocalObject(oExistingPartner, AL_L_TRAINING_PARTNER);
             if (oPartnerBacklink == oNpc)
             {
                 // Keep early-return only for a fully valid, symmetric in-area pair.
@@ -25,12 +26,12 @@ void AL_InitTrainingPartner(object oNpc)
             }
 
             // Partner points elsewhere: drop only the stale one-sided link on this NPC.
-            DeleteLocalObject(oNpc, "al_training_partner");
+            DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
         }
         else
         {
             // Existing partner is stale (invalid or in another area).
-            DeleteLocalObject(oNpc, "al_training_partner");
+            DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
         }
     }
 
@@ -42,15 +43,15 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (sTag == "FACTION_NPC1")
     {
-        sAreaSelfKey = "al_training_npc1";
-        sAreaPartnerKey = "al_training_npc2";
-        sAreaPartnerRefKey = "al_training_npc2_ref";
+        sAreaSelfKey = AL_L_TRAINING_NPC1;
+        sAreaPartnerKey = AL_L_TRAINING_NPC2;
+        sAreaPartnerRefKey = AL_L_TRAINING_NPC2_REF;
     }
     else if (sTag == "FACTION_NPC2")
     {
-        sAreaSelfKey = "al_training_npc2";
-        sAreaPartnerKey = "al_training_npc1";
-        sAreaPartnerRefKey = "al_training_npc1_ref";
+        sAreaSelfKey = AL_L_TRAINING_NPC2;
+        sAreaPartnerKey = AL_L_TRAINING_NPC1;
+        sAreaPartnerRefKey = AL_L_TRAINING_NPC1_REF;
     }
 
     if (sAreaPartnerKey == "")
@@ -64,14 +65,14 @@ void AL_InitTrainingPartner(object oNpc)
     if (GetIsObjectValid(oArea))
     {
         // Area locals seeded via toolset/bootstrap:
-        // "al_training_npc1_ref" / "al_training_npc2_ref" point to the pair.
-        if (GetLocalInt(oArea, "al_training_partner_cached"))
+        // AL_L_TRAINING_NPC1_REF / AL_L_TRAINING_NPC2_REF point to the pair.
+        if (GetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED))
         {
             object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
             object oCachedPartner = GetLocalObject(oArea, sAreaPartnerKey);
             if (!GetIsObjectValid(oCachedSelf) || !GetIsObjectValid(oCachedPartner))
             {
-                SetLocalInt(oArea, "al_training_partner_cached", FALSE);
+                SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, FALSE);
                 DeleteLocalObject(oArea, sAreaSelfKey);
                 DeleteLocalObject(oArea, sAreaPartnerKey);
                 bResetCache = TRUE;
@@ -96,14 +97,14 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea) && bResetCache)
     {
-        object oAreaNpc1 = GetLocalObject(oArea, "al_training_npc1");
-        object oAreaNpc2 = GetLocalObject(oArea, "al_training_npc2");
+        object oAreaNpc1 = GetLocalObject(oArea, AL_L_TRAINING_NPC1);
+        object oAreaNpc2 = GetLocalObject(oArea, AL_L_TRAINING_NPC2);
         int bHasRestoredPair = GetIsObjectValid(oAreaNpc1)
             && GetIsObjectValid(oAreaNpc2)
             && GetArea(oAreaNpc1) == oArea
             && GetArea(oAreaNpc2) == oArea;
 
-        SetLocalInt(oArea, "al_training_partner_cached", bHasRestoredPair);
+        SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, bHasRestoredPair);
 
         if (!bHasRestoredPair && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
         {
@@ -113,11 +114,11 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
     {
-        SetLocalObject(oNpc, "al_training_partner", oPartner);
+        SetLocalObject(oNpc, AL_L_TRAINING_PARTNER, oPartner);
 
         if (GetArea(oPartner) == GetArea(oNpc))
         {
-            SetLocalObject(oPartner, "al_training_partner", oNpc);
+            SetLocalObject(oPartner, AL_L_TRAINING_PARTNER, oNpc);
         }
     }
 }
@@ -135,12 +136,12 @@ void AL_InitBarPair(object oNpc)
         return;
     }
 
-    object oExistingPair = GetLocalObject(oNpc, "al_bar_pair");
+    object oExistingPair = GetLocalObject(oNpc, AL_L_BAR_PAIR);
     if (GetIsObjectValid(oExistingPair))
     {
         if (GetArea(oExistingPair) == oArea)
         {
-            object oBack = GetLocalObject(oExistingPair, "al_bar_pair");
+            object oBack = GetLocalObject(oExistingPair, AL_L_BAR_PAIR);
             if (oBack == oNpc)
             {
                 return;
@@ -148,7 +149,7 @@ void AL_InitBarPair(object oNpc)
 
             // Existing pair is asymmetric in the same area, so this local link
             // is stale and must not be reused for requirement checks.
-            DeleteLocalObject(oNpc, "al_bar_pair");
+            DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
 
             if (AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
             {
@@ -157,7 +158,7 @@ void AL_InitBarPair(object oNpc)
         }
         else
         {
-            DeleteLocalObject(oNpc, "al_bar_pair");
+            DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
 
             if (AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
             {
@@ -166,8 +167,8 @@ void AL_InitBarPair(object oNpc)
         }
     }
 
-    object oBartenderRef = GetLocalObject(oArea, "al_bar_bartender_ref");
-    object oBarmaidRef = GetLocalObject(oArea, "al_bar_barmaid_ref");
+    object oBartenderRef = GetLocalObject(oArea, AL_L_BAR_BARTENDER_REF);
+    object oBarmaidRef = GetLocalObject(oArea, AL_L_BAR_BARMAID_REF);
     string sAreaPartnerKey = "";
     string sAreaSelfKey = "";
     object oPartnerRef = OBJECT_INVALID;
@@ -175,14 +176,14 @@ void AL_InitBarPair(object oNpc)
     if (oNpc == oBartenderRef)
     {
         // Symmetric role mapping: bartender looks up barmaid and vice versa.
-        sAreaSelfKey = "al_bar_bartender";
-        sAreaPartnerKey = "al_bar_barmaid";
+        sAreaSelfKey = AL_L_BAR_BARTENDER;
+        sAreaPartnerKey = AL_L_BAR_BARMAID;
         oPartnerRef = oBarmaidRef;
     }
     else if (oNpc == oBarmaidRef)
     {
-        sAreaSelfKey = "al_bar_barmaid";
-        sAreaPartnerKey = "al_bar_bartender";
+        sAreaSelfKey = AL_L_BAR_BARMAID;
+        sAreaPartnerKey = AL_L_BAR_BARTENDER;
         oPartnerRef = oBartenderRef;
     }
 
@@ -194,7 +195,7 @@ void AL_InitBarPair(object oNpc)
     object oPartner = OBJECT_INVALID;
 
     // Area locals seeded via toolset/bootstrap:
-    // "al_bar_bartender_ref" / "al_bar_barmaid_ref" point to the pair.
+    // AL_L_BAR_BARTENDER_REF / AL_L_BAR_BARMAID_REF point to the pair.
     object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
     object oCachedPartner = GetLocalObject(oArea, sAreaPartnerKey);
     if (!GetIsObjectValid(oCachedSelf)
@@ -232,11 +233,11 @@ void AL_InitBarPair(object oNpc)
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
     {
         // Always set the link on both ends so requirement checks behave identically.
-        SetLocalObject(oNpc, "al_bar_pair", oPartner);
-        SetLocalObject(oPartner, "al_bar_pair", oNpc);
+        SetLocalObject(oNpc, AL_L_BAR_PAIR, oPartner);
+        SetLocalObject(oPartner, AL_L_BAR_PAIR, oNpc);
         return;
     }
 
     // Keep unbound state explicit when no valid partner exists.
-    DeleteLocalObject(oNpc, "al_bar_pair");
+    DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
 }

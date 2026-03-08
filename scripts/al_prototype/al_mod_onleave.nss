@@ -1,5 +1,6 @@
 // Module OnClientLeave: attach to the Module OnClientLeave event in the toolset.
 
+#include "al_constants_inc"
 #include "al_npc_reg_inc"
 #include "al_player_count_inc"
 
@@ -21,7 +22,7 @@ void main()
 
     if (!GetIsObjectValid(oArea))
     {
-        oArea = GetLocalObject(oLeaving, "al_last_area");
+        oArea = GetLocalObject(oLeaving, AL_L_LAST_AREA);
 
         if (!GetIsObjectValid(oArea))
         {
@@ -34,5 +35,5 @@ void main()
         AL_HandleAreaBecameEmpty(oArea);
     }
 
-    DeleteLocalObject(oLeaving, "al_last_area");
+    DeleteLocalObject(oLeaving, AL_L_LAST_AREA);
 }

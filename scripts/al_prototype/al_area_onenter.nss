@@ -2,6 +2,7 @@
 
 #include "al_area_tick_inc"
 #include "al_area_mode_contract_inc"
+#include "al_constants_inc"
 #include "al_npc_reg_inc"
 #include "al_player_count_inc"
 
@@ -9,10 +10,10 @@ void AL_CacheTrainingPartners(object oArea);
 
 void AL_RunWakePath(object oArea, int iToken)
 {
-    SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
+    SetLocalInt(oArea, AL_L_SLOT, AL_ComputeTimeSlot());
     AL_CacheTrainingPartners(oArea);
     AL_SyncAreaNPCRegistry(oArea);
-    DeleteLocalInt(oArea, "al_routes_cached");
+    DeleteLocalInt(oArea, AL_L_ROUTES_CACHED);
     AL_CacheAreaRoutes(oArea);
     AL_UnhideAndResyncRegisteredNPCs(oArea);
     AL_ScheduleNextAreaTick(oArea, iToken);
@@ -25,15 +26,15 @@ void AL_CacheTrainingPartners(object oArea)
         return;
     }
 
-    if (GetLocalInt(oArea, "al_training_partner_cached"))
+    if (GetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED))
     {
         return;
     }
 
     // Preconfigure training partners via toolset/bootstrap on the area:
-    // local object "al_training_npc1_ref" + "al_training_npc2_ref".
-    object oNpc1 = GetLocalObject(oArea, "al_training_npc1_ref");
-    object oNpc2 = GetLocalObject(oArea, "al_training_npc2_ref");
+    // local object AL_L_TRAINING_NPC1_REF + AL_L_TRAINING_NPC2_REF.
+    object oNpc1 = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
+    object oNpc2 = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
 
     int bCacheSuccess = GetIsObjectValid(oNpc1)
         && GetArea(oNpc1) == oArea
@@ -42,15 +43,15 @@ void AL_CacheTrainingPartners(object oArea)
 
     if (bCacheSuccess)
     {
-        SetLocalObject(oArea, "al_training_npc1", oNpc1);
-        SetLocalObject(oArea, "al_training_npc2", oNpc2);
-        SetLocalInt(oArea, "al_training_partner_cached", TRUE);
+        SetLocalObject(oArea, AL_L_TRAINING_NPC1, oNpc1);
+        SetLocalObject(oArea, AL_L_TRAINING_NPC2, oNpc2);
+        SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, TRUE);
         return;
     }
 
-    DeleteLocalObject(oArea, "al_training_npc1");
-    DeleteLocalObject(oArea, "al_training_npc2");
-    SetLocalInt(oArea, "al_training_partner_cached", FALSE);
+    DeleteLocalObject(oArea, AL_L_TRAINING_NPC1);
+    DeleteLocalObject(oArea, AL_L_TRAINING_NPC2);
+    SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, FALSE);
 }
 
 void main()
@@ -73,22 +74,22 @@ void main()
         return;
     }
 
-    DeleteLocalInt(oEntering, "al_exit_counted");
-    SetLocalObject(oEntering, "al_last_area", oArea);
+    DeleteLocalInt(oEntering, AL_L_EXIT_COUNTED);
+    SetLocalObject(oEntering, AL_L_LAST_AREA, oArea);
 
-    int iPlayers = GetLocalInt(oArea, "al_player_count") + 1;
-    SetLocalInt(oArea, "al_player_count", iPlayers);
+    int iPlayers = GetLocalInt(oArea, AL_L_PLAYER_COUNT) + 1;
+    SetLocalInt(oArea, AL_L_PLAYER_COUNT, iPlayers);
 
     if (iPlayers != 1)
     {
         return;
     }
 
-    int iToken = GetLocalInt(oArea, "al_tick_token") + 1;
-    SetLocalInt(oArea, "al_tick_token", iToken);
+    int iToken = GetLocalInt(oArea, AL_L_TICK_TOKEN) + 1;
+    SetLocalInt(oArea, AL_L_TICK_TOKEN, iToken);
     SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_HOT);
-    SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
-    SetLocalInt(oArea, "al_tick_warm_left", AL_TICK_WARM_REPEATS);
+    SetLocalInt(oArea, AL_L_SLOT, AL_ComputeTimeSlot());
+    SetLocalInt(oArea, AL_L_TICK_WARM_LEFT, AL_TICK_WARM_REPEATS);
 
     // Soft one-hop neighborhood activation (no scheduler cascade):
     // direct neighbors may be lifted up to WARM only.
