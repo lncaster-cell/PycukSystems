@@ -56,7 +56,9 @@ Ambient Life (AL) управляет «фоновым» поведением NPC
 
 - activity ID и metadata: `al_acts_inc.nss`;
 - route cache: `al_route_cache_inc.nss`;
-- execution и fallback: `al_npc_routes.nss`, `al_npc_acts_inc.nss`, `al_npc_onud.nss`.
+- execution и fallback: `al_npc_onud.nss` -> `al_npc_activity_apply_inc.nss` -> `al_npc_sleep_inc.nss` -> `al_npc_pair_revalidate_inc.nss` -> `al_npc_routes.nss`.
+
+Примечание: `scripts/al_prototype/al_npc_acts_inc.nss` сохраняется только как legacy/compat-артефакт и не участвует в актуальном runtime-потоке. Не вносите исправления в эту неиспользуемую ветку логики.
 
 ## 3. Контракт area modes
 
