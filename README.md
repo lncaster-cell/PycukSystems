@@ -1,239 +1,421 @@
-# Ambient Life: активности и полная настройка
+# ambientlivev2
 
-## 1) Какие скрипты куда назначать
+Полная документация системы Ambient Life (NWN2). Этот README является
+каноническим источником информации по архитектуре, настройке и ограничениям.
 
-Назначьте скрипты в Toolset строго по событиям:
+## Оглавление
 
-- **Area**
-  - `OnEnter` → `al_area_onenter`
-  - `OnExit` → `al_area_onexit`
-  - `OnHeartbeat` (или эквивалент area tick) → `al_area_tick`
-- **NPC (Creature)**
-  - `OnSpawn` → `al_npc_onspawn`
-  - `OnUserDefined` → `al_npc_onud`
-  - `OnDeath` → `al_npc_ondeath`
-- **Module**
-  - `OnClientLeave` → `al_mod_onleave`
-
----
-
-## 2) Какие locals куда прописывать
-
-### 2.1 NPC locals (обязательно для участия в AL)
-
-- `alwp0` … `alwp5` — теги route-waypoint по слотам суток.
-- Допустимый минимум: задать только часть слотов (например, `alwp0` и `alwp1` для сна), но лучше заполнять все 6.
-- `al_enabled=1` — опциональный маркер участия NPC в AL, если маршруты будут назначены позже.
-
-### 2.2 Waypoint locals (обязательно для каждой route-точки)
-
-- `al_activity` — ID активности в данной точке маршрута.
-- `al_route_index` — опциональный индекс точки маршрута (`0..1023`) для явного порядка.
-  - Для явного признака «индекс задан» используйте `al_route_index_present=1`.
-  - Сначала читается новый ключ `al_route_index_present=1`; при его отсутствии используется legacy `al_route_index_set=1`.
-  - Если хотя бы у одной waypoint с тегом маршрута задан валидный `al_route_index` (включая `0`) и найден любой из флагов присутствия, тег работает в indexed-режиме.
-  - В indexed-режиме waypoint без валидного `al_route_index` или без флага присутствия (по dual-key правилу) пропускаются.
-  - Если индекс не задан ни у одной waypoint маршрута, порядок строится в dense/fallback-режиме (как раньше).
-
-Для перехода в другую area (межзоновые точки) актуальный контракт такой:
-
-- `al_transition_area_tag` (**string local**) — **обязателен** для межзонового перехода; это tag целевой area.
-- `al_transition_waypoint_tag` (**string local**) — **опционален**; это tag waypoint в целевой area.
-  - Если `al_transition_waypoint_tag` не задан, используется tag текущего source-waypoint.
-
-Устаревшие/неактуальные для контентного контракта пункты (не использовать в toolset):
-
-- `al_transition_location`
-- `al_transition_area`
-- `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing`
-
-Источник истины по runtime-логике переходов: `scripts/al_prototype/al_route_cache_inc.nss` (блок transition setup в `AL_CacheAreaRoutes`).
-
-### 2.3 Настройка сна через waypoint locals
-
-Минимальный контракт сна на route-waypoint:
-
-- `al_activity` = sleep-активность (`5` для `AL_ACT_NPC_SLEEP_BED`, реже `32` для `AL_ACT_NPC_SLEEP_90`)
-- `al_bed_tag=<bed_id>`
-
-Далее в **той же area** создаются bed-waypoints:
-
-- `<bed_id>_pose` — обязательная точка укладки (поза сна)
-- `<bed_id>_approach` — опциональная точка подхода к кровати
-
-Поведение по умолчанию:
-
-- если `<bed_id>_approach` отсутствует, точка подхода берётся из самого sleep route-waypoint;
-- если `al_bed_tag` пустой или `<bed_id>_pose` не найден, bed-docking не выполняется, и NPC уходит в fallback-анимацию сна без корректной привязки к кровати.
-
-Рекомендуемая схема именования:
-
-- route-waypoint: `wp_<area>_<npc>_sleep`
-- bed locals: `al_bed_tag=<npc_bed_id>`
-- bed-waypoints: `<npc_bed_id>_pose` и (опционально) `<npc_bed_id>_approach`
-
-Это снижает риск коллизий тегов между разными NPC в одной area.
-
-### 2.4 Area locals (рекомендуется)
-
-- Для explicit-режима area нужно выставлять **оба** local:
-  - `al_area_mode=<0..3>` — режим area: `0=COLD`, `1=WARM`, `2=HOT`, `3=OFF`.
-  - `al_area_mode_is_set=1` — флаг, что `al_area_mode` задан явно.
-- Короткий пример для OFF: `al_area_mode=3` + `al_area_mode_is_set=1`.
-- Если `al_area_mode_is_set` отсутствует, используется legacy fallback (по `al_is_interior` / player_count), а не значение `al_area_mode`.
-- `al_is_interior=1` — пометка интерьерной area.
-- `al_adjacent_areas` — CSV тегов соседних area для soft-activation.
-- `al_adj_interior_whitelist` — CSV интерьерных соседей, которых можно прогревать.
-- `al_debug=1` — отладочные сообщения для area.
-
-### 2.5 Training pair refs (контракт спаривания)
-
-Для тренировочной пары (`AL_ACT_NPC_TRAINING_ONE` / `AL_ACT_NPC_TRAINING_TWO`) роль NPC определяется **только object refs на area**, а не тегами NPC:
-
-- `al_training_npc1_ref` — object local на area для стороны `npc1`.
-- `al_training_npc2_ref` — object local на area для стороны `npc2`.
-
-Если NPC не совпал ни с одним из этих refs, training-pair для него не инициализируется.
+1. [Назначение и цели](#назначение-и-цели)
+2. [Ключевые требования производительности](#ключевые-требования-производительности)
+3. [Архитектура и компоненты](#архитектура-и-компоненты)
+4. [Слоты времени и тики области](#слоты-времени-и-тики-области)
+5. [Событийный протокол](#событийный-протокол)
+6. [Локальные переменные (locals)](#локальные-переменные-locals)
+7. [Реестр NPC (dense array)](#реестр-npc-dense-array)
+8. [Потоки выполнения](#потоки-выполнения)
+9. [Маршруты и переходы между областями](#маршруты-и-переходы-между-областями)
+10. [Активности, роли и анимации](#активности-роли-и-анимации)
+11. [Установка и подключение](#установка-и-подключение)
+12. [Конфигурация NPC](#конфигурация-npc)
+13. [Ограничения и риски](#ограничения-и-риски)
+14. [Проверка работоспособности](#проверка-работоспособности)
+15. [Репозиторий](#репозиторий)
 
 ---
 
-## 3) Сон НПЦ — максимально просто
+## Назначение и цели
 
-Если нужно «просто чтобы НПЦ спал», сделайте **ровно 4 шага**:
+Ambient Life — высокопроизводительная система «жизнедеятельности» NPC, построенная
+на событийной модели NWScript. Цели:
 
-1. У NPC поставьте locals:
-   - `alwp0 = <tag_sleep_wp>`
-   - `alwp1 = <tag_sleep_wp>`
-2. На waypoint с тегом `<tag_sleep_wp>` поставьте:
-   - `al_activity = 5` (обычный сон в кровати)
-   - `al_bed_tag = <bed_id>`
-3. В той же area создайте waypoint:
-   - `<bed_id>_pose` (обязательно)
-   - `<bed_id>_approach` (опционально)
-4. Проверьте, что у NPC назначен `OnSpawn -> al_npc_onspawn`.
+- **нулевая активность**, когда игроков в области нет;
+- **минимальная активность** при наличии игроков (один таймер на область);
+- управление поведением NPC **только через события**, без heartbeats и фоновых циклов;
+- отсутствие runtime-поисков по тегам/строкам для жизнедеятельности.
 
-Готово: в ночные слоты (`alwp0/alwp1`, примерно 00:00–08:00) НПЦ пойдёт спать.
+Система использует стандартные события NWN2 (OnEnter/OnExit/OnUserDefined и т. п.)
+и собственные user-defined события для синхронизации NPC.
 
-> Если хотите упростить ещё сильнее: используйте один и тот же `<tag_sleep_wp>` для `alwp0` и `alwp1`.
+## Ключевые требования производительности
 
-### 3.1 Быстрая диагностика сна (если NPC не лёг в кровать)
+Инварианты, на которых держится архитектура:
 
-Проверьте по порядку:
+- Нет heartbeat на NPC.
+- Нет периодических тиков на NPC.
+- Один тик на область и только при наличии PC.
+- При неизменном слоте суток система выполняет минимум работы (проверка слота +
+  планирование следующего тика).
+- Никаких runtime-поисков по тегам/строкам (GetObjectByTag, GetNearestObjectByTag)
+  для управления поведением.
+- Все управляемые NPC должны быть в плотном реестре.
 
-1. У NPC действительно выставлены `alwp0/alwp1` и они указывают на существующий route-waypoint.
-2. На route-waypoint стоит `al_activity=5` или `32`, и заполнен `al_bed_tag`.
-3. В **той же area** существует `<bed_id>_pose` (строго по tag, без опечаток).
-4. Скрипты NPC назначены корректно: минимум `OnSpawn -> al_npc_onspawn`, `OnUserDefined -> al_npc_onud`.
+## Архитектура и компоненты
 
-Если пункты 1–4 верны, но NPC всё равно спит «рядом с кроватью», значит сработал fallback (обычно отсутствует/не найден `<bed_id>_pose`).
+### Area Controller (контроллер области)
 
----
+Ответственность:
 
-## 4) Справочник активностей (ID)
+- отслеживать присутствие игроков в области;
+- управлять жизненным циклом области (activate → tick → deactivate);
+- вычислять слот суток (0–5);
+- рассылать события NPC:
+  - `EVT_RESYNC` при активации;
+  - `EVT_SLOT_x` только при смене слота.
 
-### 4.1 Базовые NPC активности
+Техническая основа:
 
-- `0` — `AL_ACT_NPC_HIDDEN`
-- `1` — `AL_ACT_NPC_ACT_ONE`
-- `2` — `AL_ACT_NPC_ACT_TWO`
-- `3` — `AL_ACT_NPC_DINNER`
-- `4` — `AL_ACT_NPC_MIDNIGHT_BED`
-- `5` — `AL_ACT_NPC_SLEEP_BED`
-- `6` — `AL_ACT_NPC_WAKE`
-- `7` — `AL_ACT_NPC_AGREE`
-- `8` — `AL_ACT_NPC_ANGRY`
-- `9` — `AL_ACT_NPC_SAD`
-- `10` — `AL_ACT_NPC_COOK`
-- `11` — `AL_ACT_NPC_DANCE_FEMALE`
-- `12` — `AL_ACT_NPC_DANCE_MALE`
-- `13` — `AL_ACT_NPC_DRUM`
-- `14` — `AL_ACT_NPC_FLUTE`
-- `15` — `AL_ACT_NPC_FORGE`
-- `16` — `AL_ACT_NPC_GUITAR`
-- `17` — `AL_ACT_NPC_WOODSMAN`
-- `18` — `AL_ACT_NPC_MEDITATE`
-- `19` — `AL_ACT_NPC_POST`
-- `20` — `AL_ACT_NPC_READ`
-- `21` — `AL_ACT_NPC_SIT`
-- `22` — `AL_ACT_NPC_SIT_DINNER`
-- `23` — `AL_ACT_NPC_STAND_CHAT`
-- `24` — `AL_ACT_NPC_TRAINING_ONE`
-- `25` — `AL_ACT_NPC_TRAINING_TWO`
-- `26` — `AL_ACT_NPC_TRAINER_PACE`
-- `27` — `AL_ACT_NPC_WWP`
-- `28` — `AL_ACT_NPC_CHEER`
-- `29` — `AL_ACT_NPC_COOK_MULTI`
-- `30` — `AL_ACT_NPC_FORGE_MULTI`
-- `31` — `AL_ACT_NPC_MIDNIGHT_90`
-- `32` — `AL_ACT_NPC_SLEEP_90`
-- `33` — `AL_ACT_NPC_THIEF`
-- `36` — `AL_ACT_NPC_THIEF2`
-- `37` — `AL_ACT_NPC_ASSASSIN`
-- `38` — `AL_ACT_NPC_MERCHANT_MULTI`
-- `39` — `AL_ACT_NPC_KNEEL_TALK`
-- `41` — `AL_ACT_NPC_BARMAID`
-- `42` — `AL_ACT_NPC_BARTENDER`
-- `43` — `AL_ACT_NPC_GUARD`
+- OnEnter/OnExit области + единый таймер через `DelayCommand`.
 
-### 4.2 Wrapper-активности locate (диапазон 91..98)
+### NPC Agent (агент NPC)
 
-- `91` — `AL_ACT_LOCATE_LOOK`
-- `92` — `AL_ACT_LOCATE_IDLE`
-- `93` — `AL_ACT_LOCATE_SIT`
-- `94` — `AL_ACT_LOCATE_KNEEL`
-- `95` — `AL_ACT_LOCATE_TALK`
-- `96` — `AL_ACT_LOCATE_CRAFT`
-- `97` — `AL_ACT_LOCATE_MEDITATE`
-- `98` — `AL_ACT_LOCATE_STEALTH`
+Ответственность:
 
----
+- принимать `OnUserDefined` события;
+- хранить «последний применённый слот»;
+- применять активность и маршрут для слота;
+- корректно скрываться/раскрываться при активации/деактивации области.
 
-## 5) Минимальный чек-лист запуска
+### NPC Registry (реестр NPC)
 
-1. Скрипты назначены на события Area/NPC/Module.
-2. У каждого AL-NPC есть `alwp*` (минимум sleep-слоты).
-3. На route-waypoint заполнен `al_activity`.
-4. Для сна настроены `al_activity` + `al_bed_tag` на sleep route waypoint и `<bed_id>_pose` (опционально `<bed_id>_approach`).
-5. Area не в `OFF`, и корректно считаются вход/выход игроков.
+Ответственность:
 
----
+- хранить NPC в плотном массиве `al_npc_0..al_npc_99`;
+- обеспечивать быстрый O(1) `add/remove` через swap-remove;
+- не допускать дыр и обходов всего мира.
 
-## 6) Валидация AL-контента перед публикацией
+## Слоты времени и тики области
 
-Для быстрой проверки контента добавлен standalone-скрипт:
+### Слоты суток
 
-- `scripts/al_prototype/al_content_validator.nss`
-
-### Как запускать
-
-1. Скомпилируйте `al_content_validator` в Toolset/серверной сборке.
-2. Выполните скрипт на модуле (например через консоль/DM-команду):
-   - `dm_runscript al_content_validator`
-   - или `ExecuteScript("al_content_validator", GetModule())`.
-3. Откройте лог сервера (`nwserverLog1.txt`) и найдите блоки `[AL-VALIDATOR]`.
-
-### Что проверяет
-
-- AL-NPC контракт участия: наличие `alwp0..alwp5` и/или `al_enabled`.
-- Валидность `al_activity` на route-waypoints.
-- Межзоновые переходы: `al_transition_area_tag` и `al_transition_waypoint_tag`.
-- Indexed-route согласованность: `al_route_index` + флаг присутствия (`al_route_index_present`/legacy `al_route_index_set`).
-
-### Ожидаемый формат отчёта
-
-Пример строк:
+Сутки делятся на 6 слотов по 4 часа. Формула:
 
 ```
-[AL-VALIDATOR][critical] area='market_sq' object='wp_market_sleep' reason='unknown al_activity=777'
-[AL-VALIDATOR][warning] area='market_sq' object='blacksmith_01' reason='al_enabled=1 set without any alwp0..alwp5 route slots'
-[AL-VALIDATOR] Summary: critical=1, warning=1, info=0
+slot = floor(GetTimeHour() / 4)  // 0..5
 ```
 
-Pass-case (успешные проверки без замечаний) в текущем контракте **не логируется отдельными `info`-строками**.
-Поэтому в большинстве запусков `info` в summary будет `0`.
+### Период тика
 
-Категории:
+Тик области выполняется каждые **45 секунд реального времени** (настраивается
+в `AL_TICK_PERIOD`). Таймер работает только если в области есть игроки.
 
-- `critical` — ошибка контента, требующая исправления до релиза.
-- `warning` — потенциально проблемная/неполная конфигурация.
-- `info` — служебный уровень (в текущем silent-режиме обычно остаётся `0`).
+## Событийный протокол
+
+### Диапазон событий
+
+- `AL_EVT_SLOT_BASE = 3000`
+- `AL_EVT_SLOT_0..5 = 3000..3005`
+- `AL_EVT_RESYNC = 3006`
+- `AL_EVT_ROUTE_REPEAT = 3007` (повтор маршрута)
+
+### Доставка событий
+
+- Создание: `EventUserDefined(n)`
+- Доставка: `SignalEvent(target, event)`
+- Приём: `GetUserDefinedEventNumber()`
+
+**Важно:** `SignalEvent` исполняется после завершения текущего скрипта.
+
+## Локальные переменные (locals)
+
+### На области
+
+| Local | Тип | Назначение |
+| --- | --- | --- |
+| `al_player_count` | int | кол-во игроков в области |
+| `al_tick_token` | int | токен тика (защита от старых DelayCommand) |
+| `al_sync_tick` | int | счётчик для периодической синхронизации реестра |
+| `al_slot` | int | текущий слот суток (0..5) |
+| `al_npc_count` | int | размер реестра NPC |
+| `al_npc_0..al_npc_99` | object | плотный реестр NPC |
+| `al_slot_activity_<slot>` | int | fallback-активность для слота (если нет маршрута) |
+| `al_default_activity` | int | fallback-активность по умолчанию (если нет маршрута) |
+| `al_training_npc1_ref` / `al_training_npc2_ref` | object | ссылки на тренировочную пару (задаются в toolset) |
+| `al_training_npc1` / `al_training_npc2` | object | закешированные ссылки на тренировочную пару |
+| `al_training_partner_cached` | int | флаг кеша тренировочной пары |
+| `al_bar_bartender_ref` / `al_bar_barmaid_ref` | object | ссылки на барную пару (задаются в toolset) |
+| `al_bar_bartender` / `al_bar_barmaid` | object | закешированные ссылки на барную пару |
+
+### На NPC
+
+| Local | Тип | Назначение |
+| --- | --- | --- |
+| `al_last_slot` | int | последний применённый слот |
+| `al_last_area` | object | последняя область NPC |
+| `al_training_partner` | object | партнёр для тренировки |
+| `al_bar_pair` | object | барная пара (barmaid/bartender) |
+| `r<slot>_n` | int | количество точек маршрута слота |
+| `r<slot>_<idx>` | location | точка маршрута слота |
+| `r<slot>_tag` | string | тег маршрута слота |
+| `r_slot` | int | активный слот маршрута |
+| `r_idx` | int | индекс активной точки маршрута |
+| `r_active` | int | маршрут активен |
+| `al_slot_activity_<slot>` | int | fallback-активность для слота (если нет маршрута) |
+| `al_default_activity` | int | fallback-активность по умолчанию (если нет маршрута) |
+
+## Реестр NPC (dense array)
+
+### Регистрация
+
+- `AL_RegisterNPC(oNpc)` добавляет NPC в `al_npc_count` + `al_npc_<idx>`.
+- При достижении лимита (`AL_MAX_NPCS = 100`) новые NPC не регистрируются.
+
+### Удаление
+
+- `AL_UnregisterNPC(oNpc)` удаляет NPC через swap-remove:
+  - заменяет текущий элемент последним,
+  - уменьшает `al_npc_count`.
+
+### Синхронизация
+
+`AL_SyncAreaNPCRegistry(oArea)` выполняет:
+
+- удаление невалидных ссылок;
+- перенос NPC, сменившего область, в новый реестр;
+- обновление `al_last_area`.
+
+Синхронизация выполняется:
+
+- при активации области;
+- периодически в тике области (каждые 4 тика).
+
+## Потоки выполнения
+
+### Активация области (PC 0 → 1)
+
+OnEnter области:
+
+1. Увеличение `al_player_count`.
+2. Если теперь `al_player_count == 1`:
+   - инкремент `al_tick_token`;
+   - вычисление слота `al_slot`;
+   - кеш тренировочных партнёров;
+   - синхронизация реестра;
+   - раскрытие NPC + `EVT_RESYNC`.
+   - запуск таймера тика (`DelayCommand(AL_TICK_PERIOD, AreaTick)`).
+
+### Деактивация области (PC 1 → 0)
+
+OnExit или OnClientLeave:
+
+1. Уменьшение `al_player_count`.
+2. Если теперь `al_player_count == 0`:
+   - инкремент `al_tick_token` (убивает старые DelayCommand);
+   - скрытие NPC (`SetScriptHidden`) и очистка действий (если включено).
+
+### Тик области (AreaTick)
+
+1. Если игроков нет — выход.
+2. Проверка токена тика.
+3. Периодическая синхронизация реестра.
+4. Вычисление слота.
+5. Если слот не изменился — планирование следующего тика.
+6. Если слот изменился:
+   - `al_slot = newSlot`;
+   - рассылка `EVT_SLOT_x` всем NPC;
+   - планирование следующего тика.
+
+### Обработка NPC (OnUserDefined)
+
+1. Определение слота по событию (`RESYNC`, `SLOT_x`, `ROUTE_REPEAT`).
+2. Если слот не изменился — выход.
+3. Обновление маршрута (при необходимости).
+4. Получение активности с текущего waypoint’а.
+5. Очистка маршрута, если он не нужен.
+6. Постановка маршрута в очередь (если нужен).
+7. Применение активности (анимации).
+
+## Маршруты и переходы между областями
+
+### Маршруты NPC (упрощённый режим)
+
+ Маршрут хранится на NPC в `r<slot>_*`. При смене слота
+ выполняется `AL_RefreshRouteForSlot`, которая обновляет маршрут, если:
+
+- поменялся тег маршрута (по слоту), или
+- маршрута ещё нет.
+
+Маршрут определяется локальным string на NPC:
+
+- `alwp0..alwp5` — тег маршрута для соответствующего слота.
+
+Если локальный `alwp<slot>` не задан, используется дефолтный тег
+`AL_WP_S<slot>` для обратной совместимости.
+
+Маршрут строится **напрямую по waypoint’ам области** с соответствующим тегом
+и не требует кеширования или `al_route_index`. Система берёт максимум
+**10 точек на маршрут** в порядке обхода объектов области.
+
+Для waypoint’ов можно задать **межзонный переход**:
+
+- предпочтительный способ — локальная `location` на waypoint `al_transition_location`;
+- альтернативный способ — `al_transition_area` + `al_transition_x/y/z/facing`.
+
+При выполнении маршрута NPC может выполнить `ActionJumpToLocation` и
+зарегистрироваться в новом реестре области.
+
+Активность на маршруте берётся с текущего waypoint’а `al_activity` и является
+единственным источником правды для анимаций на маршруте.
+Если `al_activity` не задан, NPC считается скрытым (активность 0).
+Если для слота нет маршрута, применяется fallback-логика
+`AL_GetWaypointActivityForSlot`: сначала `al_slot_activity_<slot>`, затем
+`al_default_activity` на NPC/области.
+Если для слота есть маршрут, NPC будет двигаться по нему независимо от
+выбранной активности, **кроме активности 0**. Активность 0 (Hidden)
+останавливает маршрут и скрывает NPC. Исключение — активности, требующие
+конкретный тег маршрута (например, `TrainerPace`/`WWP`): в этом случае маршрут
+используется только при совпадении тега.
+
+## Активности и анимации
+
+Активность задаётся **только** локальным int `al_activity` на waypoint.
+Слоты `a0..a5` и роли больше не используются.
+Активность 0 (Hidden) останавливает маршрут и скрывает NPC.
+Активности с требованием маршрута (`TrainerPace`/`WWP`) применяются только
+при наличии маршрута с нужным тегом; остальные активности не блокируют
+движение по любому маршруту в слоте.
+
+### Активности (ID → анимации)
+
+Система хранит статическое сопоставление ID → анимации в `al_acts_inc.nss`.
+
+> Формат анимаций:
+> - **Custom**: строки, проигрываются через `PlayCustomAnimation`.
+> - **Numeric**: ID, проигрываются через `ActionPlayAnimation`.
+
+| ID | Activity | Анимации | Требования |
+| --- | --- | --- | --- |
+| 0 | Hidden | — | скрыт |
+| 1 | ActOne | Custom: lookleft, lookright | — |
+| 2 | ActTwo | Custom: lookleft, lookright | — |
+| 3 | Dinner | Custom: sitdrink, siteat, sitidle | — |
+| 4 | MidnightBed | Custom: laydownB, proneB | — |
+| 5 | SleepBed | Custom: laydownB, proneB | — |
+| 6 | Wake | Custom: sitdrink, siteat, sitidle | — |
+| 7 | Agree | Custom: chuckle, flirt, nodyes | — |
+| 8 | Angry | Custom: intimidate, nodno, talkshout<br>Numeric: 10 | — |
+| 9 | Sad | Custom: talksad, tired<br>Numeric: 9 | — |
+| 10 | Cook | Custom: cooking02, disablefront<br>Numeric: 35, 36 | — |
+| 11 | DanceFemale | Custom: curtsey, dance01<br>Numeric: 27 | — |
+| 12 | DanceMale | Custom: bow, dance01, dance02 | — |
+| 13 | Drum | Custom: bow, playdrum | — |
+| 14 | Flute | Custom: curtsey, playflute | — |
+| 15 | Forge | Custom: craft01, dustoff, forge01 | — |
+| 16 | Guitar | Custom: bow, playguitar | — |
+| 17 | Woodsman | Custom: *1attack01, kneelidle | — |
+| 18 | Meditate | Custom: meditate | — |
+| 19 | Post | Custom: lookleft, lookright | — |
+| 20 | Read | Custom: sitidle, sitread, sitteat | — |
+| 21 | Sit | Custom: sitfidget, sitidle, sittalk, sittalk01, sittalk02 | — |
+| 22 | SitDinner | Custom: sitdrink, siteat, sitidle, sittalk, sittalk01, sittalk02 | — |
+| 23 | StandChat | Custom: chuckle, lookleft, lookright, nodno, nodyes, shrug, talk01, talk02, talklaugh | — |
+| 24 | TrainingOne | Custom: lookleft, lookright | требует партнёра |
+| 25 | TrainingTwo | Custom: lookleft, lookright | требует партнёра |
+| 26 | TrainerPace | Custom: lookleft, lookright | требует маршрут |
+| 27 | WWP | Custom: kneelidle, lookleft, lookright | требует маршрут |
+| 28 | Cheer | Custom: chuckle, clapping, talklaugh, victory | — |
+| 29 | CookMulti | Custom: cooking01, cooking02, craft01, disablefront, dustoff, forge01, gettable, kneelidle, kneelup, openlock, scratchhead | — |
+| 30 | ForgeMulti | Custom: craft01, dustoff, forge01, forge02, gettable, kneeldown, kneelidle, kneelup, openlock | — |
+| 31 | Midnight90 | Custom: laydownB, proneB | — |
+| 32 | Sleep90 | Custom: laydownB, proneB | — |
+| 33 | Thief | Custom: chuckle, getground, gettable, openlock | — |
+| 36 | Thief2 | Custom: disableground, sleightofhand, sneak | — |
+| 37 | Assassin | Custom: sneak | — |
+| 38 | MerchantMulti | Custom: bored, getground, gettable, openlock, sleightofhand, yawn | — |
+| 39 | KneelTalk | Custom: kneelidle, kneeltalk | — |
+| 41 | Barmaid | Custom: gettable, lookright, openlock, yawn | требует барную пару |
+| 42 | Bartender | Custom: gettable, lookright, openlock, yawn | — |
+| 43 | Guard | Custom: bored, lookleft, lookright, sigh | — |
+| 91–98 | LocateWrapper | см. `al_acts_inc.nss` | — |
+| 200 | reserved | — | — |
+
+### Требования активностей
+
+- **TrainingOne/TrainingTwo**: требует `al_training_partner`.
+- **Barmaid**: требует `al_bar_pair` (Bartender).
+- **TrainerPace**: требует маршрут.
+- **WWP**: требует маршрут.
+
+Если требование не выполнено, система подставит `ActOne`.
+
+## Установка и подключение
+
+1. Импортируйте все `.nss` файлы из `scripts/` в модуль.
+2. Скомпилируйте модуль.
+   - Include-файлы (`*_inc.nss`) пометьте как Include или исключите из компиляции.
+   - Resref скриптов ≤ 16 символов (ограничение NWN2).
+3. Подключите скрипты к событиям:
+
+### События области (Area)
+
+- OnEnter → `al_area_onenter`
+- OnExit → `al_area_onexit`
+- OnHeartbeat → оставить пустым
+
+### События модуля (Module)
+
+- OnClientLeave → `al_mod_onleave`
+
+### События NPC
+
+- OnSpawn → `al_npc_onspawn`
+- OnDeath → `al_npc_ondeath`
+- OnUserDefined → `al_npc_onud`
+
+## Конфигурация NPC
+
+Активность задаётся локальным int `al_activity` на waypoint.
+Слоты `a0..a5` и роли не используются.
+
+### Настройка маршрутов
+
+- Для каждого NPC задайте локальные string:
+  - `alwp0..alwp5` — тег маршрута для соответствующего слота.
+- Если `alwp<slot>` не задан, используется `AL_WP_S<slot>` для обратной
+  совместимости.
+
+### Тренировочные партнёры
+
+1. Назначьте NPC теги `FACTION_NPC1` и `FACTION_NPC2`.
+2. На области задайте локальные object-переменные:
+   - `al_training_npc1_ref`
+   - `al_training_npc2_ref`
+
+### Bartender + Barmaid
+
+1. На области задайте локальные object-переменные:
+   - `al_bar_bartender_ref`
+   - `al_bar_barmaid_ref`
+
+## Ограничения и риски
+
+- **Лимит 100 NPC** на область (`AL_MAX_NPCS`). NPC сверх лимита не управляются.
+- **Маршруты по слотам** кешируются и используются всегда, активность
+  берётся с waypoint’а.
+- Первый вход игрока в область вызывает **полный обход объектов**
+  (кеширование маршрутов). В больших областях это может дать пик нагрузки.
+- Система не использует heartbeat на NPC — это ожидаемое поведение.
+
+## Проверка работоспособности
+
+1. Запустите модуль.
+2. Войдите PC в область:
+   - NPC должны появиться и начать анимации.
+3. Выйдите из области:
+   - NPC должны скрыться.
+4. Дождитесь смены слота суток:
+   - NPC должны сменить активность на следующем waypoint’е.
+
+Если что-то не работает, проверьте:
+
+- назначение скриптов на события;
+- локальный `al_activity` на waypoint’ах;
+- наличие waypoint’ов;
+- успешную компиляцию.
+
+## Репозиторий
+
+- `README.md` — этот документ.
+- `ARCHITECTURE.md` — оригинальный дизайн-док (дублирован в README).
+- `INSTALLATION.md` — простая инструкция (дублирована в README).
+- `AUDIT.md` — аудит рисков (включён в раздел «Ограничения и риски»).
+- `scripts/` — скрипты системы.
