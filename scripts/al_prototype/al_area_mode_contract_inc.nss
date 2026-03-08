@@ -102,7 +102,7 @@ int AL_IsAreaInteriorByContract(object oArea)
 
 void AL_LogAreaAdjFallbackDebug(object oArea, string sMessage)
 {
-    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, AL_L_DEBUG) != 1)
+    if (!GetIsObjectValid(oArea) || !AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
     {
         return;
     }
