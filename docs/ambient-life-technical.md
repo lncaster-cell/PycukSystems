@@ -73,7 +73,13 @@ Ambient Life (AL) управляет «фоновым» поведением NPC
 
 ### 3.1 AL_GetAreaModeOrLegacy
 
-Если `al_area_mode` невалиден/пустой:
+`AL_GetAreaModeOrLegacy` сначала проверяет флаг присутствия `al_area_mode_is_set`.
+
+- Если флаг не установлен (`al_area_mode` реально unset), применяется `AL_GetAreaModeLegacyDefault`.
+- Если флаг установлен, но значение `al_area_mode` вне диапазона `0..3`, тоже применяется legacy fallback.
+- Если флаг установлен и `al_area_mode=0` (`COLD`), это считается explicit policy и fallback **не** применяется.
+
+Legacy fallback:
 
 - interior (`al_is_interior=1`) -> `COLD`;
 - иначе, при игроках -> `HOT`;
@@ -125,7 +131,7 @@ Ambient Life (AL) управляет «фоновым» поведением NPC
 
 ### 5.3 Area
 
-- `al_area_mode` (опционально, если хотите explicit policy);
+- `al_area_mode` + `al_area_mode_is_set=1` (опционально, если хотите explicit policy, включая explicit `COLD=0`);
 - `al_is_interior` для interior-policy;
 - `al_adjacent_areas` / `al_adj_interior_whitelist` для соседства;
 - `al_debug=1` для локальной диагностики.
@@ -149,7 +155,7 @@ Ambient Life (AL) управляет «фоновым» поведением NPC
 
 ### 8.1 Что смотреть в locals
 
-- Area: `al_player_count`, `al_area_mode`, `al_tick_token`, `al_tick_scheduled_token`, `al_slot`, `al_npc_count`.
+- Area: `al_player_count`, `al_area_mode`, `al_area_mode_is_set`, `al_tick_token`, `al_tick_scheduled_token`, `al_slot`, `al_npc_count`.
 - NPC: `r_active`, `r_slot`, `r_idx`, `al_last_area`, sleep locals.
 
 ### 8.2 Типовые симптомы

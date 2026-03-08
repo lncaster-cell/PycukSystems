@@ -86,7 +86,7 @@ void main()
 
     int iToken = GetLocalInt(oArea, "al_tick_token") + 1;
     SetLocalInt(oArea, "al_tick_token", iToken);
-    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_HOT);
+    AL_SetAreaMode(oArea, AL_AREA_MODE_HOT);
     SetLocalInt(oArea, "al_slot", AL_ComputeTimeSlot());
     SetLocalInt(oArea, "al_tick_warm_left", AL_TICK_WARM_REPEATS);
 
