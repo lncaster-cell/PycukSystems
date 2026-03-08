@@ -23,7 +23,7 @@ int AL_GetAmbientLifeDaySeconds()
 
 int AL_IsRegistryFullMessageCoolingDown(object oArea)
 {
-    int nNextStored = GetLocalInt(oArea, "al_npc_full_msg_next");
+    int nNextStored = GetLocalInt(oArea, AL_L_NPC_FULL_MSG_NEXT);
     if (nNextStored == 0)
     {
         return FALSE;
@@ -39,7 +39,7 @@ void AL_MarkRegistryFullMessageSent(object oArea)
 {
     int nNow = AL_GetAmbientLifeDaySeconds();
     int nNext = (nNow + AL_REGISTRY_FULL_MSG_THROTTLE_SECONDS) % 86400;
-    SetLocalInt(oArea, "al_npc_full_msg_next", nNext + 1);
+    SetLocalInt(oArea, AL_L_NPC_FULL_MSG_NEXT, nNext + 1);
 }
 
 
@@ -55,13 +55,13 @@ int AL_PruneRegistrySlot(object oArea, int iIndex, int iCount)
 
     if (iIndex != iLastIndex)
     {
-        object oSwap = GetLocalObject(oArea, "al_npc_" + IntToString(iLastIndex));
-        SetLocalObject(oArea, "al_npc_" + IntToString(iIndex), oSwap);
+        object oSwap = GetLocalObject(oArea, AL_LocalNpcRegistryEntry(iLastIndex));
+        SetLocalObject(oArea, AL_LocalNpcRegistryEntry(iIndex), oSwap);
     }
 
-    DeleteLocalObject(oArea, "al_npc_" + IntToString(iLastIndex));
+    DeleteLocalObject(oArea, AL_LocalNpcRegistryEntry(iLastIndex));
     iCount--;
-    SetLocalInt(oArea, "al_npc_count", iCount);
+    SetLocalInt(oArea, AL_L_NPC_COUNT, iCount);
     return iCount;
 }
 
@@ -93,7 +93,7 @@ int AL_IsParticipantNPC(object oNpc)
         return FALSE;
     }
 
-    if (GetLocalInt(oNpc, "al_enabled") == 1)
+    if (GetLocalInt(oNpc, AL_L_ENABLED) == 1)
     {
         return TRUE;
     }
@@ -101,7 +101,7 @@ int AL_IsParticipantNPC(object oNpc)
     int iSlot = 0;
     while (iSlot <= 5)
     {
-        if (GetLocalString(oNpc, "alwp" + IntToString(iSlot)) != "")
+        if (GetLocalString(oNpc, AL_LocalWaypointTag(iSlot)) != "")
         {
             return TRUE;
         }
@@ -145,14 +145,14 @@ void AL_RegisterNPC(object oNpc)
         return;
     }
 
-    SetLocalObject(oNpc, "al_last_area", oArea);
+    SetLocalObject(oNpc, AL_L_LAST_AREA, oArea);
 
-    int iCount = GetLocalInt(oArea, "al_npc_count");
+    int iCount = GetLocalInt(oArea, AL_L_NPC_COUNT);
     int iIndex = 0;
 
     while (iIndex < iCount)
     {
-        object oEntry = GetLocalObject(oArea, "al_npc_" + IntToString(iIndex));
+        object oEntry = GetLocalObject(oArea, AL_LocalNpcRegistryEntry(iIndex));
 
         if (!GetIsObjectValid(oEntry))
         {
@@ -179,13 +179,13 @@ void AL_RegisterNPC(object oNpc)
         return;
     }
 
-    SetLocalObject(oArea, "al_npc_" + IntToString(iCount), oNpc);
-    SetLocalInt(oArea, "al_npc_count", iCount + 1);
+    SetLocalObject(oArea, AL_LocalNpcRegistryEntry(iCount), oNpc);
+    SetLocalInt(oArea, AL_L_NPC_COUNT, iCount + 1);
 }
 
 void AL_UnregisterNPC(object oNpc)
 {
-    object oArea = GetLocalObject(oNpc, "al_last_area");
+    object oArea = GetLocalObject(oNpc, AL_L_LAST_AREA);
 
     if (!GetIsObjectValid(oArea))
     {
@@ -197,12 +197,12 @@ void AL_UnregisterNPC(object oNpc)
         return;
     }
 
-    int iCount = GetLocalInt(oArea, "al_npc_count");
+    int iCount = GetLocalInt(oArea, AL_L_NPC_COUNT);
     int iIndex = 0;
 
     while (iIndex < iCount)
     {
-        object oEntry = GetLocalObject(oArea, "al_npc_" + IntToString(iIndex));
+        object oEntry = GetLocalObject(oArea, AL_LocalNpcRegistryEntry(iIndex));
 
         if (!GetIsObjectValid(oEntry))
         {
@@ -227,12 +227,12 @@ void AL_SyncAreaNPCRegistry(object oArea)
         return;
     }
 
-    int iCount = GetLocalInt(oArea, "al_npc_count");
+    int iCount = GetLocalInt(oArea, AL_L_NPC_COUNT);
     int i = 0;
 
     while (i < iCount)
     {
-        string sKey = "al_npc_" + IntToString(i);
+        string sKey = AL_LocalNpcRegistryEntry(i);
         object oNpc = GetLocalObject(oArea, sKey);
 
         if (!GetIsObjectValid(oNpc))
@@ -244,7 +244,7 @@ void AL_SyncAreaNPCRegistry(object oArea)
         object oCurrentArea = GetArea(oNpc);
         if (!GetIsObjectValid(oCurrentArea))
         {
-            DeleteLocalObject(oNpc, "al_last_area");
+            DeleteLocalObject(oNpc, AL_L_LAST_AREA);
             iCount = AL_PruneRegistrySlot(oArea, i, iCount);
             continue;
         }
@@ -252,24 +252,24 @@ void AL_SyncAreaNPCRegistry(object oArea)
         if (oCurrentArea != oArea)
         {
             iCount = AL_PruneRegistrySlot(oArea, i, iCount);
-            SetLocalObject(oNpc, "al_last_area", oCurrentArea);
+            SetLocalObject(oNpc, AL_L_LAST_AREA, oCurrentArea);
             AL_RegisterNPC(oNpc);
             continue;
         }
 
-        SetLocalObject(oNpc, "al_last_area", oArea);
+        SetLocalObject(oNpc, AL_L_LAST_AREA, oArea);
         i++;
     }
 }
 
 void AL_HideRegisteredNPCs(object oArea)
 {
-    int iCount = GetLocalInt(oArea, "al_npc_count");
+    int iCount = GetLocalInt(oArea, AL_L_NPC_COUNT);
     int i = 0;
 
     while (i < iCount)
     {
-        string sKey = "al_npc_" + IntToString(i);
+        string sKey = AL_LocalNpcRegistryEntry(i);
         object oNpc = GetLocalObject(oArea, sKey);
 
         if (!GetIsObjectValid(oNpc))
@@ -302,11 +302,11 @@ void AL_ResetNPCFreezeState(object oNpc)
     // 2) clear bed-docking state,
     // 3) clear runtime route-loop locals so wake always starts from RESYNC.
     SetCollision(oNpc, TRUE);
-    DeleteLocalInt(oNpc, "al_sleep_docked");
-    DeleteLocalString(oNpc, "al_sleep_approach_tag");
-    DeleteLocalInt(oNpc, "r_active");
-    DeleteLocalInt(oNpc, "r_slot");
-    DeleteLocalInt(oNpc, "r_idx");
+    DeleteLocalInt(oNpc, AL_L_SLEEP_DOCKED);
+    DeleteLocalString(oNpc, AL_L_SLEEP_APPROACH_TAG);
+    DeleteLocalInt(oNpc, AL_L_ROUTE_ACTIVE);
+    DeleteLocalInt(oNpc, AL_L_ROUTE_SLOT);
+    DeleteLocalInt(oNpc, AL_L_ROUTE_INDEX);
 }
 
 void AL_HandleAreaBecameEmpty(object oArea)
@@ -316,11 +316,11 @@ void AL_HandleAreaBecameEmpty(object oArea)
         return;
     }
 
-    AL_SetAreaMode(oArea, AL_AREA_MODE_COLD);
-    SetLocalInt(oArea, "al_tick_token", GetLocalInt(oArea, "al_tick_token") + 1);
-    DeleteLocalInt(oArea, "al_tick_scheduled_token");
-    DeleteLocalInt(oArea, "al_tick_warm_left");
-    DeleteLocalInt(oArea, "al_routes_cached");
+    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_COLD);
+    SetLocalInt(oArea, AL_L_TICK_TOKEN, GetLocalInt(oArea, AL_L_TICK_TOKEN) + 1);
+    DeleteLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN);
+    DeleteLocalInt(oArea, AL_L_TICK_WARM_LEFT);
+    DeleteLocalInt(oArea, AL_L_ROUTES_CACHED);
     AL_HideRegisteredNPCs(oArea);
     AL_DebugLogL1(oArea, OBJECT_INVALID, "AL: freeze complete; routes invalidated and NPCs hidden.");
 }
@@ -332,12 +332,12 @@ void AL_UnhideAndResyncRegisteredNPCs(object oArea)
         return;
     }
 
-    int iCount = GetLocalInt(oArea, "al_npc_count");
+    int iCount = GetLocalInt(oArea, AL_L_NPC_COUNT);
     int i = 0;
 
     while (i < iCount)
     {
-        string sKey = "al_npc_" + IntToString(i);
+        string sKey = AL_LocalNpcRegistryEntry(i);
         object oNpc = GetLocalObject(oArea, sKey);
 
         if (!GetIsObjectValid(oNpc))
@@ -363,12 +363,12 @@ void AL_BroadcastUserEvent(object oArea, int nEvent)
         return;
     }
 
-    int iCount = GetLocalInt(oArea, "al_npc_count");
+    int iCount = GetLocalInt(oArea, AL_L_NPC_COUNT);
     int i = 0;
 
     while (i < iCount)
     {
-        string sKey = "al_npc_" + IntToString(i);
+        string sKey = AL_LocalNpcRegistryEntry(i);
         object oNpc = GetLocalObject(oArea, sKey);
 
         if (!GetIsObjectValid(oNpc))

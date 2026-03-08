@@ -33,7 +33,7 @@ string AL_GetRouteTag(object oNpc, int nSlot)
 
 string AL_GetDesiredRouteTag(object oNpc, int nSlot)
 {
-    string sTag = GetLocalString(oNpc, "alwp" + IntToString(nSlot));
+    string sTag = GetLocalString(oNpc, AL_LocalWaypointTag(nSlot));
     if (sTag != "")
     {
         return sTag;
@@ -71,7 +71,7 @@ int AL_GetRoutePointActivity(object oNpc, int nSlot, int iIndex)
 
 void AL_UpdateRouteIndex(object oNpc, int iIndex)
 {
-    SetLocalInt(oNpc, "r_idx", iIndex);
+    SetLocalInt(oNpc, AL_L_ROUTE_INDEX, iIndex);
 }
 
 void AL_OnRouteStep(object oNpc, int nIdx, location lPoint)
@@ -85,13 +85,13 @@ void AL_OnRouteStep(object oNpc, int nIdx, location lPoint)
     {
         if (GetIsObjectValid(oNpcArea))
         {
-            int nTickToken = GetLocalInt(oNpcArea, "al_tick_token");
-            if (nTickToken == GetLocalInt(oNpc, "al_last_route_recover_tick"))
+            int nTickToken = GetLocalInt(oNpcArea, AL_L_TICK_TOKEN);
+            if (nTickToken == GetLocalInt(oNpc, AL_L_LAST_ROUTE_RECOVER_TICK))
             {
                 return;
             }
 
-            SetLocalInt(oNpc, "al_last_route_recover_tick", nTickToken);
+            SetLocalInt(oNpc, AL_L_LAST_ROUTE_RECOVER_TICK, nTickToken);
         }
 
         AssignCommand(oNpc, ClearAllActions());
@@ -106,13 +106,13 @@ void AL_OnRouteStep(object oNpc, int nIdx, location lPoint)
         return;
     }
 
-    int nTickToken = GetLocalInt(oNpcArea, "al_tick_token");
-    if (nTickToken == GetLocalInt(oNpc, "al_last_route_recover_tick"))
+    int nTickToken = GetLocalInt(oNpcArea, AL_L_TICK_TOKEN);
+    if (nTickToken == GetLocalInt(oNpc, AL_L_LAST_ROUTE_RECOVER_TICK))
     {
         return;
     }
 
-    SetLocalInt(oNpc, "al_last_route_recover_tick", nTickToken);
+    SetLocalInt(oNpc, AL_L_LAST_ROUTE_RECOVER_TICK, nTickToken);
 
     AL_RouteDebugLog(oNpc, AL_DEBUG_LEVEL_L1, "AL: route step failed, idx=" + IntToString(nIdx)
         + ", dist=" + FloatToString(fDist) + ", resync.");
@@ -128,9 +128,9 @@ void AL_ClearActiveRoute(object oNpc, int bClearActions)
         AssignCommand(oNpc, ClearAllActions());
     }
 
-    DeleteLocalInt(oNpc, "r_slot");
-    DeleteLocalInt(oNpc, "r_idx");
-    DeleteLocalInt(oNpc, "r_active");
+    DeleteLocalInt(oNpc, AL_L_ROUTE_SLOT);
+    DeleteLocalInt(oNpc, AL_L_ROUTE_INDEX);
+    DeleteLocalInt(oNpc, AL_L_ROUTE_ACTIVE);
 }
 
 void AL_ClearRoute(object oNpc, int nSlot)
@@ -167,7 +167,7 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
         return 0;
     }
 
-    if (!GetLocalInt(oArea, "al_routes_cached"))
+    if (!GetLocalInt(oArea, AL_L_ROUTES_CACHED))
     {
         AL_CacheAreaRoutes(oArea);
     }
@@ -256,8 +256,8 @@ void AL_HandleRouteAreaTransition()
     object oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
-        SetLocalObject(oNpc, "al_last_area", oArea);
-        int nPlayerCount = GetLocalInt(oArea, "al_player_count");
+        SetLocalObject(oNpc, AL_L_LAST_AREA, oArea);
+        int nPlayerCount = GetLocalInt(oArea, AL_L_PLAYER_COUNT);
         if (nPlayerCount <= 0)
         {
             // Protect zero-activity areas without PCs; activation happens via al_area_onenter.
@@ -265,7 +265,7 @@ void AL_HandleRouteAreaTransition()
             {
                 SetScriptHidden(oNpc, TRUE, TRUE);
             }
-            if (GetLocalInt(oNpc, "r_active"))
+            if (GetLocalInt(oNpc, AL_L_ROUTE_ACTIVE))
             {
                 AL_ClearActiveRoute(oNpc, TRUE);
             }
@@ -276,7 +276,7 @@ void AL_HandleRouteAreaTransition()
         AL_RegisterNPC(oNpc);
     }
 
-    int nSlot = GetLocalInt(oNpc, "r_slot");
+    int nSlot = GetLocalInt(oNpc, AL_L_ROUTE_SLOT);
     if (nSlot >= 0 && nSlot <= AL_SLOT_MAX)
     {
         string sDesiredTag = AL_GetDesiredRouteTag(oNpc, nSlot);
@@ -308,9 +308,9 @@ void AL_QueueRoute(object oNpc, int nSlot, int bClearActions)
         return;
     }
 
-    SetLocalInt(oNpc, "r_slot", nSlot);
-    SetLocalInt(oNpc, "r_idx", 0);
-    SetLocalInt(oNpc, "r_active", TRUE);
+    SetLocalInt(oNpc, AL_L_ROUTE_SLOT, nSlot);
+    SetLocalInt(oNpc, AL_L_ROUTE_INDEX, 0);
+    SetLocalInt(oNpc, AL_L_ROUTE_ACTIVE, TRUE);
 
     while (i < iCount)
     {
