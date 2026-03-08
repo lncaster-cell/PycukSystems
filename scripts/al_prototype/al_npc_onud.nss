@@ -265,6 +265,31 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
 
     SetLocalInt(oNpc, AL_L_LAST_SLOT, nSlot);
     int nActivity = AL_GetWaypointActivityForSlot(oNpc, nSlot);
+    int bNeedsTrainingPartner = AL_ActivityRequiresTrainingPartner(nActivity);
+    int bNeedsBarPair = AL_ActivityRequiresBarPair(nActivity);
+
+    if (bNeedsTrainingPartner)
+    {
+        object oTrainingPartner = GetLocalObject(oNpc, AL_L_TRAINING_PARTNER);
+        int bTrainingPartnerValid = GetIsObjectValid(oTrainingPartner)
+            && GetArea(oTrainingPartner) == oArea;
+        if (!bTrainingPartnerValid)
+        {
+            AL_InitTrainingPartner(oNpc);
+        }
+    }
+
+    if (bNeedsBarPair)
+    {
+        object oBarPair = GetLocalObject(oNpc, AL_L_BAR_PAIR);
+        int bBarPairValid = GetIsObjectValid(oBarPair)
+            && GetArea(oBarPair) == oArea;
+        if (!bBarPairValid)
+        {
+            AL_InitBarPair(oNpc);
+        }
+    }
+
     int bUsesRoute = AL_ActivityUsesRoute(nSlot);
     int bHasRequiredRoute = AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity);
     int bCanUseRoute = bUsesRoute && bHasRequiredRoute;
@@ -352,10 +377,6 @@ void AL_HandleResyncEvent(object oNpc, object oArea, int nSlot)
     AL_ResetRepeatRequeueCooldown(oNpc);
     AL_IncrementLocalMetric(oNpc, AL_L_METRIC_ROUTE_RESYNC_COUNT);
     AL_DebugLogL1(oArea, oNpc, "AL: RESYNC started for " + GetName(oNpc) + ".");
-    // Wake/resync contract: pair subsystem must be validated before
-    // evaluating route/activity requirements for this slot.
-    AL_InitTrainingPartner(oNpc);
-    AL_InitBarPair(oNpc);
     SetLocalInt(oNpc, AL_L_LAST_SLOT, -1);
 
     AL_ProcessSlotEvent(oNpc, oArea, nSlot, AL_EVT_RESYNC);
