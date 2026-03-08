@@ -8,7 +8,8 @@
 // Include layering contract (one-way):
 // - al_npc_activity_apply_inc -> {al_acts_inc, al_constants_inc, al_debug_inc, al_npc_routes}
 // - al_npc_sleep_inc          -> {al_npc_activity_apply_inc}
-// - al_npc_acts_inc           -> {al_npc_activity_apply_inc, al_npc_sleep_inc, al_npc_pair_revalidate_inc}
+// - al_npc_acts_inc           -> compatibility wrapper only (no runtime logic)
+//                                 forwards to {al_npc_activity_apply_inc, al_npc_sleep_inc, al_npc_pair_revalidate_inc}.
 // Entrypoints should include only the highest-level include they need.
 
 int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
