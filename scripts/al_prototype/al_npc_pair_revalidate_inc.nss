@@ -4,7 +4,8 @@
 
 // Include layering contract (one-way):
 // - al_npc_pair_revalidate_inc -> {al_debug_inc}
-// - al_npc_acts_inc            -> {al_npc_activity_apply_inc, al_npc_sleep_inc, al_npc_pair_revalidate_inc}
+// - al_npc_acts_inc            -> compatibility wrapper only (no runtime logic)
+//                                 forwards to {al_npc_activity_apply_inc, al_npc_sleep_inc, al_npc_pair_revalidate_inc}.
 // This module is intentionally isolated from route/activity includes.
 
 void AL_ClearAreaPairKeyIfStale(object oArea, string sAreaKey)
