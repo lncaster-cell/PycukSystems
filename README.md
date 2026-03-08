@@ -70,6 +70,15 @@
 - `al_adj_interior_whitelist` — CSV интерьерных соседей, которых можно прогревать.
 - `al_debug=1` — отладочные сообщения для area.
 
+### 2.5 Training pair refs (контракт спаривания)
+
+Для тренировочной пары (`AL_ACT_NPC_TRAINING_ONE` / `AL_ACT_NPC_TRAINING_TWO`) роль NPC определяется **только object refs на area**, а не тегами NPC:
+
+- `al_training_npc1_ref` — object local на area для стороны `npc1`.
+- `al_training_npc2_ref` — object local на area для стороны `npc2`.
+
+Если NPC не совпал ни с одним из этих refs, training-pair для него не инициализируется.
+
 ---
 
 ## 3) Сон НПЦ — максимально просто

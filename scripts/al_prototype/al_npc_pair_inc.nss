@@ -34,19 +34,27 @@ void AL_InitTrainingPartner(object oNpc)
         }
     }
 
-    string sTag = GetTag(oNpc);
+    object oArea = GetArea(oNpc);
+    object oTrainingNpc1Ref = OBJECT_INVALID;
+    object oTrainingNpc2Ref = OBJECT_INVALID;
     string sAreaPartnerKey = "";
     string sAreaSelfKey = "";
     string sAreaPartnerRefKey = "";
     int bResetCache = FALSE;
 
-    if (sTag == "FACTION_NPC1")
+    if (GetIsObjectValid(oArea))
+    {
+        oTrainingNpc1Ref = GetLocalObject(oArea, "al_training_npc1_ref");
+        oTrainingNpc2Ref = GetLocalObject(oArea, "al_training_npc2_ref");
+    }
+
+    if (oNpc == oTrainingNpc1Ref)
     {
         sAreaSelfKey = "al_training_npc1";
         sAreaPartnerKey = "al_training_npc2";
         sAreaPartnerRefKey = "al_training_npc2_ref";
     }
-    else if (sTag == "FACTION_NPC2")
+    else if (oNpc == oTrainingNpc2Ref)
     {
         sAreaSelfKey = "al_training_npc2";
         sAreaPartnerKey = "al_training_npc1";
@@ -55,10 +63,13 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (sAreaPartnerKey == "")
     {
+        if (GetIsObjectValid(oArea) && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
+        {
+            AL_SendDebugMessageToAreaPCs(oArea, "AL: training partner init skipped for " + GetName(oNpc) + " (not matched to al_training_npc1_ref/al_training_npc2_ref).");
+        }
         return;
     }
 
-    object oArea = GetArea(oNpc);
     object oPartner = OBJECT_INVALID;
 
     if (GetIsObjectValid(oArea))

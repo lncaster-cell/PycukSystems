@@ -130,6 +130,14 @@ Ambient Life (AL) управляет «фоновым» поведением NPC
 - `al_adjacent_areas` / `al_adj_interior_whitelist` для соседства;
 - `al_debug=1` для локальной диагностики.
 
+### 5.4 Training pair contract
+
+- Training-пара (`AL_InitTrainingPartner`) определяется через area object refs:
+  - `al_training_npc1_ref` для роли `npc1`;
+  - `al_training_npc2_ref` для роли `npc2`.
+- Tag-based определение ролей (`FACTION_NPC1/FACTION_NPC2`) не является частью актуального контракта.
+- Если NPC не совпадает ни с одним training ref, runtime-пара для него не связывается.
+
 ## 6. Safety и fallback-поведение
 
 1. При freeze у NPC очищается runtime route-state (`r_active`, `r_slot`, `r_idx`).
