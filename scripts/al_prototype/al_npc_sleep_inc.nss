@@ -86,7 +86,9 @@ int AL_StartSleepAtBed(object oNpc, object oSleepWp)
     if (GetLocalInt(oNpc, AL_L_SLEEP_DOCKED)
         && GetLocalString(oNpc, AL_L_SLEEP_APPROACH_TAG) == sApproachTag)
     {
-        // Already docked to this bed approach point: keep sleeping in place.
+        // Contract: "already docked" means no repeat move/jump, but keep the
+        // sleep-loop animation active.
+        AL_QueueSleepAnimationLoop(oNpc);
         return TRUE;
     }
 
