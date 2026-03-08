@@ -161,10 +161,6 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (sAreaPartnerKey == "")
     {
-        if (GetIsObjectValid(oArea) && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
-        {
-            AL_SendDebugMessageToAreaPCs(oArea, "AL: training partner init skipped for " + GetName(oNpc) + " (not matched to training pair refs).");
-        }
         return;
     }
 
