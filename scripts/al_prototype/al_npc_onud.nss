@@ -150,7 +150,7 @@ void AL_MarkAnimationApplied(object oNpc, int nIntervalSeconds)
     AL_MarkDaySecondsCooldown(oNpc, "al_anim_next", nIntervalSeconds);
 }
 
-void AL_ClearRouteAndRepeatState(object oNpc, int bStopSleep)
+void AL_ClearRouteAndRepeatStateEx(object oNpc, int bStopSleep, int bClearActions)
 {
     if (bStopSleep)
     {
@@ -158,7 +158,19 @@ void AL_ClearRouteAndRepeatState(object oNpc, int bStopSleep)
     }
 
     AL_ResetRepeatRequeueCooldown(oNpc);
-    AL_ClearActiveRoute(oNpc, /*bClearActions=*/ TRUE);
+
+    object oArea = GetArea(oNpc);
+    if (bClearActions && !bStopSleep && GetLocalInt(oNpc, AL_L_SLEEP_DOCKED))
+    {
+        AL_DebugLogL1(oArea, oNpc, "AL: sleep docking action queue canceled by route cleanup (ClearAllActions).");
+    }
+
+    AL_ClearActiveRoute(oNpc, bClearActions);
+}
+
+void AL_ClearRouteAndRepeatState(object oNpc, int bStopSleep)
+{
+    AL_ClearRouteAndRepeatStateEx(oNpc, bStopSleep, /*bClearActions=*/ TRUE);
 }
 
 void AL_QueueRepeatRequeue(object oNpc, object oArea)
@@ -392,7 +404,9 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
             if (AL_StartSleepAtBed(oNpc, oSleepWp))
             {
                 // Sleep does not need route repeat loops after successful docking.
-                AL_ClearRouteAndRepeatState(oNpc, FALSE);
+                // Preserve queued docking actions (move/jump/sleep loop).
+                AL_DebugLogL2(oArea, oNpc, "AL: sleep docking action queue preserved (route state cleared without ClearAllActions).");
+                AL_ClearRouteAndRepeatStateEx(oNpc, FALSE, /*bClearActions=*/ FALSE);
             }
             else if (bCanUseRoute)
             {
@@ -400,9 +414,10 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
                 // the sleep route instead of forcing lie-down at the current point.
                 AL_QueueRoute(oNpc, nSlot, nEvent != AL_EVT_ROUTE_REPEAT);
             }
-            else if (nEvent != AL_EVT_RESYNC)
+            else
             {
-                AL_ApplyActivityForSlot(oNpc, nSlot);
+                // Prevent in-place sleep fallback when docking cannot be resolved.
+                AL_DebugLogL1(oArea, oNpc, "AL: sleep docking failed; in-place sleep fallback suppressed.");
             }
         }
         else
