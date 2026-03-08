@@ -35,19 +35,19 @@
   - В indexed-режиме waypoint без валидного `al_route_index` или без флага присутствия (по dual-key правилу) пропускаются.
   - Если индекс не задан ни у одной waypoint маршрута, порядок строится в dense/fallback-режиме (как раньше).
 
-Для перехода в другую area (если используете межзоновые точки) поддерживаются два явных режима:
+Для перехода в другую area (межзоновые точки) актуальный контракт такой:
 
-- **Bootstrap/runtime (предпочтительно):**
-  - `al_transition_location` (**location local**) задаётся скриптом, либо
-  - legacy-вариант: `al_transition_area` (**object local**) + float locals
-    `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing`.
-  - Эти locals не должны проставляться вручную в toolset как контентный контракт.
+- `al_transition_area_tag` (**string local**) — **обязателен** для межзонового перехода; это tag целевой area.
+- `al_transition_waypoint_tag` (**string local**) — **опционален**; это tag waypoint в целевой area.
+  - Если `al_transition_waypoint_tag` не задан, используется tag текущего source-waypoint.
 
-- **Ручная настройка в toolset:**
-  - `al_transition_area_tag` (**string local**, tag целевой area),
-  - `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing` (**float locals**).
+Устаревшие/неактуальные для контентного контракта пункты (не использовать в toolset):
 
-Кэш маршрутов сначала использует `al_transition_location`, затем object-local `al_transition_area` (обратная совместимость), и только потом string-local `al_transition_area_tag`.
+- `al_transition_location`
+- `al_transition_area`
+- `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing`
+
+Источник истины по runtime-логике переходов: `scripts/al_prototype/al_route_cache_inc.nss` (блок transition setup в `AL_CacheAreaRoutes`).
 
 ### 2.3 Настройка сна через waypoint locals
 
