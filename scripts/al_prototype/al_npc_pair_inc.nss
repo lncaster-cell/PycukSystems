@@ -1,4 +1,6 @@
 // NPC pair subsystem helpers: training + bar pair validation/resync.
+// Contract: *_REF locals are authoritative for role/source identity,
+// while AL_L_TRAINING_NPC1/2 + AL_L_BAR_* are derived runtime cache only.
 
 #include "al_constants_inc"
 #include "al_debug_inc"
@@ -19,14 +21,11 @@ void AL_InitTrainingPartner(object oNpc)
         if (GetIsObjectValid(oAreaSelf) && oAreaPartner == oAreaSelf)
         {
             object oPartnerBacklink = GetLocalObject(oExistingPartner, AL_L_TRAINING_PARTNER);
-            if (oPartnerBacklink == oNpc)
+            if (oPartnerBacklink != oNpc)
             {
-                // Keep early-return only for a fully valid, symmetric in-area pair.
-                return;
+                // Partner points elsewhere: drop only the stale one-sided link on this NPC.
+                DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
             }
-
-            // Partner points elsewhere: drop only the stale one-sided link on this NPC.
-            DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
         }
         else
         {
@@ -41,12 +40,13 @@ void AL_InitTrainingPartner(object oNpc)
     string sAreaPartnerKey = "";
     string sAreaSelfKey = "";
     string sAreaPartnerRefKey = "";
-    int bResetCache = FALSE;
+    object oRefPartner = OBJECT_INVALID;
+    int bCacheRefMismatchRepaired = FALSE;
 
     if (GetIsObjectValid(oArea))
     {
-        oTrainingNpc1Ref = GetLocalObject(oArea, "al_training_npc1_ref");
-        oTrainingNpc2Ref = GetLocalObject(oArea, "al_training_npc2_ref");
+        oTrainingNpc1Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
+        oTrainingNpc2Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
     }
 
     if (oNpc == oTrainingNpc1Ref)
@@ -75,51 +75,61 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea))
     {
-        // Area locals seeded via toolset/bootstrap:
-        // AL_L_TRAINING_NPC1_REF / AL_L_TRAINING_NPC2_REF point to the pair.
-        if (GetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED))
+        // Resolve partner role from authoritative refs first.
+        oRefPartner = GetLocalObject(oArea, sAreaPartnerRefKey);
+        if (!GetIsObjectValid(oRefPartner) || GetArea(oRefPartner) != oArea)
         {
-            object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
-            object oCachedPartner = GetLocalObject(oArea, sAreaPartnerKey);
-            if (!GetIsObjectValid(oCachedSelf) || !GetIsObjectValid(oCachedPartner))
+            oRefPartner = OBJECT_INVALID;
+        }
+
+        // Runtime cache may accelerate lookup only when consistent with refs.
+        object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
+        object oCachedPartner = GetLocalObject(oArea, sAreaPartnerKey);
+
+        if (GetIsObjectValid(oCachedSelf) && (oCachedSelf != oNpc || GetArea(oCachedSelf) != oArea))
+        {
+            DeleteLocalObject(oArea, sAreaSelfKey);
+            bCacheRefMismatchRepaired = TRUE;
+            oCachedSelf = OBJECT_INVALID;
+        }
+
+        if (GetIsObjectValid(oCachedPartner))
+        {
+            int bPartnerMismatch = (oCachedPartner != oRefPartner);
+            if (GetArea(oCachedPartner) != oArea)
             {
-                SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, FALSE);
-                DeleteLocalObject(oArea, sAreaSelfKey);
+                bPartnerMismatch = TRUE;
+            }
+
+            if (bPartnerMismatch)
+            {
                 DeleteLocalObject(oArea, sAreaPartnerKey);
-                bResetCache = TRUE;
+                bCacheRefMismatchRepaired = TRUE;
+                oCachedPartner = OBJECT_INVALID;
             }
         }
-        SetLocalObject(oArea, sAreaSelfKey, oNpc);
-        oPartner = GetLocalObject(oArea, sAreaPartnerKey);
-    }
 
-    if (!GetIsObjectValid(oPartner))
-    {
-        if (GetIsObjectValid(oArea))
+        SetLocalObject(oArea, sAreaSelfKey, oNpc);
+
+        if (GetIsObjectValid(oRefPartner))
         {
-            object oRefPartner = GetLocalObject(oArea, sAreaPartnerRefKey);
-            if (GetIsObjectValid(oRefPartner) && GetArea(oRefPartner) == oArea)
+            oPartner = oCachedPartner;
+            if (!GetIsObjectValid(oPartner))
             {
                 oPartner = oRefPartner;
                 SetLocalObject(oArea, sAreaPartnerKey, oPartner);
             }
         }
-    }
-
-    if (GetIsObjectValid(oArea) && bResetCache)
-    {
-        object oAreaNpc1 = GetLocalObject(oArea, AL_L_TRAINING_NPC1);
-        object oAreaNpc2 = GetLocalObject(oArea, AL_L_TRAINING_NPC2);
-        int bHasRestoredPair = GetIsObjectValid(oAreaNpc1)
-            && GetIsObjectValid(oAreaNpc2)
-            && GetArea(oAreaNpc1) == oArea
-            && GetArea(oAreaNpc2) == oArea;
-
-        SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, bHasRestoredPair);
-
-        if (!bHasRestoredPair && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
+        else
         {
-            AL_SendDebugMessageToAreaPCs(oArea, "AL: training partner cache reset; pair restore failed.");
+            DeleteLocalObject(oArea, sAreaPartnerKey);
+        }
+
+        SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, GetIsObjectValid(oRefPartner));
+
+        if (bCacheRefMismatchRepaired && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
+        {
+            AL_SendDebugMessageToAreaPCs(oArea, "AL: cache/ref mismatch repaired.");
         }
     }
 
@@ -153,18 +163,16 @@ void AL_InitBarPair(object oNpc)
         if (GetArea(oExistingPair) == oArea)
         {
             object oBack = GetLocalObject(oExistingPair, AL_L_BAR_PAIR);
-            if (oBack == oNpc)
+            if (oBack != oNpc)
             {
-                return;
-            }
+                // Existing pair is asymmetric in the same area, so this local link
+                // is stale and must not be reused for requirement checks.
+                DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
 
-            // Existing pair is asymmetric in the same area, so this local link
-            // is stale and must not be reused for requirement checks.
-            DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
-
-            if (AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
-            {
-                AL_SendDebugMessageToAreaPCs(oArea, "AL: asymmetric bar pair repaired for " + GetName(oNpc) + ".");
+                if (AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
+                {
+                    AL_SendDebugMessageToAreaPCs(oArea, "AL: asymmetric bar pair repaired for " + GetName(oNpc) + ".");
+                }
             }
         }
         else
@@ -204,41 +212,60 @@ void AL_InitBarPair(object oNpc)
     }
 
     object oPartner = OBJECT_INVALID;
+    int bCacheRefMismatchRepaired = FALSE;
 
-    // Area locals seeded via toolset/bootstrap:
-    // AL_L_BAR_BARTENDER_REF / AL_L_BAR_BARMAID_REF point to the pair.
+    // Resolve roles from refs first; cache is only a runtime accelerator after ref check.
+    if (!GetIsObjectValid(oPartnerRef) || GetArea(oPartnerRef) != oArea)
+    {
+        oPartnerRef = OBJECT_INVALID;
+    }
+
     object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
     object oCachedPartner = GetLocalObject(oArea, sAreaPartnerKey);
-    if (!GetIsObjectValid(oCachedSelf)
-        || !GetIsObjectValid(oCachedPartner)
-        || GetArea(oCachedSelf) != oArea
-        || GetArea(oCachedPartner) != oArea)
+
+    if (GetIsObjectValid(oCachedSelf) && (oCachedSelf != oNpc || GetArea(oCachedSelf) != oArea))
     {
         DeleteLocalObject(oArea, sAreaSelfKey);
-        DeleteLocalObject(oArea, sAreaPartnerKey);
+        bCacheRefMismatchRepaired = TRUE;
+        oCachedSelf = OBJECT_INVALID;
+    }
+
+    if (GetIsObjectValid(oCachedPartner))
+    {
+        int bPartnerMismatch = (oCachedPartner != oPartnerRef);
+        if (GetArea(oCachedPartner) != oArea)
+        {
+            bPartnerMismatch = TRUE;
+        }
+
+        if (bPartnerMismatch)
+        {
+            DeleteLocalObject(oArea, sAreaPartnerKey);
+            bCacheRefMismatchRepaired = TRUE;
+            oCachedPartner = OBJECT_INVALID;
+        }
     }
 
     SetLocalObject(oArea, sAreaSelfKey, oNpc);
-    oPartner = GetLocalObject(oArea, sAreaPartnerKey);
-    if (GetIsObjectValid(oPartner) && GetArea(oPartner) != oArea)
-    {
-        DeleteLocalObject(oArea, sAreaPartnerKey);
-        oPartner = OBJECT_INVALID;
-    }
 
-    if (!GetIsObjectValid(oPartner))
+    if (GetIsObjectValid(oPartnerRef))
     {
-        if (GetIsObjectValid(oPartnerRef) && GetArea(oPartnerRef) == oArea)
+        oPartner = oCachedPartner;
+        if (!GetIsObjectValid(oPartner))
         {
             oPartner = oPartnerRef;
             SetLocalObject(oArea, sAreaPartnerKey, oPartner);
         }
-        else
-        {
-            // Reference was replaced/invalidated: keep runtime pair unbound until a valid NPC appears.
-            DeleteLocalObject(oArea, sAreaPartnerKey);
-            oPartner = OBJECT_INVALID;
-        }
+    }
+    else
+    {
+        // Reference was replaced/invalidated: keep runtime pair unbound until a valid NPC appears.
+        DeleteLocalObject(oArea, sAreaPartnerKey);
+    }
+
+    if (bCacheRefMismatchRepaired && AL_IsDebugLevelEnabled(oArea, OBJECT_INVALID, AL_DEBUG_LEVEL_L1))
+    {
+        AL_SendDebugMessageToAreaPCs(oArea, "AL: cache/ref mismatch repaired.");
     }
 
     if (GetIsObjectValid(oPartner) && oPartner != oNpc)
