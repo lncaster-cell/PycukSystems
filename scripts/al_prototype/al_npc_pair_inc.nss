@@ -76,7 +76,8 @@ void AL_InitTrainingPartner(object oNpc)
     if (GetIsObjectValid(oArea))
     {
         // Area locals seeded via toolset/bootstrap:
-        // AL_L_TRAINING_NPC1_REF / AL_L_TRAINING_NPC2_REF point to the pair.
+        // - AL_L_TRAINING_NPC1_REF / AL_L_TRAINING_NPC2_REF are long-lived configuration refs.
+        // - AL_L_TRAINING_NPC1 / AL_L_TRAINING_NPC2 are short-lived runtime cache and may be rebuilt.
         if (GetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED))
         {
             object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
@@ -206,7 +207,8 @@ void AL_InitBarPair(object oNpc)
     object oPartner = OBJECT_INVALID;
 
     // Area locals seeded via toolset/bootstrap:
-    // AL_L_BAR_BARTENDER_REF / AL_L_BAR_BARMAID_REF point to the pair.
+    // - AL_L_BAR_BARTENDER_REF / AL_L_BAR_BARMAID_REF are long-lived configuration refs.
+    // - AL_L_BAR_BARTENDER / AL_L_BAR_BARMAID are short-lived runtime cache and may be rebuilt.
     object oCachedSelf = GetLocalObject(oArea, sAreaSelfKey);
     object oCachedPartner = GetLocalObject(oArea, sAreaPartnerKey);
     if (!GetIsObjectValid(oCachedSelf)
