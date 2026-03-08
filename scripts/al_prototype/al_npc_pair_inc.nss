@@ -9,6 +9,7 @@ int AL_IsValidAreaRef(object oArea, object oRef)
 {
     return GetIsObjectValid(oArea)
         && GetIsObjectValid(oRef)
+        && GetObjectType(oRef) == OBJECT_TYPE_CREATURE
         && GetArea(oRef) == oArea;
 }
 
@@ -23,7 +24,9 @@ object AL_FindNpcByTagInArea(object oArea, string sTag)
     object oCandidate = GetObjectByTag(sTag, iNth);
     while (GetIsObjectValid(oCandidate))
     {
-        if (GetArea(oCandidate) == oArea)
+        // Pair refs are valid only for NPC-creature objects in the target area.
+        if (GetObjectType(oCandidate) == OBJECT_TYPE_CREATURE
+            && GetArea(oCandidate) == oArea)
         {
             return oCandidate;
         }
