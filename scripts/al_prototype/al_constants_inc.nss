@@ -70,9 +70,6 @@ const string AL_L_ROUTE_REBUILD_TAG_PREFIX = "al_route_rebuild_tag_";
 const string AL_L_ROUTE_PREFIX = "al_route_";
 const string AL_L_ROUTE_SCAN_TMP_PREFIX = "al_route_scan_tmp_";
 const string AL_L_ACTIVITY = "al_activity";
-const string AL_L_METRIC_ROUTE_RESYNC_COUNT = "al_metric_route_resync_count";
-const string AL_L_METRIC_ACTIVITY_FALLBACK_COUNT = "al_metric_activity_fallback_count";
-const string AL_L_METRIC_ROUTE_TRUNCATED_COUNT = "al_metric_route_truncated_count";
 
 string AL_LocalNpcRegistryEntry(int iIndex)
 {
