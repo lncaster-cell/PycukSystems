@@ -45,8 +45,8 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea))
     {
-        oTrainingNpc1Ref = GetLocalObject(oArea, "al_training_npc1_ref");
-        oTrainingNpc2Ref = GetLocalObject(oArea, "al_training_npc2_ref");
+        oTrainingNpc1Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
+        oTrainingNpc2Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
     }
 
     if (oNpc == oTrainingNpc1Ref)
@@ -75,6 +75,7 @@ void AL_InitTrainingPartner(object oNpc)
 
     if (GetIsObjectValid(oArea))
     {
+        // Read area refs only via shared constants to preserve module contract compatibility.
         // Area locals seeded via toolset/bootstrap:
         // - AL_L_TRAINING_NPC1_REF / AL_L_TRAINING_NPC2_REF are long-lived configuration refs.
         // - AL_L_TRAINING_NPC1 / AL_L_TRAINING_NPC2 are short-lived runtime cache and may be rebuilt.
