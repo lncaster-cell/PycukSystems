@@ -99,7 +99,7 @@ int AL_IsParticipantNPC(object oNpc)
     }
 
     int iSlot = 0;
-    while (iSlot <= 5)
+    while (iSlot <= AL_SLOT_MAX)
     {
         if (GetLocalString(oNpc, AL_LocalWaypointTag(iSlot)) != "")
         {
@@ -129,7 +129,7 @@ void AL_RegisterNPC(object oNpc)
 
     if (!AL_IsParticipantNPC(oNpc))
     {
-        AL_LogRegistrationSkip(oNpc, oArea, "missing AL marker (set al_enabled=1 or route locals alwp0..alwp5)");
+        AL_LogRegistrationSkip(oNpc, oArea, "missing AL marker (set al_enabled=1 or route locals alwp<slot>)");
         return;
     }
 
