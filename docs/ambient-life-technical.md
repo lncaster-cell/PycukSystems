@@ -129,6 +129,16 @@ Legacy fallback:
   - если `al_transition_waypoint_tag` не задан, используется tag текущего source-waypoint.
 - route cache резолвит переход как `area tag -> waypoint tag -> location` без координатных locals.
 
+### 5.2.1 Sleep docking contract (дополнение)
+
+Для корректного bed-docking в sleep-слотах требуется:
+
+- на sleep route-waypoint: `al_activity` (`5` или `32`) и `al_bed_tag=<bed_id>`;
+- в той же area: waypoint `<bed_id>_pose` (обязателен);
+- waypoint `<bed_id>_approach` (опционален, иначе подход берётся из sleep route-waypoint).
+
+При отсутствии `al_bed_tag`/`<bed_id>_pose` runtime не прерывается: NPC уходит в fallback-сон без bed-docking.
+
 ### 5.3 Area
 
 - `al_area_mode` + `al_area_mode_is_set=1` (опционально, если хотите explicit policy, включая explicit `COLD=0`);

@@ -51,21 +51,28 @@
 
 ### 2.3 Настройка сна через waypoint locals
 
-На sleep-route waypoint укажите:
+Минимальный контракт сна на route-waypoint:
 
-- `al_activity` (sleep-активность) + `al_bed_tag=<bed_id>`
+- `al_activity` = sleep-активность (`5` для `AL_ACT_NPC_SLEEP_BED`, реже `32` для `AL_ACT_NPC_SLEEP_90`)
+- `al_bed_tag=<bed_id>`
 
-И создайте в той же area waypoint-точку:
+Далее в **той же area** создаются bed-waypoints:
 
-- `<bed_id>_pose` — точка укладки (поза сна).
+- `<bed_id>_pose` — обязательная точка укладки (поза сна)
+- `<bed_id>_approach` — опциональная точка подхода к кровати
 
-Дополнительно (опционально) можно создать:
+Поведение по умолчанию:
 
-- `<bed_id>_approach` — override-точка подхода к кровати.
+- если `<bed_id>_approach` отсутствует, точка подхода берётся из самого sleep route-waypoint;
+- если `al_bed_tag` пустой или `<bed_id>_pose` не найден, bed-docking не выполняется, и NPC уходит в fallback-анимацию сна без корректной привязки к кровати.
 
-Если `<bed_id>_approach` отсутствует, точка подхода по умолчанию берётся из самого sleep route waypoint.
+Рекомендуемая схема именования:
 
-Если `al_bed_tag`/bed-точки не заданы, bed-docking не сработает, и NPC уйдёт в fallback-проигрывание сна без корректной привязки к кровати.
+- route-waypoint: `wp_<area>_<npc>_sleep`
+- bed locals: `al_bed_tag=<npc_bed_id>`
+- bed-waypoints: `<npc_bed_id>_pose` и (опционально) `<npc_bed_id>_approach`
+
+Это снижает риск коллизий тегов между разными NPC в одной area.
 
 ### 2.4 Area locals (рекомендуется)
 
@@ -101,13 +108,24 @@
    - `al_activity = 5` (обычный сон в кровати)
    - `al_bed_tag = <bed_id>`
 3. В той же area создайте waypoint:
-   - `<bed_id>_pose`
-   - (опционально) `<bed_id>_approach` как override-точку подхода
+   - `<bed_id>_pose` (обязательно)
+   - `<bed_id>_approach` (опционально)
 4. Проверьте, что у NPC назначен `OnSpawn -> al_npc_onspawn`.
 
 Готово: в ночные слоты (`alwp0/alwp1`, примерно 00:00–08:00) НПЦ пойдёт спать.
 
 > Если хотите упростить ещё сильнее: используйте один и тот же `<tag_sleep_wp>` для `alwp0` и `alwp1`.
+
+### 3.1 Быстрая диагностика сна (если NPC не лёг в кровать)
+
+Проверьте по порядку:
+
+1. У NPC действительно выставлены `alwp0/alwp1` и они указывают на существующий route-waypoint.
+2. На route-waypoint стоит `al_activity=5` или `32`, и заполнен `al_bed_tag`.
+3. В **той же area** существует `<bed_id>_pose` (строго по tag, без опечаток).
+4. Скрипты NPC назначены корректно: минимум `OnSpawn -> al_npc_onspawn`, `OnUserDefined -> al_npc_onud`.
+
+Если пункты 1–4 верны, но NPC всё равно спит «рядом с кроватью», значит сработал fallback (обычно отсутствует/не найден `<bed_id>_pose`).
 
 ---
 
