@@ -316,7 +316,7 @@ void AL_HandleAreaBecameEmpty(object oArea)
         return;
     }
 
-    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_COLD);
+    AL_SetAreaMode(oArea, AL_AREA_MODE_COLD);
     SetLocalInt(oArea, AL_L_TICK_TOKEN, GetLocalInt(oArea, AL_L_TICK_TOKEN) + 1);
     DeleteLocalInt(oArea, AL_L_TICK_SCHEDULED_TOKEN);
     DeleteLocalInt(oArea, AL_L_TICK_WARM_LEFT);
