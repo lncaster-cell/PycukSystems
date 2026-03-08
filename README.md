@@ -35,15 +35,19 @@
   - В indexed-режиме waypoint без валидного `al_route_index` или без явного флага присутствия пропускаются.
   - Если индекс не задан ни у одной waypoint маршрута, порядок строится в dense/fallback-режиме (как раньше).
 
-Для перехода в другую area (если используете межзоновые точки):
+Для перехода в другую area (если используете межзоновые точки) поддерживаются два явных режима:
 
-- предпочтительно: `al_transition_location`,
-- либо fallback-набор:
-  - `al_transition_area`
-  - `al_transition_x`
-  - `al_transition_y`
-  - `al_transition_z`
-  - `al_transition_facing`
+- **Bootstrap/runtime (предпочтительно):**
+  - `al_transition_location` (**location local**) задаётся скриптом, либо
+  - legacy-вариант: `al_transition_area` (**object local**) + float locals
+    `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing`.
+  - Эти locals не должны проставляться вручную в toolset как контентный контракт.
+
+- **Ручная настройка в toolset:**
+  - `al_transition_area_tag` (**string local**, tag целевой area),
+  - `al_transition_x`, `al_transition_y`, `al_transition_z`, `al_transition_facing` (**float locals**).
+
+Кэш маршрутов сначала использует `al_transition_location`, затем object-local `al_transition_area` (обратная совместимость), и только потом string-local `al_transition_area_tag`.
 
 ### 2.3 Настройка сна через waypoint locals
 

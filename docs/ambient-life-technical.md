@@ -1,6 +1,6 @@
 # Ambient Life — Technical Documentation
 
-Обновлено: 2026-03-07
+Обновлено: 2026-03-08
 
 ## 1. Назначение модуля
 
@@ -115,9 +115,15 @@ Ambient Life (AL) управляет «фоновым» поведением NPC
   - waypoint без валидного индекса в indexed-режиме отбрасываются;
   - при полном отсутствии индексов маршрут строится в dense/fallback-режиме;
   - `al_route_index_set` считается legacy-совместимостью и не является частью актуального контракта данных.
-- для межзонового перехода:
-  - `al_transition_location` (предпочтительно), либо
-  - fallback-поля `al_transition_area/x/y/z/facing`.
+- для межзонового перехода поддерживаются два контрактных режима:
+  - **bootstrap/runtime:** скрипт проставляет waypoint locals
+    `al_transition_location` (тип location) или legacy-вариант
+    `al_transition_area` (тип object) + `al_transition_x/y/z/facing` (float);
+    вручную в toolset эти object/location locals не задаются;
+  - **manual/toolset:** `al_transition_area_tag` (тип string, tag area)
+    + `al_transition_x/y/z/facing` (float).
+- порядок резолва в route cache: `al_transition_location` ->
+  `al_transition_area` (backward compatibility) -> `al_transition_area_tag`.
 
 ### 5.3 Area
 

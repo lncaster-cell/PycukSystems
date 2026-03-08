@@ -216,10 +216,13 @@ void AL_CacheAreaRoutes(object oArea)
                 }
 
                 DeleteLocalLocation(oArea, sIndex + "_jump");
-                // Transition setup is pre-seeded via toolset/bootstrap:
-                // - Preferred: set a local location on the waypoint: "al_transition_location".
-                // - Alternative: set a local object area: "al_transition_area" + x/y/z/facing.
-                // Avoid tag lookups in runtime hot paths.
+                // Transition setup contract:
+                // - Runtime/bootstrap path: script pre-seeds waypoint locals
+                //   "al_transition_location" (location) or legacy
+                //   "al_transition_area" (object) + x/y/z/facing floats.
+                // - Manual toolset path: set string local "al_transition_area_tag"
+                //   + x/y/z/facing floats.
+                // - Backward compatibility for object local is preserved.
                 location lJump = GetLocalLocation(oWp, "al_transition_location");
                 object oJumpArea = GetAreaFromLocation(lJump);
                 if (GetIsObjectValid(oJumpArea))
@@ -237,6 +240,23 @@ void AL_CacheAreaRoutes(object oArea)
                         float fFacing = GetLocalFloat(oWp, "al_transition_facing");
                         location lResolvedJump = Location(oTargetArea, Vector(fX, fY, fZ), fFacing);
                         SetLocalLocation(oArea, sIndex + "_jump", lResolvedJump);
+                    }
+                    else
+                    {
+                        string sTargetAreaTag = GetLocalString(oWp, "al_transition_area_tag");
+                        if (sTargetAreaTag != "")
+                        {
+                            object oTaggedArea = GetObjectByTag(sTargetAreaTag);
+                            if (GetIsObjectValid(oTaggedArea) && GetObjectType(oTaggedArea) == OBJECT_TYPE_AREA)
+                            {
+                                float fX = GetLocalFloat(oWp, "al_transition_x");
+                                float fY = GetLocalFloat(oWp, "al_transition_y");
+                                float fZ = GetLocalFloat(oWp, "al_transition_z");
+                                float fFacing = GetLocalFloat(oWp, "al_transition_facing");
+                                location lResolvedJump = Location(oTaggedArea, Vector(fX, fY, fZ), fFacing);
+                                SetLocalLocation(oArea, sIndex + "_jump", lResolvedJump);
+                            }
+                        }
                     }
                 }
             }
