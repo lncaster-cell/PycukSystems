@@ -179,3 +179,47 @@ Legacy fallback:
 - `docs/area-modes-roadmap.md`
 - `docs/ambient-life-qa-2026-03-07.md`
 - `docs/behavior-module-audit-2026-03-04.md`
+
+## 10. Контент-валидатор (preflight)
+
+Для preflight-проверки контента используйте скрипт:
+
+- `scripts/al_prototype/al_content_validator.nss`
+
+### 10.1 Запуск
+
+1. Скомпилировать `al_content_validator`.
+2. Выполнить на модуле:
+   - `dm_runscript al_content_validator`,
+   - или `ExecuteScript("al_content_validator", GetModule())`.
+3. Проверить лог (`nwserverLog1.txt`) по префиксу `[AL-VALIDATOR]`.
+
+### 10.2 Категории и формат отчёта
+
+Валидатор формирует строки с уровнями:
+
+- `critical`
+- `warning`
+- `info`
+
+Формат сообщения:
+
+`[AL-VALIDATOR][<severity>] area='<area_tag>' object='<npc_or_waypoint_tag>' reason='<description>'`
+
+Итог:
+
+`[AL-VALIDATOR] Summary: critical=<n>, warning=<n>, info=<n>`
+
+### 10.3 Что именно проверяется
+
+1. **AL-NPC marker contract**
+   - у участника AL должны быть route-слоты `alwp0..alwp5` и/или `al_enabled=1`.
+2. **Route-waypoint activity contract**
+   - `al_activity` должен быть задан и входить в поддерживаемый набор activity ID.
+3. **Transition contract**
+   - `al_transition_area_tag` должен указывать на существующую area;
+   - `al_transition_waypoint_tag` (или fallback на tag source-waypoint) должен резолвиться в target area.
+4. **Indexed-route consistency**
+   - при наличии `al_route_index_present=1` (или legacy `al_route_index_set=1`) индекс обязан быть в диапазоне `0..1023`;
+   - если у waypoint указан ненулевой `al_route_index` без presence-флага — warning;
+   - если для route-tag включён indexed-режим (есть хотя бы одна валидная indexed-точка), все остальные точки без валидной пары `index + presence` помечаются warning.

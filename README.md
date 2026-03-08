@@ -172,3 +172,43 @@
 3. На route-waypoint заполнен `al_activity`.
 4. Для сна настроены `al_bed_tag`, `<bed_id>_approach`, `<bed_id>_pose`.
 5. Area не в `OFF`, и корректно считаются вход/выход игроков.
+
+---
+
+## 6) Валидация AL-контента перед публикацией
+
+Для быстрой проверки контента добавлен standalone-скрипт:
+
+- `scripts/al_prototype/al_content_validator.nss`
+
+### Как запускать
+
+1. Скомпилируйте `al_content_validator` в Toolset/серверной сборке.
+2. Выполните скрипт на модуле (например через консоль/DM-команду):
+   - `dm_runscript al_content_validator`
+   - или `ExecuteScript("al_content_validator", GetModule())`.
+3. Откройте лог сервера (`nwserverLog1.txt`) и найдите блоки `[AL-VALIDATOR]`.
+
+### Что проверяет
+
+- AL-NPC контракт участия: наличие `alwp0..alwp5` и/или `al_enabled`.
+- Валидность `al_activity` на route-waypoints.
+- Межзоновые переходы: `al_transition_area_tag` и `al_transition_waypoint_tag`.
+- Indexed-route согласованность: `al_route_index` + флаг присутствия (`al_route_index_present`/legacy `al_route_index_set`).
+
+### Ожидаемый формат отчёта
+
+Пример строк:
+
+```
+[AL-VALIDATOR][critical] area='market_sq' object='wp_market_sleep' reason='unknown al_activity=777'
+[AL-VALIDATOR][warning] area='market_sq' object='blacksmith_01' reason='al_enabled=1 set without any alwp0..alwp5 route slots'
+[AL-VALIDATOR][info] area='market_sq' object='innkeeper_01' reason='AL-NPC marker check passed (alwp*/al_enabled contract satisfied)'
+[AL-VALIDATOR] Summary: critical=1, warning=1, info=1
+```
+
+Категории:
+
+- `critical` — ошибка контента, требующая исправления до релиза.
+- `warning` — потенциально проблемная/неполная конфигурация.
+- `info` — подтверждение корректных проверок.
