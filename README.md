@@ -203,12 +203,14 @@
 ```
 [AL-VALIDATOR][critical] area='market_sq' object='wp_market_sleep' reason='unknown al_activity=777'
 [AL-VALIDATOR][warning] area='market_sq' object='blacksmith_01' reason='al_enabled=1 set without any alwp0..alwp5 route slots'
-[AL-VALIDATOR][info] area='market_sq' object='innkeeper_01' reason='AL-NPC marker check passed (alwp*/al_enabled contract satisfied)'
-[AL-VALIDATOR] Summary: critical=1, warning=1, info=1
+[AL-VALIDATOR] Summary: critical=1, warning=1, info=0
 ```
+
+Pass-case (успешные проверки без замечаний) в текущем контракте **не логируется отдельными `info`-строками**.
+Поэтому в большинстве запусков `info` в summary будет `0`.
 
 Категории:
 
 - `critical` — ошибка контента, требующая исправления до релиза.
 - `warning` — потенциально проблемная/неполная конфигурация.
-- `info` — подтверждение корректных проверок.
+- `info` — служебный уровень (в текущем silent-режиме обычно остаётся `0`).
