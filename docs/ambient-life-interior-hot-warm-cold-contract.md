@@ -1,6 +1,6 @@
 # Ambient Life: контракт интерьеров (HOT/WARM/COLD)
 
-Обновлено: 2026-03-07
+Обновлено: 2026-03-08
 
 Документ описывает текущую политику для interior-area в AL.
 
@@ -14,7 +14,9 @@ Area считается interior, если установлен local:
 
 ## 2) Поведение interior по умолчанию
 
-- при невалидном/отсутствующем `al_area_mode` interior получает `COLD` через legacy fallback;
+- при unset `al_area_mode` (нет `al_area_mode_is_set=1`) interior получает `COLD` через legacy fallback;
+- при explicit `al_area_mode=0` (`COLD`) поведение то же, но это считается валидной явной политикой, а не fallback;
+- при explicit, но невалидном значении `al_area_mode` (вне `0..3`) применяется legacy fallback;
 - presence игроков может перевести area в `HOT` через OnEnter;
 - после выхода последнего игрока interior возвращается в `COLD`.
 

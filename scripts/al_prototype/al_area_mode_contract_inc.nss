@@ -7,6 +7,10 @@
 
 int AL_GetAreaModeOrLegacy(object oArea);
 int AL_IsAreaInteriorByContract(object oArea);
+void AL_SetAreaMode(object oArea, int iMode);
+int AL_HasExplicitAreaMode(object oArea);
+
+const string AL_AREA_MODE_IS_SET_LOCAL_KEY = "al_area_mode_is_set";
 
 string AL_TrimContractToken(string sValue)
 {
@@ -105,6 +109,27 @@ void AL_LogAreaAdjFallbackDebug(object oArea, string sMessage)
     AL_SendDebugMessageToAreaPCs(oArea, "AL: adjacency fallback -> " + sMessage);
 }
 
+void AL_SetAreaMode(object oArea, int iMode)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return;
+    }
+
+    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, iMode);
+    SetLocalInt(oArea, AL_AREA_MODE_IS_SET_LOCAL_KEY, TRUE);
+}
+
+int AL_HasExplicitAreaMode(object oArea)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return FALSE;
+    }
+
+    return GetLocalInt(oArea, AL_AREA_MODE_IS_SET_LOCAL_KEY) == TRUE;
+}
+
 void AL_SetAreaModeClampedWarm(object oArea)
 {
     if (!GetIsObjectValid(oArea))
@@ -118,7 +143,7 @@ void AL_SetAreaModeClampedWarm(object oArea)
         return;
     }
 
-    SetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY, AL_AREA_MODE_WARM);
+    AL_SetAreaMode(oArea, AL_AREA_MODE_WARM);
 }
 
 void AL_SoftActivateAdjacentAreas(object oSourceArea)
@@ -202,8 +227,15 @@ void AL_SoftActivateAdjacentAreas(object oSourceArea)
     }
 }
 
+// Contract note: explicit COLD (0) must be preserved. Legacy default applies
+// only when al_area_mode is not explicitly set, or when explicit value is outside 0..3.
 int AL_GetAreaModeOrLegacy(object oArea)
 {
+    if (!AL_HasExplicitAreaMode(oArea))
+    {
+        return AL_GetAreaModeLegacyDefault(oArea);
+    }
+
     int iMode = GetLocalInt(oArea, AL_AREA_MODE_LOCAL_KEY);
     if (iMode == AL_AREA_MODE_HOT
         || iMode == AL_AREA_MODE_WARM
