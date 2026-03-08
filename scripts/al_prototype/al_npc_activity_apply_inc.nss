@@ -19,7 +19,7 @@ int AL_GetWaypointActivityForSlot(object oNpc, int nSlot)
         return AL_ACT_NPC_ACT_ONE;
     }
 
-    int nIndex = GetLocalInt(oNpc, "r_idx");
+    int nIndex = GetLocalInt(oNpc, AL_L_ROUTE_INDEX);
     if (nIndex < 0)
     {
         nIndex = 0;
@@ -143,8 +143,8 @@ void AL_PlayCustomAnimation(object oNpc, string sAnimation, int bLooping)
 
 // Requirement checks avoid tag searches by relying on prebuilt locals/routes:
 // - Routes for pacing/WWP use locals r<slot>_n / r<slot>_<idx> (see AL_NPC_Routes_Inc).
-// - Training partners are set via local object "al_training_partner" on the NPC.
-// - Bar pair NPCs are set via local object "al_bar_pair" on the NPC.
+// - Training partners are set via local object AL_L_TRAINING_PARTNER on the NPC.
+// - Bar pair NPCs are set via local object AL_L_BAR_PAIR on the NPC.
 int AL_ActivityHasRequiredRoute(object oNpc, int nSlot, int nActivity)
 {
     string sWaypointTag = AL_GetActivityWaypointTag(nActivity);
@@ -172,8 +172,8 @@ void AL_ApplyActivityForSlot(object oNpc, int nSlot)
 
     int bNeedsTrainingPartner = AL_ActivityRequiresTrainingPartner(nActivity);
     int bNeedsBarPair = AL_ActivityRequiresBarPair(nActivity);
-    object oTrainingPartner = GetLocalObject(oNpc, "al_training_partner");
-    object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    object oTrainingPartner = GetLocalObject(oNpc, AL_L_TRAINING_PARTNER);
+    object oBarPair = GetLocalObject(oNpc, AL_L_BAR_PAIR);
     object oNpcArea = GetArea(oNpc);
     // Cross-area references are not considered valid for paired placements.
     int bHasTrainingPartner = GetIsObjectValid(oTrainingPartner);

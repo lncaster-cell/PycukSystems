@@ -1,3 +1,4 @@
+#include "al_constants_inc"
 #include "al_area_constants_inc"
 #include "al_debug_inc"
 
@@ -34,7 +35,7 @@ int AL_GetAreaModeLegacyDefault(object oArea)
         return AL_AREA_MODE_COLD;
     }
 
-    if (GetLocalInt(oArea, "al_player_count") > 0)
+    if (GetLocalInt(oArea, AL_L_PLAYER_COUNT) > 0)
     {
         return AL_AREA_MODE_HOT;
     }
@@ -96,12 +97,12 @@ int AL_IsAreaInteriorByContract(object oArea)
         return FALSE;
     }
 
-    return GetLocalInt(oArea, "al_is_interior") == 1;
+    return GetLocalInt(oArea, AL_L_IS_INTERIOR) == 1;
 }
 
 void AL_LogAreaAdjFallbackDebug(object oArea, string sMessage)
 {
-    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, "al_debug") != 1)
+    if (!GetIsObjectValid(oArea) || GetLocalInt(oArea, AL_L_DEBUG) != 1)
     {
         return;
     }

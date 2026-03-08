@@ -1,5 +1,6 @@
 // Debug helpers for sending messages to players in a specific area.
 
+#include "al_constants_inc"
 const int AL_DEBUG_LEVEL_NONE = 0;
 const int AL_DEBUG_LEVEL_L1 = 1;
 const int AL_DEBUG_LEVEL_L2 = 2;
@@ -33,7 +34,7 @@ int AL_GetAreaDebugLevel(object oArea)
         return AL_DEBUG_LEVEL_NONE;
     }
 
-    return GetLocalInt(oArea, "al_debug");
+    return GetLocalInt(oArea, AL_L_DEBUG);
 }
 
 int AL_GetNpcDebugLevel(object oNpc)
@@ -43,7 +44,7 @@ int AL_GetNpcDebugLevel(object oNpc)
         return AL_DEBUG_LEVEL_NONE;
     }
 
-    return GetLocalInt(oNpc, "al_debug");
+    return GetLocalInt(oNpc, AL_L_DEBUG);
 }
 
 int AL_GetDebugLevel(object oArea, object oNpc)

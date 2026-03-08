@@ -1,46 +1,47 @@
 // NPC OnDeath: attach to NPC OnDeath in the toolset.
 
+#include "al_constants_inc"
 #include "al_debug_inc"
 #include "al_npc_reg_inc"
 
 void main()
 {
     object oNpc = OBJECT_SELF;
-    object oPartner = GetLocalObject(oNpc, "al_training_partner");
+    object oPartner = GetLocalObject(oNpc, AL_L_TRAINING_PARTNER);
     if (GetIsObjectValid(oPartner))
     {
-        DeleteLocalObject(oPartner, "al_training_partner");
+        DeleteLocalObject(oPartner, AL_L_TRAINING_PARTNER);
     }
-    DeleteLocalObject(oNpc, "al_training_partner");
+    DeleteLocalObject(oNpc, AL_L_TRAINING_PARTNER);
 
-    object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    object oBarPair = GetLocalObject(oNpc, AL_L_BAR_PAIR);
     if (GetIsObjectValid(oBarPair))
     {
-        DeleteLocalObject(oBarPair, "al_bar_pair");
+        DeleteLocalObject(oBarPair, AL_L_BAR_PAIR);
     }
-    DeleteLocalObject(oNpc, "al_bar_pair");
+    DeleteLocalObject(oNpc, AL_L_BAR_PAIR);
 
     object oArea = GetArea(oNpc);
     if (GetIsObjectValid(oArea))
     {
-        object oNpc1Ref = GetLocalObject(oArea, "al_training_npc1_ref");
-        object oNpc2Ref = GetLocalObject(oArea, "al_training_npc2_ref");
+        object oNpc1Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
+        object oNpc2Ref = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
         int bResetTrainingCache = FALSE;
 
         if (oNpc == oNpc1Ref)
         {
-            DeleteLocalObject(oArea, "al_training_npc1");
+            DeleteLocalObject(oArea, AL_L_TRAINING_NPC1);
             bResetTrainingCache = TRUE;
         }
         else if (oNpc == oNpc2Ref)
         {
-            DeleteLocalObject(oArea, "al_training_npc2");
+            DeleteLocalObject(oArea, AL_L_TRAINING_NPC2);
             bResetTrainingCache = TRUE;
         }
 
         if (bResetTrainingCache)
         {
-            SetLocalInt(oArea, "al_training_partner_cached", FALSE);
+            SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, FALSE);
 
             AL_DebugLogL1(oArea, oNpc, "AL: training partner cache reset on death of " + GetName(oNpc) + ".");
         }
@@ -48,24 +49,24 @@ void main()
 
     if (GetIsObjectValid(oArea))
     {
-        if (GetLocalObject(oArea, "al_bar_bartender") == oNpc)
+        if (GetLocalObject(oArea, AL_L_BAR_BARTENDER) == oNpc)
         {
-            DeleteLocalObject(oArea, "al_bar_bartender");
+            DeleteLocalObject(oArea, AL_L_BAR_BARTENDER);
 
-            object oBartenderRef = GetLocalObject(oArea, "al_bar_bartender_ref");
+            object oBartenderRef = GetLocalObject(oArea, AL_L_BAR_BARTENDER_REF);
             if (!GetIsObjectValid(oBartenderRef) || oBartenderRef == oNpc)
             {
-                DeleteLocalObject(oArea, "al_bar_bartender_ref");
+                DeleteLocalObject(oArea, AL_L_BAR_BARTENDER_REF);
             }
         }
-        if (GetLocalObject(oArea, "al_bar_barmaid") == oNpc)
+        if (GetLocalObject(oArea, AL_L_BAR_BARMAID) == oNpc)
         {
-            DeleteLocalObject(oArea, "al_bar_barmaid");
+            DeleteLocalObject(oArea, AL_L_BAR_BARMAID);
 
-            object oBarmaidRef = GetLocalObject(oArea, "al_bar_barmaid_ref");
+            object oBarmaidRef = GetLocalObject(oArea, AL_L_BAR_BARMAID_REF);
             if (!GetIsObjectValid(oBarmaidRef) || oBarmaidRef == oNpc)
             {
-                DeleteLocalObject(oArea, "al_bar_barmaid_ref");
+                DeleteLocalObject(oArea, AL_L_BAR_BARMAID_REF);
             }
         }
     }

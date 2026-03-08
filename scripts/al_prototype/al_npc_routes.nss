@@ -43,12 +43,12 @@ string AL_GetDesiredRouteTag(object oNpc, int nSlot)
     // only one sleep route tag and reuse it for the neighbouring slot.
     if (nSlot == 0)
     {
-        return GetLocalString(oNpc, "alwp1");
+        return GetLocalString(oNpc, AL_LocalWaypointTag(1));
     }
 
     if (nSlot == 1)
     {
-        return GetLocalString(oNpc, "alwp0");
+        return GetLocalString(oNpc, AL_LocalWaypointTag(0));
     }
 
     return "";
@@ -173,7 +173,7 @@ int AL_CacheRouteFromTag(object oNpc, int nSlot, string sTag)
     }
 
     string sPrefix = AL_GetRoutePrefix(nSlot);
-    string sAreaPrefix = "al_route_" + sTag + "_";
+    string sAreaPrefix = AL_LocalRouteTagPrefix(sTag);
     int iAreaCount = GetLocalInt(oArea, sAreaPrefix + "n");
     int iAreaCountOriginal = iAreaCount;
     int iCopied = 0;

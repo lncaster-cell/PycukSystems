@@ -1,5 +1,7 @@
 // Player counting helper for Ambient Life presence tracking.
 
+#include "al_constants_inc"
+
 int AL_IsCountedPlayer(object oPc)
 {
     if (!GetIsObjectValid(oPc))
@@ -31,19 +33,19 @@ int AL_OnPlayerExitCount(object oPlayer, object oArea)
         return FALSE;
     }
 
-    if (GetLocalInt(oPlayer, "al_exit_counted") == 1)
+    if (GetLocalInt(oPlayer, AL_L_EXIT_COUNTED) == 1)
     {
         return FALSE;
     }
 
-    SetLocalInt(oPlayer, "al_exit_counted", 1);
+    SetLocalInt(oPlayer, AL_L_EXIT_COUNTED, 1);
 
-    int iPlayers = GetLocalInt(oArea, "al_player_count") - 1;
+    int iPlayers = GetLocalInt(oArea, AL_L_PLAYER_COUNT) - 1;
     if (iPlayers < 0)
     {
         iPlayers = 0;
     }
 
-    SetLocalInt(oArea, "al_player_count", iPlayers);
+    SetLocalInt(oArea, AL_L_PLAYER_COUNT, iPlayers);
     return (iPlayers == 0);
 }

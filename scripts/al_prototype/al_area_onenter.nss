@@ -26,15 +26,15 @@ void AL_CacheTrainingPartners(object oArea)
         return;
     }
 
-    if (GetLocalInt(oArea, "al_training_partner_cached"))
+    if (GetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED))
     {
         return;
     }
 
     // Preconfigure training partners via toolset/bootstrap on the area:
-    // local object "al_training_npc1_ref" + "al_training_npc2_ref".
-    object oNpc1 = GetLocalObject(oArea, "al_training_npc1_ref");
-    object oNpc2 = GetLocalObject(oArea, "al_training_npc2_ref");
+    // local object AL_L_TRAINING_NPC1_REF + AL_L_TRAINING_NPC2_REF.
+    object oNpc1 = GetLocalObject(oArea, AL_L_TRAINING_NPC1_REF);
+    object oNpc2 = GetLocalObject(oArea, AL_L_TRAINING_NPC2_REF);
 
     int bCacheSuccess = GetIsObjectValid(oNpc1)
         && GetArea(oNpc1) == oArea
@@ -43,15 +43,15 @@ void AL_CacheTrainingPartners(object oArea)
 
     if (bCacheSuccess)
     {
-        SetLocalObject(oArea, "al_training_npc1", oNpc1);
-        SetLocalObject(oArea, "al_training_npc2", oNpc2);
-        SetLocalInt(oArea, "al_training_partner_cached", TRUE);
+        SetLocalObject(oArea, AL_L_TRAINING_NPC1, oNpc1);
+        SetLocalObject(oArea, AL_L_TRAINING_NPC2, oNpc2);
+        SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, TRUE);
         return;
     }
 
-    DeleteLocalObject(oArea, "al_training_npc1");
-    DeleteLocalObject(oArea, "al_training_npc2");
-    SetLocalInt(oArea, "al_training_partner_cached", FALSE);
+    DeleteLocalObject(oArea, AL_L_TRAINING_NPC1);
+    DeleteLocalObject(oArea, AL_L_TRAINING_NPC2);
+    SetLocalInt(oArea, AL_L_TRAINING_PARTNER_CACHED, FALSE);
 }
 
 void main()

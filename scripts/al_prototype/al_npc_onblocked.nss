@@ -11,7 +11,7 @@ int AL_GetSecondsOfDay()
 void AL_TryOpenNearestDoor(object oNpc)
 {
     int nNow = AL_GetSecondsOfDay();
-    int nLastBlockedTs = GetLocalInt(oNpc, "al_last_blocked_ts");
+    int nLastBlockedTs = GetLocalInt(oNpc, AL_L_LAST_BLOCKED_TS);
     int nElapsed = nNow - nLastBlockedTs;
     if (nElapsed < 0)
     {
@@ -39,7 +39,7 @@ void AL_TryOpenNearestDoor(object oNpc)
         return;
     }
 
-    SetLocalInt(oNpc, "al_last_blocked_ts", nNow);
+    SetLocalInt(oNpc, AL_L_LAST_BLOCKED_TS, nNow);
 
     AssignCommand(oNpc, ClearAllActions());
     AssignCommand(oNpc, ActionOpenDoor(oDoor));

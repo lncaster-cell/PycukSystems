@@ -1,6 +1,8 @@
 // Door OnOpen helper: attach to Door OnOpen in the toolset.
 // Starts/restarts a 10 second timer and closes the door when timer expires.
 
+#include "al_constants_inc"
+
 void AL_CloseDoorIfTimerIsCurrent(object oDoor, int nToken)
 {
     if (!GetIsObjectValid(oDoor))
@@ -8,7 +10,7 @@ void AL_CloseDoorIfTimerIsCurrent(object oDoor, int nToken)
         return;
     }
 
-    if (GetLocalInt(oDoor, "al_auto_close_token") != nToken)
+    if (GetLocalInt(oDoor, AL_L_AUTO_CLOSE_TOKEN) != nToken)
     {
         return;
     }
@@ -24,8 +26,8 @@ void AL_CloseDoorIfTimerIsCurrent(object oDoor, int nToken)
 void main()
 {
     object oDoor = OBJECT_SELF;
-    int nToken = GetLocalInt(oDoor, "al_auto_close_token") + 1;
-    SetLocalInt(oDoor, "al_auto_close_token", nToken);
+    int nToken = GetLocalInt(oDoor, AL_L_AUTO_CLOSE_TOKEN) + 1;
+    SetLocalInt(oDoor, AL_L_AUTO_CLOSE_TOKEN, nToken);
 
     DelayCommand(10.0, AL_CloseDoorIfTimerIsCurrent(oDoor, nToken));
 }

@@ -1,5 +1,6 @@
 // NPC OnUserDefined: attach to NPC OnUserDefined in the toolset.
 
+#include "al_constants_inc"
 #include "al_npc_activity_apply_inc"
 #include "al_npc_sleep_inc"
 #include "al_npc_pair_revalidate_inc"
@@ -8,7 +9,7 @@
 
 void AL_ResetRouteIndex(object oNpc)
 {
-    SetLocalInt(oNpc, "r_idx", 0);
+    SetLocalInt(oNpc, AL_L_ROUTE_INDEX, 0);
 }
 
 int AL_ActivityUsesRoute(int nSlot)
@@ -28,7 +29,7 @@ int AL_ResolveSlot(object oNpc, int nEvent)
         object oArea = GetArea(oNpc);
         if (GetIsObjectValid(oArea))
         {
-            return GetLocalInt(oArea, "al_slot");
+            return GetLocalInt(oArea, AL_L_SLOT);
         }
 
         return -1;
@@ -41,7 +42,7 @@ int AL_ResolveSlot(object oNpc, int nEvent)
 
     if (nEvent == AL_EVT_ROUTE_REPEAT)
     {
-        return GetLocalInt(oNpc, "r_slot");
+        return GetLocalInt(oNpc, AL_L_ROUTE_SLOT);
     }
 
     return -1;
@@ -114,7 +115,7 @@ void AL_MarkDaySecondsCooldown(object oObj, string sKey, int nDelaySeconds)
 
 void AL_ResetRepeatRequeueCooldown(object oNpc)
 {
-    DeleteLocalInt(oNpc, "al_repeat_next");
+    DeleteLocalInt(oNpc, AL_L_REPEAT_NEXT);
 }
 
 int AL_IsRepeatRequeueCoolingDownByMode(object oNpc)
@@ -125,12 +126,12 @@ int AL_IsRepeatRequeueCoolingDownByMode(object oNpc)
         return FALSE;
     }
 
-    return AL_IsDaySecondsCooldownActive(oNpc, "al_repeat_next");
+    return AL_IsDaySecondsCooldownActive(oNpc, AL_L_REPEAT_NEXT);
 }
 
 void AL_MarkRepeatRequeueScheduled(object oNpc, int nDelaySeconds)
 {
-    AL_MarkDaySecondsCooldown(oNpc, "al_repeat_next", nDelaySeconds);
+    AL_MarkDaySecondsCooldown(oNpc, AL_L_REPEAT_NEXT, nDelaySeconds);
 }
 
 int AL_IsRepeatAnimCoolingDown(object oNpc)
@@ -176,13 +177,13 @@ void AL_QueueRepeatRequeue(object oNpc, object oArea)
 
 int AL_ShouldIgnoreRepeatEvent(object oNpc, object oArea, int nSlot)
 {
-    if (GetLocalInt(oNpc, "r_active") == FALSE || AL_GetRouteCount(oNpc, nSlot) <= 0)
+    if (GetLocalInt(oNpc, AL_L_ROUTE_ACTIVE) == FALSE || AL_GetRouteCount(oNpc, nSlot) <= 0)
     {
         AL_DebugLogL2(oArea, oNpc, "AL: repeat ignored (inactive route). slot=" + IntToString(nSlot) + ".");
         return TRUE;
     }
 
-    if (GetLocalInt(oNpc, "al_last_slot") != nSlot)
+    if (GetLocalInt(oNpc, AL_L_LAST_SLOT) != nSlot)
     {
         AL_DebugLogL2(oArea, oNpc, "AL: repeat ignored (stale slot). slot=" + IntToString(nSlot) + ".");
         return TRUE;
@@ -229,8 +230,8 @@ void AL_LogPairFallbackOnResync(object oNpc, int nEvent, int nActivity)
         return;
     }
 
-    object oTrainingPartner = GetLocalObject(oNpc, "al_training_partner");
-    object oBarPair = GetLocalObject(oNpc, "al_bar_pair");
+    object oTrainingPartner = GetLocalObject(oNpc, AL_L_TRAINING_PARTNER);
+    object oBarPair = GetLocalObject(oNpc, AL_L_BAR_PAIR);
     int bTrainingPartnerValid = GetIsObjectValid(oTrainingPartner)
         && GetArea(oTrainingPartner) == oArea;
     int bBarPairValid = GetIsObjectValid(oBarPair)
@@ -255,7 +256,7 @@ void AL_ProcessSlotEvent(object oNpc, object oArea, int nSlot, int nEvent)
         AL_SyncRouteForSlot(oNpc, nSlot);
     }
 
-    SetLocalInt(oNpc, "al_last_slot", nSlot);
+    SetLocalInt(oNpc, AL_L_LAST_SLOT, nSlot);
     int nActivity = AL_GetWaypointActivityForSlot(oNpc, nSlot);
     int bUsesRoute = AL_ActivityUsesRoute(nSlot);
     int bHasRequiredRoute = AL_ActivityHasRequiredRoute(oNpc, nSlot, nActivity);
@@ -346,7 +347,7 @@ void AL_HandleResyncEvent(object oNpc, object oArea, int nSlot)
     // evaluating route/activity requirements for this slot.
     AL_InitTrainingPartner(oNpc);
     AL_InitBarPair(oNpc);
-    SetLocalInt(oNpc, "al_last_slot", -1);
+    SetLocalInt(oNpc, AL_L_LAST_SLOT, -1);
 
     AL_ProcessSlotEvent(oNpc, oArea, nSlot, AL_EVT_RESYNC);
 }
@@ -363,7 +364,7 @@ void AL_HandleRouteRepeatEvent(object oNpc, object oArea, int nSlot)
 
 void AL_HandleSlotTickEvent(object oNpc, object oArea, int nSlot, int nEvent)
 {
-    if (GetLocalInt(oNpc, "al_last_slot") == nSlot)
+    if (GetLocalInt(oNpc, AL_L_LAST_SLOT) == nSlot)
     {
         return;
     }
