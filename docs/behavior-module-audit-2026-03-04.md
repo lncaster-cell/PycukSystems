@@ -10,7 +10,7 @@
 - area lifecycle: `al_area_onenter`, `al_area_onexit`, `al_mod_onleave`, `al_area_tick_inc`;
 - area mode contract: `al_area_constants_inc`, `al_area_mode_contract_inc`;
 - registry и NPC orchestration: `al_npc_reg_inc`, `al_npc_onspawn`, `al_npc_onud`, `al_npc_ondeath`;
-- route/activity domain: `al_route_cache_inc`, `al_npc_routes`, `al_npc_acts_inc`, `al_acts_inc`.
+- route/activity domain: `al_route_cache_inc`, `al_npc_onud`, `al_npc_activity_apply_inc`, `al_npc_sleep_inc`, `al_npc_pair_revalidate_inc`, `al_npc_routes`, `al_acts_inc`.
 
 ## Итоговое заключение
 
