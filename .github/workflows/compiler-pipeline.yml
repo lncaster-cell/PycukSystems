@@ -1,16 +1,6 @@
 name: Compiler pipeline
 
 on:
-  push:
-    paths:
-      - 'scripts/src/**/*.nss'
-      - 'tools/nwn2_compiler/**'
-      - '.github/workflows/compiler-pipeline.yml'
-  pull_request:
-    paths:
-      - 'scripts/src/**/*.nss'
-      - 'tools/nwn2_compiler/**'
-      - '.github/workflows/compiler-pipeline.yml'
   workflow_dispatch:
 
 jobs:
@@ -22,7 +12,7 @@ jobs:
       OUTPUT_DIR: artifacts/ncc
       # При необходимости можно переопределить через Variables/Env на уровне репозитория.
       CHECK_ARGS: '--mode check'
-      BUGFIND_ARGS: '--mode bugfind'
+      DEBUG_ARGS: '--mode debug'
       OPTIMIZE_ARGS: '--mode optimize'
       BUILD_ARGS: '--mode build'
 
@@ -30,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run compiler modes (check -> bugfind -> optimize -> build)
+      - name: Run compiler modes (check -> debug -> optimize -> build)
         id: compile
         shell: pwsh
         run: |
@@ -55,7 +45,7 @@ jobs:
 
           $modes = @(
             @{ Name = 'check';    Args = $env:CHECK_ARGS },
-            @{ Name = 'bugfind';  Args = $env:BUGFIND_ARGS },
+            @{ Name = 'debug';    Args = $env:DEBUG_ARGS },
             @{ Name = 'optimize'; Args = $env:OPTIMIZE_ARGS },
             @{ Name = 'build';    Args = $env:BUILD_ARGS }
           )
