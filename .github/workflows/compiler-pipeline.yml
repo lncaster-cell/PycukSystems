@@ -1,16 +1,6 @@
 name: Compiler pipeline
 
 on:
-  push:
-    paths:
-      - 'scripts/**/*.nss'
-      - 'tools/nwn2_compiler/**'
-      - '.github/workflows/compiler-pipeline.yml'
-  pull_request:
-    paths:
-      - 'scripts/**/*.nss'
-      - 'tools/nwn2_compiler/**'
-      - '.github/workflows/compiler-pipeline.yml'
   workflow_dispatch:
 
 jobs:
@@ -18,19 +8,19 @@ jobs:
     runs-on: windows-latest
     env:
       COMPILER_PATH: tools/nwn2_compiler/bin/NWNScriptCompiler.exe
-      SCRIPTS_GLOB: scripts/*.nss
+      SOURCE_DIR: scripts/src
       OUTPUT_DIR: artifacts/ncc
       # При необходимости можно переопределить через Variables/Env на уровне репозитория.
       CHECK_ARGS: '--mode check'
+      OPTIMIZATION_ARGS: '--mode optimization'
       BUGFIND_ARGS: '--mode bugfind'
-      OPTIMIZE_ARGS: '--mode optimize'
       BUILD_ARGS: '--mode build'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run compiler modes (check -> bugfind -> optimize -> build)
+      - name: Run compiler modes (check -> optimization -> bugfind -> build)
         id: compile
         shell: pwsh
         run: |
@@ -43,10 +33,20 @@ jobs:
           New-Item -ItemType Directory -Force -Path logs | Out-Null
           New-Item -ItemType Directory -Force -Path $env:OUTPUT_DIR | Out-Null
 
+          if (-not (Test-Path $env:SOURCE_DIR)) {
+            throw "Source directory not found: $env:SOURCE_DIR"
+          }
+
+          $script:sourceFiles = Get-ChildItem -Path $env:SOURCE_DIR -Filter '*.nss' -File -Recurse
+
+          if (-not $script:sourceFiles -or $script:sourceFiles.Count -eq 0) {
+            throw "No source scripts (*.nss) found in '$env:SOURCE_DIR'"
+          }
+
           $modes = @(
             @{ Name = 'check';    Args = $env:CHECK_ARGS },
-            @{ Name = 'bugfind';  Args = $env:BUGFIND_ARGS },
-            @{ Name = 'optimize'; Args = $env:OPTIMIZE_ARGS },
+            @{ Name = 'optimization'; Args = $env:OPTIMIZATION_ARGS },
+            @{ Name = 'bugfind';      Args = $env:BUGFIND_ARGS },
             @{ Name = 'build';    Args = $env:BUILD_ARGS }
           )
 
@@ -63,7 +63,8 @@ jobs:
                 Where-Object { $_.Type -eq 'CommandArgument' } |
                 ForEach-Object { $_.Content }
             }
-            $args += @('--output', $env:OUTPUT_DIR, $env:SCRIPTS_GLOB)
+            $args += @('--output', $env:OUTPUT_DIR)
+            $args += $script:sourceFiles.FullName
 
             "Running mode '$ModeName': $env:COMPILER_PATH $($args -join ' ')" | Tee-Object -FilePath $logFile -Append
             & $env:COMPILER_PATH @args 2>&1 | Tee-Object -FilePath $logFile -Append
