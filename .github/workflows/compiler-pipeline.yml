@@ -81,9 +81,16 @@ jobs:
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "First 20 errors:"
 
               if ($errorLines.Count -gt 0) {
-                $errorLines | ForEach-Object { Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $_ }
+                Write-Host "Top 20 errors for mode '$ModeName':"
+                $errorLines | ForEach-Object {
+                  Write-Host $_
+                  Write-Host "::error::$_"
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $_
+                }
               } else {
-                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- No explicit error lines found, check the attached logs artifact."
+                $fallback = "- No explicit error lines found, check the attached logs artifact."
+                Write-Host $fallback
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $fallback
               }
 
               throw "Compilation failed in mode '$ModeName' with exit code $exitCode"
