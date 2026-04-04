@@ -11,10 +11,11 @@ jobs:
       SOURCE_DIR: scripts/src
       OUTPUT_DIR: artifacts/ncc
       # При необходимости можно переопределить через Variables/Env на уровне репозитория.
-      CHECK_ARGS: '--mode check'
-      OPTIMIZATION_ARGS: '--mode optimization'
-      BUGFIND_ARGS: '--mode bugfind'
-      BUILD_ARGS: '--mode build'
+      # Реальные флаги NWNScriptCompiler (см. `NWNScriptCompiler -?`).
+      CHECK_ARGS: '-c -a'
+      OPTIMIZATION_ARGS: '-c -o'
+      BUGFIND_ARGS: '-c -a -j'
+      BUILD_ARGS: '-c'
 
     steps:
       - name: Checkout
@@ -63,7 +64,7 @@ jobs:
                 Where-Object { $_.Type -eq 'CommandArgument' } |
                 ForEach-Object { $_.Content }
             }
-            $args += @('--output', $env:OUTPUT_DIR)
+            $args += @('-b', $env:OUTPUT_DIR)
             $args += $script:sourceFiles.FullName
 
             "Running mode '$ModeName': $env:COMPILER_PATH $($args -join ' ')" | Tee-Object -FilePath $logFile -Append
