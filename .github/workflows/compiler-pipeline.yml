@@ -35,6 +35,7 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path logs | Out-Null
           New-Item -ItemType Directory -Force -Path $env:OUTPUT_DIR | Out-Null
+          $logsFullPath = (Resolve-Path logs).Path
           $outputFullPath = (Resolve-Path $env:OUTPUT_DIR).Path
 
           if (-not (Test-Path $env:SOURCE_DIR)) {
@@ -60,7 +61,7 @@ jobs:
               [string]$ModeArgs
             )
 
-            $logFile = "logs/$ModeName.log"
+            $logFile = Join-Path $logsFullPath "$ModeName.log"
             $baseArgs = @()
             if ($ModeArgs) {
               $baseArgs += ($ModeArgs -split '\s+' | Where-Object { $_ -and $_.Trim() -ne '' })
