@@ -30,9 +30,12 @@ jobs:
           if (-not (Test-Path $env:COMPILER_PATH)) {
             throw "Compiler not found: $env:COMPILER_PATH"
           }
+          $compilerFullPath = (Resolve-Path $env:COMPILER_PATH).Path
+          $compilerWorkingDir = Split-Path -Parent $compilerFullPath
 
           New-Item -ItemType Directory -Force -Path logs | Out-Null
           New-Item -ItemType Directory -Force -Path $env:OUTPUT_DIR | Out-Null
+          $outputFullPath = (Resolve-Path $env:OUTPUT_DIR).Path
 
           if (-not (Test-Path $env:SOURCE_DIR)) {
             throw "Source directory not found: $env:SOURCE_DIR"
@@ -58,23 +61,41 @@ jobs:
             )
 
             $logFile = "logs/$ModeName.log"
-            $args = @()
+            $baseArgs = @()
             if ($ModeArgs) {
-              $args += [Management.Automation.PSParser]::Tokenize($ModeArgs, [ref]$null) |
-                Where-Object { $_.Type -eq 'CommandArgument' } |
-                ForEach-Object { $_.Content }
+              $baseArgs += ($ModeArgs -split '\s+' | Where-Object { $_ -and $_.Trim() -ne '' })
             }
-            $args += @('-b', $env:OUTPUT_DIR)
-            $args += $script:sourceFiles.FullName
+            $baseArgs += @('-b', $outputFullPath)
+            $exitCode = 0
 
-            "Running mode '$ModeName': $env:COMPILER_PATH $($args -join ' ')" | Tee-Object -FilePath $logFile -Append
-            & $env:COMPILER_PATH @args 2>&1 | Tee-Object -FilePath $logFile -Append
-            $exitCode = $LASTEXITCODE
+            foreach ($sourceFile in $script:sourceFiles) {
+              $args = @()
+              $args += $baseArgs
+              $args += $sourceFile.FullName
+
+              "Running mode '$ModeName' for '$($sourceFile.FullName)' from '$compilerWorkingDir': $compilerFullPath $($args -join ' ')" | Tee-Object -FilePath $logFile -Append
+              Push-Location $compilerWorkingDir
+              try {
+                & $compilerFullPath @args 2>&1 | Tee-Object -FilePath $logFile -Append
+              } finally {
+                Pop-Location
+              }
+              if ($LASTEXITCODE -ne 0) {
+                $exitCode = $LASTEXITCODE
+              }
+            }
 
             if ($exitCode -ne 0) {
-              $errorLines = Select-String -Path $logFile -Pattern '(?i)\berror\b' |
+              $errorPattern = '(?i)(\berror\b|\bfatal\b|\bexception\b|ошибк|failed|\.nss\(\d+\))'
+              $diagnosticLines = Get-Content -Path $logFile |
+                Where-Object { $_.Trim() -ne '' -and $_ -notmatch '^Running mode' } |
+                Select-Object -Last 200
+
+              $errorLines = $diagnosticLines |
+                Where-Object { $_ -match $errorPattern } |
+                Select-Object -Unique |
                 Select-Object -First 20 |
-                ForEach-Object { "- $($_.Line.Trim())" }
+                ForEach-Object { "- $($_.Trim())" }
 
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## ❌ Compiler failed on mode: $ModeName"
               Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
@@ -88,9 +109,23 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $_
                 }
               } else {
-                $fallback = "- No explicit error lines found, check the attached logs artifact."
+                $fallback = "- No explicit error-like lines were matched. Showing first 20 diagnostic lines from the failure log:"
                 Write-Host $fallback
                 Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $fallback
+                $fallbackLines = $diagnosticLines |
+                  Select-Object -Unique |
+                  Select-Object -First 20 |
+                  ForEach-Object { "- $($_.Trim())" }
+
+                if ($fallbackLines.Count -gt 0) {
+                  $fallbackLines | ForEach-Object {
+                    Write-Host $_
+                    Write-Host "::error::$_"
+                    Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $_
+                  }
+                } else {
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "- Log file is empty."
+                }
               }
 
               throw "Compilation failed in mode '$ModeName' with exit code $exitCode"
