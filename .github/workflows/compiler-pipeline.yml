@@ -60,9 +60,7 @@ jobs:
             $logFile = "logs/$ModeName.log"
             $baseArgs = @()
             if ($ModeArgs) {
-              $baseArgs += [Management.Automation.PSParser]::Tokenize($ModeArgs, [ref]$null) |
-                Where-Object { $_.Type -eq 'CommandArgument' } |
-                ForEach-Object { $_.Content }
+              $baseArgs += ($ModeArgs -split '\s+' | Where-Object { $_ -and $_.Trim() -ne '' })
             }
             $baseArgs += @('-b', $env:OUTPUT_DIR)
             $exitCode = 0
@@ -87,6 +85,7 @@ jobs:
 
               $errorLines = $diagnosticLines |
                 Where-Object { $_ -match $errorPattern } |
+                Select-Object -Unique |
                 Select-Object -First 20 |
                 ForEach-Object { "- $($_.Trim())" }
 
@@ -106,6 +105,7 @@ jobs:
                 Write-Host $fallback
                 Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $fallback
                 $fallbackLines = $diagnosticLines |
+                  Select-Object -Unique |
                   Select-Object -First 20 |
                   ForEach-Object { "- $($_.Trim())" }
 
