@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DL_CONST_INC_NSS
+#define DL_CONST_INC_NSS
 
 const string DL_L_NPC_FAMILY = "dl_npc_family";
 const string DL_L_NPC_SUBTYPE = "dl_npc_subtype";
@@ -179,3 +180,5 @@ int DL_GetDefaultAreaTierBudget(int nTier)
     return DL_BUDGET_FROZEN;
 }
 
+
+#endif // DL_CONST_INC_NSS
