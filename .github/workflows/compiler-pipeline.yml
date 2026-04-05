@@ -72,7 +72,8 @@ jobs:
             $exitCode = $LASTEXITCODE
 
             if ($exitCode -ne 0) {
-              $errorLines = Select-String -Path $logFile -Pattern '(?i)\berror\b' |
+              $errorPattern = '(?i)(\berror\b|\bfatal\b|\bexception\b|ошибк|failed)'
+              $errorLines = Select-String -Path $logFile -Pattern $errorPattern |
                 Select-Object -First 20 |
                 ForEach-Object { "- $($_.Line.Trim())" }
 
@@ -88,9 +89,15 @@ jobs:
                   Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $_
                 }
               } else {
-                $fallback = "- No explicit error lines found, check the attached logs artifact."
+                $fallback = "- No explicit error-like lines were matched. Showing last 40 log lines:"
                 Write-Host $fallback
                 Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $fallback
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```text'
+                Get-Content -Path $logFile -Tail 40 | ForEach-Object {
+                  Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $_
+                }
+                Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '```'
               }
 
               throw "Compilation failed in mode '$ModeName' with exit code $exitCode"
