@@ -9,6 +9,7 @@ jobs:
     env:
       COMPILER_PATH: tools/nwn2_compiler/bin/NWNScriptCompiler.exe
       SOURCE_DIR: scripts/src
+      STOCK_SCRIPTS_DIR: tools/nwn2_compiler/stock_scripts
       OUTPUT_DIR: artifacts/ncc
       # При необходимости можно переопределить через Variables/Env на уровне репозитория.
       # Реальные флаги NWNScriptCompiler (см. `NWNScriptCompiler -?`).
@@ -41,6 +42,9 @@ jobs:
           if (-not (Test-Path $env:SOURCE_DIR)) {
             throw "Source directory not found: $env:SOURCE_DIR"
           }
+          if (-not (Test-Path $env:STOCK_SCRIPTS_DIR)) {
+            throw "Stock scripts directory not found: $env:STOCK_SCRIPTS_DIR"
+          }
 
           $script:sourceFiles = Get-ChildItem -Path $env:SOURCE_DIR -Filter '*.nss' -File -Recurse
 
@@ -55,6 +59,9 @@ jobs:
             @{ Name = 'build';    Args = $env:BUILD_ARGS }
           )
 
+          $sourceIncludePath = (Resolve-Path $env:SOURCE_DIR).Path
+          $stockIncludePath = (Resolve-Path $env:STOCK_SCRIPTS_DIR).Path
+
           function Invoke-Mode {
             param(
               [string]$ModeName,
@@ -66,6 +73,8 @@ jobs:
             if ($ModeArgs) {
               $baseArgs += ($ModeArgs -split '\s+' | Where-Object { $_ -and $_.Trim() -ne '' })
             }
+            $baseArgs += @('-i', $sourceIncludePath)
+            $baseArgs += @('-i', $stockIncludePath)
             $baseArgs += @('-b', $outputFullPath)
             $exitCode = 0
 
