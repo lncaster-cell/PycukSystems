@@ -1,6 +1,3 @@
-#ifndef DL_RESOLVER_INC_NSS
-#define DL_RESOLVER_INC_NSS
-
 #include "dl_const_inc"
 #include "dl_types_inc"
 #include "dl_schedule_inc"
@@ -261,5 +258,3 @@ int DL_ResolveServiceMode(object oNPC, int nDirective, int nOverrideKind)
     }
     return DL_SERVICE_DISABLED;
 }
-
-#endif

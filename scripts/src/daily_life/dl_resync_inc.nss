@@ -1,6 +1,3 @@
-#ifndef DL_RESYNC_INC_NSS
-#define DL_RESYNC_INC_NSS
-
 #include "dl_const_inc"
 #include "dl_types_inc"
 #include "dl_materialize_inc"
@@ -131,5 +128,3 @@ void DL_RunForcedResync(object oNPC, object oArea, int nReason)
     DL_RequestResync(oNPC, nReason);
     DL_RunResync(oNPC, oArea, nReason);
 }
-
-#endif
