@@ -1,3 +1,5 @@
+#pragma once
+
 #include "daily_life/dl_const_inc"
 #include "daily_life/dl_override_inc"
 #include "daily_life/dl_resolver_inc"
@@ -14,9 +16,6 @@ void DL_SetServiceMode(object oNPC, int nServiceMode)
 
 void DL_RefreshInteractionState(object oNPC, object oArea)
 {
-    // Recomputes directive/anchor/dialogue/service from current resolver state.
-    // Do not call after forced/manual states (for example, explicit ABSENT/UNASSIGNED),
-    // because it can overwrite the manually fixed directive.
     int nDirective = DL_ResolveDirective(oNPC, oArea);
     int nOverride = DL_GetTopOverride(oNPC, oArea);
 
@@ -33,4 +32,3 @@ void DL_SetInteractionStateExplicit(object oNPC, int nDirective, int nDialogueMo
     SetLocalInt(oNPC, DL_L_DIRECTIVE, nDirective);
     SetLocalInt(oNPC, DL_L_ANCHOR_GROUP, DL_ResolveAnchorGroup(oNPC, nDirective));
 }
-

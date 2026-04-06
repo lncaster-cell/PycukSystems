@@ -1,15 +1,11 @@
+#pragma once
+
 #include "daily_life/dl_const_inc"
 #include "daily_life/dl_util_inc"
 #include "daily_life/dl_types_inc"
 
 int DL_IsAnchorContextAllowed(object oNPC, object oPoint)
 {
-    // Anchor context is local-only:
-    // anchor must be in the same area as NPC.
-    //
-    // Cross-area anchors are never allowed here (even if "close" by world coords).
-    // Any explicit long-range relocation must be handled by dedicated jump/teleport flow.
-
     if (!GetIsObjectValid(oPoint))
     {
         return FALSE;
@@ -35,7 +31,6 @@ object DL_FindAnchorByTag(object oArea, string sTag)
     oObj = GetFirstObjectInArea(oArea);
     while (GetIsObjectValid(oObj))
     {
-        // Anchors are expected to be world markers.
         nObjType = GetObjectType(oObj);
         if ((nObjType == OBJECT_TYPE_WAYPOINT || nObjType == OBJECT_TYPE_PLACEABLE)
             && GetTag(oObj) == sTag)
@@ -107,28 +102,16 @@ object DL_FindAnchorPoint(object oNPC, object oArea, int nAnchorGroup)
     while (i <= 4)
     {
         oPoint = DL_FindAnchorByTag(oArea, DL_GetAnchorTagCandidate(oNPC, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint)) return oPoint;
 
         oPoint = DL_FindAnchorByTag(oArea, DL_GetBaseAnchorTagCandidate(oNPC, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint)) return oPoint;
 
         oPoint = DL_FindAnchorByTag(oArea, DL_GetSpecializedAnchorTagCandidate(oNPC, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint)) return oPoint;
 
         oPoint = DL_FindAnchorByTag(oArea, DL_GetAreaAnchorTagCandidate(oNPC, oArea, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint) && DL_IsAnchorContextAllowed(oNPC, oPoint)) return oPoint;
         i += 1;
     }
 
@@ -143,31 +126,18 @@ object DL_FindAnchorPointIgnoringPolicy(object oNPC, object oArea, int nAnchorGr
     while (i <= 4)
     {
         oPoint = DL_FindAnchorByTag(oArea, DL_GetAnchorTagCandidate(oNPC, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint)) return oPoint;
 
         oPoint = DL_FindAnchorByTag(oArea, DL_GetBaseAnchorTagCandidate(oNPC, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint)) return oPoint;
 
         oPoint = DL_FindAnchorByTag(oArea, DL_GetSpecializedAnchorTagCandidate(oNPC, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint)) return oPoint;
 
         oPoint = DL_FindAnchorByTag(oArea, DL_GetAreaAnchorTagCandidate(oNPC, oArea, nAnchorGroup, i));
-        if (GetIsObjectValid(oPoint))
-        {
-            return oPoint;
-        }
+        if (GetIsObjectValid(oPoint)) return oPoint;
         i += 1;
     }
 
     return DL_FindFallbackAnchorPointIgnoringPolicy(oNPC, oArea, nAnchorGroup);
 }
-

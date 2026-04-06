@@ -1,9 +1,10 @@
+#pragma once
+
 #include "daily_life/dl_const_inc"
 #include "daily_life/dl_types_inc"
 
 int DL_GetDaysInMonth(int nYear, int nMonth)
 {
-    // NWN2 calendar in this project uses fixed 28-day months (no leap-year variation).
     if (nYear < 0 || nMonth < 1 || nMonth > 12)
     {
         return 28;
@@ -16,8 +17,6 @@ int DL_GetAbsoluteDayNumber()
     int nYear = GetCalendarYear();
     int nMonth = GetCalendarMonth();
     int nDay = GetCalendarDay();
-
-    // Continuous absolute day index based on actual game calendar month length (fixed 28 days).
     int nAbsoluteDay = 0;
     int nPrevYear = 0;
     int nPrevMonth = 0;
@@ -44,7 +43,6 @@ int DL_DetermineDayType(object oArea)
         return nOverride;
     }
 
-    // Rest day is computed from a continuous absolute day cycle to avoid month/day reset regressions.
     int nAbsoluteDay = DL_GetAbsoluteDayNumber();
     if ((nAbsoluteDay % 7) == 0)
     {
@@ -77,142 +75,64 @@ int DL_DetermineScheduleWindow(int nTemplate, int nDayType, int nMinuteOfDay, in
 
     if (nTemplate == DL_SCH_EARLY_WORKER)
     {
-        if (nMinute < 360)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 480)
-        {
-            return DL_WIN_MORNING_PREP;
-        }
-        if (nMinute < 1020)
-        {
-            return DL_WIN_WORK_CORE;
-        }
-        if (nMinute < 1260)
-        {
-            return DL_WIN_SOCIAL;
-        }
+        if (nMinute < 360) return DL_WIN_SLEEP;
+        if (nMinute < 480) return DL_WIN_MORNING_PREP;
+        if (nMinute < 1020) return DL_WIN_WORK_CORE;
+        if (nMinute < 1260) return DL_WIN_SOCIAL;
         return DL_WIN_SLEEP;
     }
 
     if (nTemplate == DL_SCH_SHOP_DAY)
     {
-        if (nMinute < 420)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 540)
-        {
-            return DL_WIN_MORNING_PREP;
-        }
-        if (nMinute < 1140)
-        {
-            return DL_WIN_SERVICE_CORE;
-        }
-        if (nMinute < 1260)
-        {
-            return DL_WIN_PUBLIC_IDLE;
-        }
+        if (nMinute < 420) return DL_WIN_SLEEP;
+        if (nMinute < 540) return DL_WIN_MORNING_PREP;
+        if (nMinute < 1140) return DL_WIN_SERVICE_CORE;
+        if (nMinute < 1260) return DL_WIN_PUBLIC_IDLE;
         return DL_WIN_SLEEP;
     }
 
     if (nTemplate == DL_SCH_TAVERN_LATE)
     {
-        if (nMinute < 600)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 900)
-        {
-            return DL_WIN_PUBLIC_IDLE;
-        }
-        if (nMinute < 1380)
-        {
-            return DL_WIN_LATE_SOCIAL;
-        }
+        if (nMinute < 600) return DL_WIN_SLEEP;
+        if (nMinute < 900) return DL_WIN_PUBLIC_IDLE;
+        if (nMinute < 1380) return DL_WIN_LATE_SOCIAL;
         return DL_WIN_SLEEP;
     }
 
     if (nTemplate == DL_SCH_DUTY_ROTATION_DAY)
     {
-        if (nMinute < 360)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 1080)
-        {
-            return DL_WIN_DAY_DUTY;
-        }
-        if (nMinute < 1260)
-        {
-            return DL_WIN_PUBLIC_IDLE;
-        }
+        if (nMinute < 360) return DL_WIN_SLEEP;
+        if (nMinute < 1080) return DL_WIN_DAY_DUTY;
+        if (nMinute < 1260) return DL_WIN_PUBLIC_IDLE;
         return DL_WIN_SLEEP;
     }
 
     if (nTemplate == DL_SCH_DUTY_ROTATION_NIGHT)
     {
-        if (nMinute < 420)
-        {
-            return DL_WIN_NIGHT_DUTY;
-        }
-        if (nMinute < 960)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 1200)
-        {
-            return DL_WIN_PUBLIC_IDLE;
-        }
+        if (nMinute < 420) return DL_WIN_NIGHT_DUTY;
+        if (nMinute < 960) return DL_WIN_SLEEP;
+        if (nMinute < 1200) return DL_WIN_PUBLIC_IDLE;
         return DL_WIN_NIGHT_DUTY;
     }
 
     if (nTemplate == DL_SCH_WANDERING_VENDOR_WINDOW)
     {
-        if (nMinute < 420)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 1020)
-        {
-            return DL_WIN_SERVICE_CORE;
-        }
-        if (nMinute < 1200)
-        {
-            return DL_WIN_PUBLIC_IDLE;
-        }
+        if (nMinute < 420) return DL_WIN_SLEEP;
+        if (nMinute < 1020) return DL_WIN_SERVICE_CORE;
+        if (nMinute < 1200) return DL_WIN_PUBLIC_IDLE;
         return DL_WIN_SLEEP;
     }
 
     if (nDayType == DL_DAY_REST)
     {
-        if (nMinute < 480)
-        {
-            return DL_WIN_SLEEP;
-        }
-        if (nMinute < 1140)
-        {
-            return DL_WIN_PUBLIC_IDLE;
-        }
-        if (nMinute < 1260)
-        {
-            return DL_WIN_SOCIAL;
-        }
+        if (nMinute < 480) return DL_WIN_SLEEP;
+        if (nMinute < 1140) return DL_WIN_PUBLIC_IDLE;
+        if (nMinute < 1260) return DL_WIN_SOCIAL;
         return DL_WIN_SLEEP;
     }
 
-    if (nMinute < 360)
-    {
-        return DL_WIN_SLEEP;
-    }
-    if (nMinute < 1020)
-    {
-        return DL_WIN_PUBLIC_IDLE;
-    }
-    if (nMinute < 1200)
-    {
-        return DL_WIN_SOCIAL;
-    }
+    if (nMinute < 360) return DL_WIN_SLEEP;
+    if (nMinute < 1020) return DL_WIN_PUBLIC_IDLE;
+    if (nMinute < 1200) return DL_WIN_SOCIAL;
     return DL_WIN_SLEEP;
 }

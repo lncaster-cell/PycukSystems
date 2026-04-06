@@ -1,3 +1,5 @@
+#pragma once
+
 #include "daily_life/dl_const_inc"
 
 void DL_Log(int nLevel, string sMessage)
@@ -19,4 +21,3 @@ void DL_LogNpc(object oNPC, int nLevel, string sMessage)
     }
     DL_Log(nLevel, sTag + ": " + sMessage);
 }
-

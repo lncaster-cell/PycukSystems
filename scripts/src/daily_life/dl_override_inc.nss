@@ -1,3 +1,5 @@
+#pragma once
+
 #include "daily_life/dl_const_inc"
 #include "daily_life/dl_types_inc"
 
@@ -54,4 +56,3 @@ int DL_ShouldDisableService(object oNPC, int nOverrideKind)
 
     return FALSE;
 }
-

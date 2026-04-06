@@ -1,3 +1,5 @@
+#pragma once
+
 #include "daily_life/dl_const_inc"
 
 int DL_ResolveActivityKind(object oNPC, int nDirective, int nAnchorGroup)
@@ -43,4 +45,3 @@ void DL_ApplyActivityAndMove(object oNPC, int nActivityKind, object oPoint)
         AssignCommand(oNPC, ActionMoveToObject(oPoint, TRUE));
     }
 }
-

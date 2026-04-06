@@ -1,3 +1,5 @@
+#pragma once
+
 const string DL_L_NPC_FAMILY = "dl_npc_family";
 const string DL_L_NPC_SUBTYPE = "dl_npc_subtype";
 const string DL_L_SCHEDULE_TEMPLATE = "dl_schedule_template";
@@ -176,4 +178,3 @@ int DL_GetDefaultAreaTierBudget(int nTier)
     }
     return DL_BUDGET_FROZEN;
 }
-
