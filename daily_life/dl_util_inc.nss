@@ -1,0 +1,233 @@
+#ifndef DL_UTIL_INC_NSS
+#define DL_UTIL_INC_NSS
+
+#include "dl_const_inc"
+
+int DL_IsValidCreature(object oNPC)
+{
+    return GetIsObjectValid(oNPC) && GetObjectType(oNPC) == OBJECT_TYPE_CREATURE;
+}
+
+int DL_IsAreaHot(object oArea)
+{
+    return GetLocalInt(oArea, DL_L_AREA_TIER) == DL_AREA_HOT;
+}
+
+int DL_IsAreaWarm(object oArea)
+{
+    return GetLocalInt(oArea, DL_L_AREA_TIER) == DL_AREA_WARM;
+}
+
+int DL_IsAreaFrozen(object oArea)
+{
+    return GetLocalInt(oArea, DL_L_AREA_TIER) == DL_AREA_FROZEN;
+}
+
+int DL_IsDirectiveVisible(int nDirective)
+{
+    return nDirective != DL_DIR_ABSENT
+        && nDirective != DL_DIR_HIDE_SAFE
+        && nDirective != DL_DIR_UNASSIGNED;
+}
+
+int DL_IsPlayableAreaPlayer(object oObject)
+{
+    return GetIsPC(oObject) && !GetIsDM(oObject);
+}
+
+int DL_HasAnyPlayers(object oArea)
+{
+    object oObject = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObject))
+    {
+        if (DL_IsPlayableAreaPlayer(oObject))
+        {
+            return TRUE;
+        }
+        oObject = GetNextObjectInArea(oArea);
+    }
+    return FALSE;
+}
+
+int DL_HasAnyPlayersExcept(object oArea, object oIgnored)
+{
+    object oObject = GetFirstObjectInArea(oArea);
+    while (GetIsObjectValid(oObject))
+    {
+        if (oObject != oIgnored && DL_IsPlayableAreaPlayer(oObject))
+        {
+            return TRUE;
+        }
+        oObject = GetNextObjectInArea(oArea);
+    }
+    return FALSE;
+}
+
+int DL_IsAreaAnchor(object oPoint, object oArea)
+{
+    return GetIsObjectValid(oPoint) && GetArea(oPoint) == oArea;
+}
+
+string DL_GetAnchorGroupToken(int nAnchorGroup)
+{
+    if (nAnchorGroup == DL_AG_SLEEP)
+    {
+        return "sleep";
+    }
+    if (nAnchorGroup == DL_AG_WORK)
+    {
+        return "work";
+    }
+    if (nAnchorGroup == DL_AG_SERVICE)
+    {
+        return "service";
+    }
+    if (nAnchorGroup == DL_AG_SOCIAL)
+    {
+        return "social";
+    }
+    if (nAnchorGroup == DL_AG_DUTY)
+    {
+        return "duty";
+    }
+    if (nAnchorGroup == DL_AG_GATE)
+    {
+        return "gate";
+    }
+    if (nAnchorGroup == DL_AG_PATROL_POINT)
+    {
+        return "patrol";
+    }
+    if (nAnchorGroup == DL_AG_STREET_NEAR_BASE)
+    {
+        return "street";
+    }
+    if (nAnchorGroup == DL_AG_WAIT)
+    {
+        return "wait";
+    }
+    if (nAnchorGroup == DL_AG_HIDE)
+    {
+        return "hide";
+    }
+    return "none";
+}
+
+string DL_GetSubtypeAnchorToken(object oNPC, int nAnchorGroup)
+{
+    int nSubtype = GetLocalInt(oNPC, DL_L_NPC_SUBTYPE);
+
+    if (nSubtype == DL_SUBTYPE_BLACKSMITH)
+    {
+        if (nAnchorGroup == DL_AG_WORK)
+        {
+            return "forge";
+        }
+        if (nAnchorGroup == DL_AG_SLEEP)
+        {
+            return "bed";
+        }
+        if (nAnchorGroup == DL_AG_SOCIAL)
+        {
+            return "tavern";
+        }
+    }
+    if (nSubtype == DL_SUBTYPE_ARTISAN || nSubtype == DL_SUBTYPE_LABORER)
+    {
+        if (nAnchorGroup == DL_AG_WORK)
+        {
+            return "workbench";
+        }
+    }
+    if (nSubtype == DL_SUBTYPE_SHOPKEEPER)
+    {
+        if (nAnchorGroup == DL_AG_SERVICE)
+        {
+            return "counter";
+        }
+    }
+    if (nSubtype == DL_SUBTYPE_INNKEEPER)
+    {
+        if (nAnchorGroup == DL_AG_SERVICE)
+        {
+            return "bar";
+        }
+        if (nAnchorGroup == DL_AG_SOCIAL)
+        {
+            return "tavern";
+        }
+    }
+    if (nSubtype == DL_SUBTYPE_GATE_POST)
+    {
+        if (nAnchorGroup == DL_AG_DUTY || nAnchorGroup == DL_AG_GATE)
+        {
+            return "gate_post";
+        }
+        if (nAnchorGroup == DL_AG_SLEEP)
+        {
+            return "barracks_bed";
+        }
+    }
+    if (nSubtype == DL_SUBTYPE_PATROL)
+    {
+        if (nAnchorGroup == DL_AG_DUTY || nAnchorGroup == DL_AG_PATROL_POINT)
+        {
+            return "patrol_point";
+        }
+    }
+    if (nAnchorGroup == DL_AG_STREET_NEAR_BASE)
+    {
+        return "street";
+    }
+    if (nAnchorGroup == DL_AG_HIDE)
+    {
+        return "inside";
+    }
+    return DL_GetAnchorGroupToken(nAnchorGroup);
+}
+
+string DL_BuildIndexedAnchorTag(string sPrefix, string sToken, int nIndex)
+{
+    return sPrefix + "_" + sToken + "_" + IntToString(nIndex);
+}
+
+string DL_GetAnchorTagCandidate(object oNPC, int nAnchorGroup, int nIndex)
+{
+    return DL_BuildIndexedAnchorTag(GetTag(oNPC), DL_GetAnchorGroupToken(nAnchorGroup), nIndex);
+}
+
+string DL_GetBaseAnchorTagCandidate(object oNPC, int nAnchorGroup, int nIndex)
+{
+    object oBase = GetLocalObject(oNPC, DL_L_NPC_BASE);
+    if (!GetIsObjectValid(oBase))
+    {
+        return "";
+    }
+    return DL_BuildIndexedAnchorTag(GetTag(oBase), DL_GetAnchorGroupToken(nAnchorGroup), nIndex);
+}
+
+string DL_GetSpecializedAnchorTagCandidate(object oNPC, int nAnchorGroup, int nIndex)
+{
+    object oBase = GetLocalObject(oNPC, DL_L_NPC_BASE);
+    string sToken = DL_GetSubtypeAnchorToken(oNPC, nAnchorGroup);
+    if (sToken == "")
+    {
+        return "";
+    }
+    if (GetIsObjectValid(oBase))
+    {
+        return DL_BuildIndexedAnchorTag(GetTag(oBase), sToken, nIndex);
+    }
+    return sToken + "_" + IntToString(nIndex);
+}
+
+string DL_GetAreaAnchorTagCandidate(object oNPC, object oArea, int nAnchorGroup, int nIndex)
+{
+    if (!GetIsObjectValid(oArea))
+    {
+        return "";
+    }
+    return DL_BuildIndexedAnchorTag(GetTag(oArea), DL_GetSubtypeAnchorToken(oNPC, nAnchorGroup), nIndex);
+}
+
+#endif
