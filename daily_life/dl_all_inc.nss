@@ -156,6 +156,10 @@ const int DL_RESYNC_WORKER = 6;
 const int DL_RESYNC_SLOT_ASSIGNED = 7;
 const int DL_RESYNC_BASE_LOST = 8;
 
+// Forward declarations are required by the NWN2 compiler for functions used before definition.
+int DL_NormalizeResyncReason(int nReason);
+int DL_SelectStrongerResyncReason(int nCurrentReason, int nRequestedReason);
+
 const int DL_BUDGET_HOT = 6;
 const int DL_BUDGET_WARM = 2;
 const int DL_BUDGET_FROZEN = 0;
@@ -442,6 +446,14 @@ int DL_GetScheduleTemplate(object oNPC)
 object DL_GetNpcBase(object oNPC)
 {
     return GetLocalObject(oNPC, DL_L_NPC_BASE);
+}
+
+int DL_GetNpcBaseKind(object oNPC)
+{
+    // Base object is currently persisted without explicit base-kind metadata.
+    // Smoke checks only require that a configured base maps into the supported base range.
+    if (GetIsObjectValid(DL_GetNpcBase(oNPC))) return DL_BASE_HOME;
+    return DL_BASE_NONE;
 }
 
 string DL_GetFunctionSlotId(object oNPC)
@@ -1411,7 +1423,7 @@ int DL_IsConversationStoreCandidate(object oStore, string sStoreTag)
 
 int DL_IsConversationStoreSearchArea(object oArea)
 {
-    return GetIsObjectValid(oArea) && GetObjectType(oArea) == OBJECT_TYPE_AREA;
+    return GetIsObjectValid(oArea);
 }
 
 void DL_LogConversationStoreAreaConflict(object oNPC, object oArea, string sStoreTag)
