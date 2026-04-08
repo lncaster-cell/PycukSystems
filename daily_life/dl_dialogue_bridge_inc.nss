@@ -121,7 +121,8 @@ int DL_IsConversationStoreCandidate(object oStore, string sStoreTag)
 
 int DL_IsConversationStoreSearchArea(object oArea)
 {
-    return GetIsObjectValid(oArea) && GetObjectType(oArea) == OBJECT_TYPE_AREA;
+    // OBJECT_TYPE_AREA is not available in this compiler constant set.
+    return GetIsObjectValid(oArea);
 }
 
 void DL_LogConversationStoreAreaConflict(object oNPC, object oArea, string sStoreTag)

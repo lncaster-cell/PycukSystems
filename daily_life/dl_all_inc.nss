@@ -130,6 +130,10 @@ const int DL_SERVICE_AVAILABLE = 1;
 const int DL_SERVICE_LIMITED = 2;
 const int DL_SERVICE_DISABLED = 3;
 
+// Forward declarations for legacy compiler single-pass resolution.
+int DL_NormalizeResyncReason(int nReason);
+int DL_SelectStrongerResyncReason(int nCurrentReason, int nRequestedReason);
+
 const int DL_ACT_NONE = 0;
 const int DL_ACT_SLEEP = 1;
 const int DL_ACT_WORK = 2;
@@ -437,6 +441,21 @@ int DL_GetScheduleTemplate(object oNPC)
     int nTemplate = GetLocalInt(oNPC, DL_L_SCHEDULE_TEMPLATE);
     if (nTemplate != DL_SCH_NONE) return nTemplate;
     return DL_GetDefaultScheduleTemplate(oNPC);
+}
+
+int DL_GetNpcBaseKind(object oNPC)
+{
+    int nFamily = DL_GetNpcFamily(oNPC);
+    int nSubtype = DL_GetNpcSubtype(oNPC);
+
+    if (nFamily == DL_FAMILY_LAW) return DL_BASE_BARRACKS;
+    if (nFamily == DL_FAMILY_CRAFT) return DL_BASE_WORKSHOP;
+    if (nFamily == DL_FAMILY_TRADE_SERVICE)
+    {
+        if (nSubtype == DL_SUBTYPE_INNKEEPER) return DL_BASE_TAVERN;
+        return DL_BASE_SHOP;
+    }
+    return DL_BASE_HOME;
 }
 
 object DL_GetNpcBase(object oNPC)
@@ -1411,7 +1430,8 @@ int DL_IsConversationStoreCandidate(object oStore, string sStoreTag)
 
 int DL_IsConversationStoreSearchArea(object oArea)
 {
-    return GetIsObjectValid(oArea) && GetObjectType(oArea) == OBJECT_TYPE_AREA;
+    // OBJECT_TYPE_AREA is not available in the legacy NWN2 compiler constant set.
+    return GetIsObjectValid(oArea);
 }
 
 void DL_LogConversationStoreAreaConflict(object oNPC, object oArea, string sStoreTag)
