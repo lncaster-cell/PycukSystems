@@ -1,6 +1,3 @@
-#ifndef DL_CORE_INC_NSS
-#define DL_CORE_INC_NSS
-
 #include "dl_res_inc"
 
 // Daily Life core event ingress (clean-room).
@@ -541,4 +538,3 @@ void DL_HandleNpcUserDefined(object oNpc, int nUserDefined)
     }
 }
 
-#endif

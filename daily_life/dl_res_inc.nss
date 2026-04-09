@@ -1,6 +1,3 @@
-#ifndef DL_RES_INC_NSS
-#define DL_RES_INC_NSS
-
 // Step 05: resolver/materialization skeleton.
 // Scope is intentionally narrow: EARLY_WORKER sleep window only.
 
@@ -92,4 +89,3 @@ void DL_ApplyDirectiveSkeleton(object oNpc, int nDirective)
     DL_ApplyMaterializationSkeleton(oNpc, nDirective);
 }
 
-#endif
