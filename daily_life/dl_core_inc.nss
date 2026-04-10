@@ -109,17 +109,27 @@ int DL_IsPipelineNpc(object oNpc)
         return FALSE;
     }
 
-    if (GetIsDead(oNpc))
-    {
-        return FALSE;
-    }
-
     if (GetIsPC(oNpc))
     {
         return FALSE;
     }
 
     if (GetIsDM(oNpc))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+int DL_IsActivePipelineNpc(object oNpc)
+{
+    if (!DL_IsPipelineNpc(oNpc))
+    {
+        return FALSE;
+    }
+
+    if (GetIsDead(oNpc))
     {
         return FALSE;
     }
@@ -293,7 +303,7 @@ void DL_RequestResync(object oNpc, int nReason)
 
 void DL_RegisterNpc(object oNpc)
 {
-    if (!DL_IsPipelineNpc(oNpc))
+    if (!DL_IsActivePipelineNpc(oNpc))
     {
         return;
     }
@@ -325,7 +335,22 @@ void DL_RegisterNpc(object oNpc)
 
 void DL_UnregisterNpc(object oNpc)
 {
-    if (!DL_IsPipelineNpc(oNpc))
+    if (!GetIsObjectValid(oNpc))
+    {
+        return;
+    }
+
+    if (GetObjectType(oNpc) != OBJECT_TYPE_CREATURE)
+    {
+        return;
+    }
+
+    if (GetIsPC(oNpc))
+    {
+        return;
+    }
+
+    if (GetIsDM(oNpc))
     {
         return;
     }
@@ -358,7 +383,7 @@ void DL_UnregisterNpc(object oNpc)
 
 void DL_ProcessResync(object oNpc)
 {
-    if (!DL_IsPipelineNpc(oNpc))
+    if (!DL_IsActivePipelineNpc(oNpc))
     {
         return;
     }
@@ -397,7 +422,7 @@ void DL_CleanupNpcRuntimeState(object oNpc)
 
 void DL_WorkerTouchNpc(object oNpc)
 {
-    if (!DL_IsPipelineNpc(oNpc))
+    if (!DL_IsActivePipelineNpc(oNpc))
     {
         return;
     }
@@ -443,7 +468,7 @@ void DL_RunAreaWorkerTick(object oArea)
 
     while (GetIsObjectValid(oObj) && nTouched < nBudget && nScanned < DL_WORKER_SCAN_CAP)
     {
-        if (DL_IsPipelineNpc(oObj))
+        if (DL_IsActivePipelineNpc(oObj))
         {
             if (nIndex >= nCursor)
             {
@@ -464,7 +489,7 @@ void DL_RunAreaWorkerTick(object oArea)
 
         while (GetIsObjectValid(oObj) && nTouched < nBudget && nScanned < DL_WORKER_SCAN_CAP)
         {
-            if (DL_IsPipelineNpc(oObj))
+            if (DL_IsActivePipelineNpc(oObj))
             {
                 if (nIndex < nCursor)
                 {
@@ -553,7 +578,7 @@ void DL_HandleNpcUserDefined(object oNpc, int nUserDefined)
 
     if (nEventKind == DL_NPC_EVENT_SPAWN)
     {
-        if (!DL_IsPipelineNpc(oNpc))
+        if (!DL_IsActivePipelineNpc(oNpc))
         {
             return;
         }
