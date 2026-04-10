@@ -108,6 +108,11 @@ int DL_IsPipelineNpc(object oNpc)
         return FALSE;
     }
 
+    if (GetIsPC(oNpc))
+    {
+        return FALSE;
+    }
+
     if (GetIsDM(oNpc))
     {
         return FALSE;
