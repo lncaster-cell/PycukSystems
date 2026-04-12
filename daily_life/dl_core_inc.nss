@@ -48,8 +48,6 @@ const string DL_L_AREA_ENTER_RESYNC_TOUCHED = "dl_area_enter_resync_touched";
 const string DL_L_AREA_ENTER_RESYNC_DONE = "dl_area_enter_resync_done";
 
 const string DL_L_NPC_REG_ON = "dl_reg_on";
-const string DL_L_NPC_PROFILE_ID = "dl_profile_id";
-const string DL_L_NPC_STATE = "dl_state";
 const string DL_L_NPC_WORKER_SEQ = "dl_npc_worker_seq";
 const string DL_L_NPC_REG_AREA = "dl_npc_reg_area";
 
