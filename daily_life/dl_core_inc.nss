@@ -20,6 +20,7 @@ const string DL_L_MODULE_DEATH_COUNT = "dl_module_death_count";
 
 const string DL_L_NPC_RESYNC_PENDING = "dl_npc_resync_pending";
 const string DL_L_NPC_RESYNC_REASON = "dl_npc_resync_reason";
+const string DL_L_NPC_BLOCKED_DIAGNOSTIC = "dl_npc_blocked_diagnostic";
 
 const string DL_L_MODULE_RESYNC_REQ = "dl_module_resync_req";
 const string DL_L_MODULE_CLEANUP_CNT = "dl_module_cleanup_cnt";

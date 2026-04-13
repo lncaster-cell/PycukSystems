@@ -1,7 +1,6 @@
 const string DL_L_NPC_BLOCKED_OBJ = "dl_npc_blocked_obj";
 const string DL_L_NPC_BLOCKED_TAG = "dl_npc_blocked_tag";
 const string DL_L_NPC_BLOCKED_TYPE = "dl_npc_blocked_type";
-const string DL_L_NPC_BLOCKED_DIAGNOSTIC = "dl_npc_blocked_diagnostic";
 const string DL_L_NPC_BLOCKED_BUSY = "dl_npc_blocked_busy";
 
 const int DL_NPC_EVENT_BLOCKED = 3;
