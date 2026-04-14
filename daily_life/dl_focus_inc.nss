@@ -1,4 +1,5 @@
 const string DL_L_NPC_CACHE_SOCIAL_PARTNER_OBJ = "dl_cache_social_partner_obj";
+int DL_IsActivePipelineNpc(object oNpc);
 
 void DL_ClearFocusExecutionState(object oNpc)
 {

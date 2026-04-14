@@ -91,7 +91,7 @@ object DL_GetNpcAreaByTagCached(object oNpc, string sAreaTagLocal, string sAreaC
     }
 
     object oArea = GetObjectByTag(sAreaTag);
-    if (!GetIsObjectValid(oArea) || GetObjectType(oArea) != OBJECT_TYPE_AREA)
+    if (!GetIsObjectValid(oArea) || GetArea(oArea) != oArea)
     {
         DL_LogMarkupIssueOnce(
             oNpc,

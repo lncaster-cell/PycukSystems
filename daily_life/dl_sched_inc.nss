@@ -1,3 +1,6 @@
+object DL_GetHomeArea(object oNpc);
+object DL_GetWorkArea(object oNpc);
+
 int DL_NormalizeHour(int nHour)
 {
     while (nHour < 0)
@@ -90,8 +93,10 @@ int DL_MinuteInWindow(int nMinute, int nStart, int nDuration)
 }
 int DL_GetWeekendType()
 {
-    // Runtime-native weekday value (0=Sunday, 6=Saturday).
-    int nDow = GetCalendarDayOfWeek();
+    // NWN2 stock compiler does not expose GetCalendarDayOfWeek.
+    // Calendar day is 1..28, so modulo 7 yields stable pseudo-weekday
+    // (0=Sunday, 6=Saturday).
+    int nDow = GetCalendarDay() % 7;
     if (nDow == 0)
     {
         return 2;

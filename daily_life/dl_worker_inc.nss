@@ -4,11 +4,13 @@ const string DL_L_MODULE_WORKER_LAST_PROCESSED = "dl_module_worker_last_processe
 const string DL_L_MODULE_RESYNC_LAST_PROCESSED = "dl_module_resync_last_processed";
 const string DL_L_AREA_WORKER_LAST_PROCESSED = "dl_area_worker_last_processed";
 const string DL_L_AREA_RESYNC_LAST_PROCESSED = "dl_area_resync_last_processed";
+const string DL_L_NPC_LAST_TOUCH_TICK = "dl_npc_last_touch_tick";
 
 const int DL_AREA_PASS_MODE_WORKER = 1;
 const int DL_AREA_PASS_MODE_RESYNC = 2;
 const string DL_L_AREA_REG_BOOTSTRAP_TICK = "dl_area_reg_bootstrap_tick";
 const int DL_REG_BOOTSTRAP_INTERVAL_TICKS = 30;
+void DL_WorkerTouchNpc(object oNpc);
 
 int DL_MaybeBootstrapAreaRegistry(object oArea, int nTickStamp, int nScanBudget)
 {
@@ -25,12 +27,12 @@ int DL_MaybeBootstrapAreaRegistry(object oArea, int nTickStamp, int nScanBudget)
         nScanBudget = DL_WORKER_BUDGET_MIN;
     }
 
-    object oObj = GetFirstObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+    object oObj = GetFirstObjectInArea(oArea);
     int nScannedActive = 0;
 
     while (GetIsObjectValid(oObj) && nScannedActive < nScanBudget)
     {
-        if (DL_IsActivePipelineNpc(oObj))
+        if (GetObjectType(oObj) == OBJECT_TYPE_CREATURE && DL_IsActivePipelineNpc(oObj))
         {
             nScannedActive = nScannedActive + 1;
             if (GetLocalInt(oObj, DL_L_NPC_REG_ON) != TRUE)
@@ -39,7 +41,7 @@ int DL_MaybeBootstrapAreaRegistry(object oArea, int nTickStamp, int nScanBudget)
             }
         }
 
-        oObj = GetNextObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+        oObj = GetNextObjectInArea(oArea);
     }
 
     return GetLocalInt(oArea, DL_L_AREA_REG_COUNT);
@@ -103,11 +105,11 @@ int DL_RunAreaNpcRoundRobinPass(object oArea, int nCursor, int nBudget, int nPas
         nCursor = nCursor % nNpcRegistered;
     }
 
-    object oObj = GetFirstObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+    object oObj = GetFirstObjectInArea(oArea);
 
     while (GetIsObjectValid(oObj))
     {
-        if (DL_IsActivePipelineNpc(oObj))
+        if (GetObjectType(oObj) == OBJECT_TYPE_CREATURE && DL_IsActivePipelineNpc(oObj))
         {
             if (nNpcProcessed < nBudget && nNpcSeen >= nCursor)
             {
@@ -126,17 +128,17 @@ int DL_RunAreaNpcRoundRobinPass(object oArea, int nCursor, int nBudget, int nPas
             }
         }
 
-        oObj = GetNextObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+        oObj = GetNextObjectInArea(oArea);
     }
 
     if (nNpcProcessed < nBudget && nCursor > 0)
     {
-        oObj = GetFirstObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+        oObj = GetFirstObjectInArea(oArea);
         int nWrapSeen = 0;
 
         while (GetIsObjectValid(oObj) && nNpcProcessed < nBudget)
         {
-            if (DL_IsActivePipelineNpc(oObj))
+            if (GetObjectType(oObj) == OBJECT_TYPE_CREATURE && DL_IsActivePipelineNpc(oObj))
             {
                 if (nWrapSeen < nCursor)
                 {
@@ -148,7 +150,7 @@ int DL_RunAreaNpcRoundRobinPass(object oArea, int nCursor, int nBudget, int nPas
                 nWrapSeen = nWrapSeen + 1;
             }
 
-            oObj = GetNextObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+            oObj = GetNextObjectInArea(oArea);
         }
     }
 
