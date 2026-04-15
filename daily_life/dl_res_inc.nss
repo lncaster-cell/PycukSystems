@@ -122,6 +122,13 @@ const int DL_CHAT_STUCK_THRESHOLD_MIN = 5;
 const int DL_CHAT_STUCK_LOG_INTERVAL_MIN = 5;
 const int DL_CHAT_MARKUP_COOLDOWN_MIN = 120;
 
+// Forward declarations for symbols implemented in includes that are
+// textually attached later in this file.
+int DL_IsActivePipelineNpc(object oNpc);
+int DL_IsAreaObject(object oObject);
+object DL_GetHomeArea(object oNpc);
+object DL_GetWorkArea(object oNpc);
+
 #include "dl_sched_inc"
 
 void DL_LogChat(string sMessage)
