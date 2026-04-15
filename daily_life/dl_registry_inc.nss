@@ -45,14 +45,14 @@ const int DL_MODULE_NPC_BUDGET_MAX = 128;
 int DL_CountPlayersInArea(object oArea)
 {
     int nCount = 0;
-    object oObj = GetFirstObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+    object oObj = GetFirstObjectInArea(oArea);
     while (GetIsObjectValid(oObj))
     {
-        if (DL_IsRuntimePlayer(oObj))
+        if (GetObjectType(oObj) == OBJECT_TYPE_CREATURE && DL_IsRuntimePlayer(oObj))
         {
             nCount = nCount + 1;
         }
-        oObj = GetNextObjectInArea(oArea, OBJECT_TYPE_CREATURE);
+        oObj = GetNextObjectInArea(oArea);
     }
     return nCount;
 }
