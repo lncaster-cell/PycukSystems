@@ -90,8 +90,11 @@ int DL_MinuteInWindow(int nMinute, int nStart, int nDuration)
 }
 int DL_GetWeekendType()
 {
-    // Runtime-native weekday value (0=Sunday, 6=Saturday).
-    int nDow = GetCalendarDayOfWeek();
+    // NWN2 toolchain used in CI does not expose GetCalendarDayOfWeek().
+    // Derive a stable weekday index from campaign date components.
+    // Index convention here is 0=Sunday ... 6=Saturday.
+    int nAbsoluteDays = (GetCalendarYear() * 12 * 28) + (GetCalendarMonth() * 28) + GetCalendarDay();
+    int nDow = nAbsoluteDays % 7;
     if (nDow == 0)
     {
         return 2;
